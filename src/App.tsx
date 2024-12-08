@@ -1,10 +1,15 @@
-import { Tldraw } from "tldraw";
+import { Tldraw, type Editor } from "tldraw";
+import { setup } from "./tlanidraw";
 import "tldraw/tldraw.css";
 
 function App() {
+  const handleMount = (editor: Editor) => {
+    setup(editor);
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <Tldraw />
+      <Tldraw onMount={handleMount} />
     </div>
   );
 }
