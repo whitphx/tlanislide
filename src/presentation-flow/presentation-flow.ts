@@ -1,12 +1,23 @@
-import type { TLShapeId, TLCameraMoveOptions } from "tldraw"
+import type { TLShapeId, TLCameraMoveOptions, TLShapePartial } from "tldraw"
+import { atom, computed } from "tldraw";
 
-export class Frame {
-  public readonly steps: Set<Step> = new Set();
+interface CameraStepId {
+  type: "camera";
+  stepIndex: number;
 }
+interface ShapeStepId {
+  type: "shape";
+  sequenceId: ShapeSequenceId;
+  stepIndex: number;
+}
+type StepId = CameraStepId | ShapeStepId;
+
+interface Frame {
+  steps: Set<StepId>;
+};
 
 export interface BaseStep {
   type: string;
-  frameIndex: number;
 }
 export interface CameraStep extends BaseStep {
   type: "camera";
@@ -18,21 +29,133 @@ export interface CameraStep extends BaseStep {
 }
 export interface ShapeStep extends BaseStep {
   type: "shape";
+  shapeId: TLShapeId;
+  animateShapeParams: {
+    partial: Omit<TLShapePartial, "id" | "type">;
+    opts?: TLCameraMoveOptions;
+  }
 }
 type Step = CameraStep | ShapeStep;
 
-export abstract class BaseSequence<T extends Step> {
-  public abstract readonly type: T["type"];
+export interface BaseSequence<T extends Step> {
+  type: T["type"];
+  steps: T[];
+}
 
-  public steps: T[] = [];
+export interface CameraSequence extends BaseSequence<CameraStep> {
+  type: "camera";
+}
 
-  constructor(private presentationFlow: PresentationFlow) { }
+export interface ShapeSequence extends BaseSequence<ShapeStep> {
+  type: "shape";
+  shapeId: TLShapeId;
+}
 
-  public pushStep(stepPartial: Omit<T, "type" | "frameIndex">) {
-    const [frameIndex, newFrame] = this.presentationFlow.createEmptyFrame();
-    const step = { ...stepPartial, type: this.type, frameIndex } as T;
-    this.steps.push(step);
-    newFrame.steps.add(step);
+export type Sequence = CameraSequence | ShapeSequence;
+
+export type ShapeSequenceId = TLShapeId;
+
+export type ComputedFrame = Set<Step>;
+
+interface PresentationFlowState {
+  cameraSequence: CameraSequence;
+  shapeSequences: Record<ShapeSequenceId, ShapeSequence>;
+  frames: Frame[];
+}
+
+export class PresentationFlow {
+  private readonly _state = atom<PresentationFlowState>('PresentationFlow._state', {
+    cameraSequence: { type: "camera", steps: [] },
+    shapeSequences: {},
+    frames: [],
+  });
+
+  get state() {
+    return this._state.get();
+  }
+
+  @computed getCameraSequence(): CameraSequence {
+    return this.state.cameraSequence;
+  }
+
+  @computed getShapeSequences(): Record<TLShapeId, ShapeSequence> {
+    return this.state.shapeSequences
+  };
+
+  @computed getFrames(): ComputedFrame[] {
+    return this.state.frames.map((frame) => {
+      const computedSteps = Array.from(frame.steps).map((stepId) => {
+        if (stepId.type === "camera") {
+          return this.state.cameraSequence.steps[stepId.stepIndex];
+        } else {
+          const sequence = this.state.shapeSequences[stepId.sequenceId];
+          return sequence.steps[stepId.stepIndex];
+        }
+      });
+      return new Set(computedSteps);
+    });
+  }
+
+  public addShapeSequence(shapeId: TLShapeId) {
+    const newShapeSequence: ShapeSequence = { type: "shape", shapeId, steps: [] };
+    this._state.update((state) => {
+      return {
+        ...state,
+        shapeSequences: {
+          ...state.shapeSequences,
+          [shapeId]: newShapeSequence,
+        },
+      }
+    });
+  }
+
+  public pushCameraStep(stepPartial: Omit<CameraStep, "type">) {
+    const step = { type: "camera" as const, ...stepPartial };
+    this._state.update((state) => {
+      const newFrame: Frame = {
+        steps: new Set([{ type: "camera", stepIndex: state.cameraSequence.steps.length }]),
+      };
+
+      return {
+        ...state,
+        cameraSequence: {
+          ...state.cameraSequence,
+          steps: [...state.cameraSequence.steps, step],
+        },
+        frames: [
+          ...state.frames,
+          newFrame,
+        ]
+      };
+    });
+  }
+  public pushShapeStep(shapeId: TLShapeId, stepPartial: Omit<ShapeStep, "type" | "shapeId">) {
+    const step = { type: "shape" as const, shapeId, ...stepPartial };
+    this._state.update((state) => {
+      const targetSequence = state.shapeSequences[shapeId];
+      if (!targetSequence) {
+        throw new Error(`Shape sequence with id ${shapeId} does not exist`);
+      }
+
+      const newFrame: Frame = {
+        steps: new Set([{ type: "shape", sequenceId: shapeId, stepIndex: targetSequence.steps.length }]),
+      };
+
+      return {
+        ...state,
+        shapeSequences: {
+          ...state.shapeSequences,
+          [shapeId]: {
+            ...targetSequence,
+            steps: [...targetSequence.steps, step],
+          },
+        },
+        frames: [
+          ...state.frames,
+          newFrame,
+        ]
+      };
+    });
   }
 
   public insertStep(stepPartial: Omit<T, "type" | "frameIndex">, index: number) {
@@ -49,80 +172,6 @@ export abstract class BaseSequence<T extends Step> {
    * To achieve it, the steps after the current step can also be moved to the new frame.
    * If there are not enough frames, new frames will be created.
    */
-  public moveStepTo(fromIndexInThisSequence: number, frameIndex: number) {
-    // TODO
-  }
-}
-
-export class CameraSequence extends BaseSequence<CameraStep> {
-  public readonly type = "camera";
-}
-
-export class ShapeSequence extends BaseSequence<ShapeStep> {
-  public readonly type = "shape";
-  public readonly shapeId: TLShapeId;
-
-  constructor(presentationFlow: PresentationFlow, shapeId: TLShapeId) {
-    super(presentationFlow);
-    this.shapeId = shapeId;
-  }
-}
-
-export type Sequence = CameraSequence | ShapeSequence;
-
-export interface JSONSerializablePresentationFlow {
-  // TODO
-}
-
-export class PresentationFlow {
-  private frames: Frame[] = [];
-  private sequences: Sequence[] = [];
-  private cameraSequence: CameraSequence;
-  private shapeSequences: ShapeSequence[];
-
-  constructor() {
-    this.cameraSequence = new CameraSequence(this);
-    this.shapeSequences = [];
-
-    this.sequences.push(this.cameraSequence);
-  }
-
-  public getCameraSequence(): CameraSequence {
-    return this.cameraSequence;
-  }
-
-  public getShapeSequences(): ShapeSequence[] {
-    return this.shapeSequences;
-  }
-
-  public getShapeSequenceAt(index: number): ShapeSequence {
-    return this.shapeSequences[index];
-  }
-
-  public addShapeSequence(shapeId: TLShapeId) {
-    const sequence = new ShapeSequence(this, shapeId);
-    this.sequences.push(sequence);
-    this.shapeSequences.push(sequence);
-  }
-
-  public getFrames() {
-    return this.frames;
-  }
-
-  public createEmptyFrame(): [number, Frame] {
-    const newFrame = new Frame();
-    this.frames.push(newFrame);
-    const insertedIndex = this.frames.length - 1;
-    return [insertedIndex, newFrame];
-  }
-
-  public serialize(): JSONSerializablePresentationFlow {
-    // TODO
-    return {};
-  }
-
-  public static deserialize(json: JSONSerializablePresentationFlow): PresentationFlow {
-    // TODO
-    return new PresentationFlow();
+  public moveStepTo(stepId: StepId, frameIndex: number, mode: "before" | "after" | "merge") {
   }
 }
