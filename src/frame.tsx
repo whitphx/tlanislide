@@ -25,3 +25,5 @@ export function getSlides(editor: Editor) {
     .map((id) => editor.getShape(id))
     .filter((s) => s?.type === SlideShapeType) as SlideShape[];
 }
+
+export const $currentFrameIndex = atom<number>("current frame index", 0);
