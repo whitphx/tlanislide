@@ -1,4 +1,4 @@
-import type { TLShapeId, TLCameraMoveOptions, TLShapePartial } from "tldraw"
+import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape } from "tldraw"
 import { atom, computed } from "tldraw";
 
 interface StepIndex {
@@ -23,15 +23,15 @@ export interface CameraStep extends BaseStep {
     targetZoom?: number;
   } & TLCameraMoveOptions;
 }
-export interface ShapeStep extends BaseStep {
+export interface ShapeStep<T extends TLShape = TLShape> extends BaseStep {
   type: "shape";
   shapeId: TLShapeId;
   animateShapeParams: {
-    partial: Omit<TLShapePartial, "id" | "type">;
+    partial: Omit<TLShapePartial<T>, "id" | "type">;
     opts?: TLCameraMoveOptions;
   }
 }
-type Step = CameraStep | ShapeStep;
+type Step<T extends TLShape = TLShape> = CameraStep | ShapeStep<T>;
 
 export interface BaseSequence<T extends Step> {
   type: T["type"];
@@ -132,9 +132,13 @@ export class PresentationFlow {
     });
   }
 
-  public pushStep(step: Step) {
+  public pushStep<T extends TLShape = TLShape>(step: Step<T>) {
     this._state.update((state) => {
       const targetSequenceId = step.type === "camera" ? CAMERA_SEQUENCE_ID : getShapeSequenceId(step.shapeId);
+      if (!state.sequences[targetSequenceId]) {
+        throw new Error(`Sequence with id ${targetSequenceId} not found`);
+      }
+
       const newFrame: Frame = [{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }];
 
       return {

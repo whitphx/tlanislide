@@ -16,6 +16,7 @@ export function runFrame(
   const { skipAnime = false } = options ?? {};
 
   const cameraStep = frameSteps.find((step) => step.type === "camera");
+  const shapeSteps = frameSteps.filter((step) => step.type === "shape");
   if (cameraStep) {
     const bounds = editor.getShapePageBounds(cameraStep.shapeId);
     if (!bounds) {
@@ -29,4 +30,24 @@ export function runFrame(
         : cameraStep.zoomToBoundsParams.animation,
     });
   }
+  shapeSteps.forEach((step) => {
+    const shape = editor.getShape(step.shapeId);
+    if (shape == null) {
+      return;
+    }
+
+    editor.animateShape(
+      {
+        ...step.animateShapeParams.partial,
+        id: shape.id,
+        type: shape.type,
+      },
+      {
+        ...step.animateShapeParams.opts,
+        animation: skipAnime
+          ? { duration: 0 }
+          : step.animateShapeParams.opts?.animation,
+      }
+    );
+  });
 }

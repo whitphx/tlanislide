@@ -9,6 +9,7 @@ import {
   DefaultKeyboardShortcutsDialogContent,
   createShapeId,
   EASINGS,
+  TLArrowShape,
 } from "tldraw";
 import type { TLUiOverrides, TLComponents, Editor } from "tldraw";
 import "tldraw/tldraw.css";
@@ -206,6 +207,25 @@ function App() {
         animation: {
           duration: 1000,
           easing: EASINGS.easeInCubic, // TODO: JSON serializable
+        },
+      },
+    });
+    $presentationFlow.addShapeSequence(arrow1Id);
+    $presentationFlow.pushStep<TLArrowShape>({
+      type: "shape",
+      shapeId: arrow1Id,
+      animateShapeParams: {
+        partial: {
+          props: {
+            start: { x: 0, y: 0 },
+            end: { x: 0, y: 300 },
+          },
+        },
+        opts: {
+          animation: {
+            duration: 1000,
+            easing: EASINGS.easeInCubic, // TODO: JSON serializable
+          },
         },
       },
     });
