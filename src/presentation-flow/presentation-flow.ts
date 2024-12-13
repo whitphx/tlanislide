@@ -1,19 +1,13 @@
 import type { TLShapeId, TLCameraMoveOptions, TLShapePartial } from "tldraw"
 import { atom, computed } from "tldraw";
 
-interface CameraStepIndex {
-  type: "camera";
+interface StepIndex {
+  sequenceId: SequenceId;
   stepIndex: number;
-}
-interface ShapeStepIndex {
-  type: "shape";
-  sequenceId: ShapeSequenceId;
-  stepIndex: number;
-}
-type StepIndex = CameraStepIndex | ShapeStepIndex;
+};
 
 function stepIndexEquals(a: StepIndex, b: StepIndex) {
-  return a.type === b.type && a.stepIndex === b.stepIndex;
+  return a.sequenceId === b.sequenceId && a.stepIndex === b.stepIndex;
 }
 
 interface Frame {
@@ -100,12 +94,8 @@ export class PresentationFlow {
   @computed getFrames(): ComputedFrame[] {
     return this.state.frames.map((frame) => {
       const computedSteps = Array.from(frame.steps).map((stepId) => {
-        if (stepId.type === "camera") {
-          return this.state.sequences[CAMERA_SEQUENCE_ID].steps[stepId.stepIndex];
-        } else {
-          const sequence = this.state.sequences[stepId.sequenceId];
-          return sequence.steps[stepId.stepIndex];
-        }
+        const sequence = this.state.sequences[stepId.sequenceId];
+        return sequence.steps[stepId.stepIndex];
       });
       return new Set(computedSteps);
     });
@@ -125,49 +115,20 @@ export class PresentationFlow {
     });
   }
 
-  public pushCameraStep(stepPartial: Omit<CameraStep, "type">) {
-    const step = { type: "camera" as const, ...stepPartial };
+  public pushStep(step: Step) {
     this._state.update((state) => {
+      const targetSequenceId = step.type === "camera" ? CAMERA_SEQUENCE_ID : getShapeSequenceId(step.shapeId);
       const newFrame: Frame = {
-        steps: new Set([{ type: "camera", stepIndex: state.sequences[CAMERA_SEQUENCE_ID].steps.length }]),
+        steps: new Set([{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }]),
       };
 
       return {
         ...state,
         sequences: {
           ...state.sequences,
-          [CAMERA_SEQUENCE_ID]: {
-            ...state.sequences[CAMERA_SEQUENCE_ID],
-            steps: [...state.sequences[CAMERA_SEQUENCE_ID].steps, step],
-          },
-        },
-        frames: [
-          ...state.frames,
-          newFrame,
-        ]
-      };
-    });
-  }
-  public pushShapeStep(shapeId: TLShapeId, stepPartial: Omit<ShapeStep, "type" | "shapeId">) {
-    const step = { type: "shape" as const, shapeId, ...stepPartial };
-    const shapeSequenceId = getShapeSequenceId(shapeId);
-    this._state.update((state) => {
-      const targetSequence = state.sequences[shapeSequenceId];
-      if (!targetSequence) {
-        throw new Error(`Shape sequence with id ${shapeId} does not exist`);
-      }
-
-      const newFrame: Frame = {
-        steps: new Set([{ type: "shape", sequenceId: shapeSequenceId, stepIndex: targetSequence.steps.length }]),
-      };
-
-      return {
-        ...state,
-        sequences: {
-          ...state.sequences,
-          [shapeSequenceId]: {
-            ...targetSequence,
-            steps: [...targetSequence.steps, step],
+          [targetSequenceId]: {
+            ...state.sequences[targetSequenceId],
+            steps: [...state.sequences[targetSequenceId].steps, step],
           },
         },
         frames: [
@@ -192,7 +153,7 @@ export class PresentationFlow {
    * To achieve it, the steps after the current step can also be moved to the new frame.
    * If there are not enough frames, new frames will be created.
    */
-  public moveStepTo(srcStepIdx: StepIndex, dstFrameIdx: number) {
+  public moveStepToFrame(srcStepIdx: StepIndex, dstFrameIdx: number) {
     this._state.update((state) => {
       if (dstFrameIdx < 0 || dstFrameIdx >= state.frames.length) {
         throw new Error(`Frame with index ${dstFrameIdx} not found`);
