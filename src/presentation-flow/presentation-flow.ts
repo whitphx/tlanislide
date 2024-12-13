@@ -10,7 +10,7 @@ function stepIndexEquals(a: StepIndex, b: StepIndex) {
   return a.sequenceId === b.sequenceId && a.stepIndex === b.stepIndex;
 }
 
-type Frame = Set<StepIndex>
+type Frame = StepIndex[]; // Semantically equivalent to Set<StepIndex>, but use array for easier immutable manipulation.
 
 export interface BaseStep {
   type: string;
@@ -77,6 +77,13 @@ export class PresentationFlow {
     frames: [],
   });
 
+  setState(newState: PresentationFlowState) {
+    if (newState.sequences[CAMERA_SEQUENCE_ID]?.type !== "camera") {
+      throw new Error(`Invalid initial state: camera sequence not found`);
+    }
+    this._state.set(newState);
+  }
+
   get state() {
     return this._state.get();
   }
@@ -91,7 +98,7 @@ export class PresentationFlow {
 
   @computed getFrames(): ComputedFrame[] {
     return this.state.frames.map((frame) => {
-      const computedSteps = Array.from(frame).map((stepId) => {
+      const computedSteps = frame.map((stepId) => {
         const sequence = this.state.sequences[stepId.sequenceId];
         return sequence.steps[stepId.stepIndex];
       });
@@ -116,7 +123,7 @@ export class PresentationFlow {
   public pushStep(step: Step) {
     this._state.update((state) => {
       const targetSequenceId = step.type === "camera" ? CAMERA_SEQUENCE_ID : getShapeSequenceId(step.shapeId);
-      const newFrame: Frame = new Set([{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }]);
+      const newFrame: Frame = [{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }];
 
       return {
         ...state,
@@ -155,7 +162,7 @@ export class PresentationFlow {
         throw new Error(`Frame with index ${dstFrameIdx} not found`);
       }
 
-      const srcFrameIdx = state.frames.findIndex((frame) => Array.from(frame).some((stepIdx) => stepIndexEquals(stepIdx, srcStepIdx)));
+      const srcFrameIdx = state.frames.findIndex((frame) => frame.some((stepIdx) => stepIndexEquals(stepIdx, srcStepIdx)));
       if (srcFrameIdx === -1) {
         throw new Error(`Step with index ${srcStepIdx.stepIndex} not found`);
       }
@@ -164,23 +171,75 @@ export class PresentationFlow {
         return state;
       }
 
-      const srcFrame = state.frames[srcFrameIdx];
-      const dstFrame = state.frames[dstFrameIdx];
-
-      const newFrames = state.frames.map((frame, idx) => {
-        if (idx === srcFrameIdx) {
-          return new Set([...srcFrame].filter((step) => !stepIndexEquals(step, srcStepIdx)));
-        } else if (idx === dstFrameIdx) {
-          return new Set([...dstFrame, { ...srcStepIdx }]);
-        } else {
-          return frame;
-        }
-      }).filter((frame) => frame.size > 0);
-
-      return {
-        ...state,
-        frames: newFrames,
-      };
+      // To keep the order constraint in the sequence, we need to move all steps before/after the current step to the new frame.
+      if (srcFrameIdx < dstFrameIdx) {
+        const newFrames = moveStep(
+          state.frames,
+          srcStepIdx,
+          srcFrameIdx,
+          dstFrameIdx,
+        );
+        return {
+          ...state,
+          frames: newFrames,
+        };
+      } else {
+        const newFrames = moveStep(
+          state.frames.slice().reverse(),
+          srcStepIdx,
+          state.frames.length - srcFrameIdx - 1,
+          state.frames.length - dstFrameIdx - 1,
+        ).reverse();
+        return {
+          ...state,
+          frames: newFrames,
+        };
+      }
     });
   }
+}
+
+/**
+ * Move the step to the new frame.
+ * This function is only expected to be used internally by the PresentationFlow class,
+ * so some assumptions are made and not checked:
+ * * Assuming srcStepIdx is in the srcFrameIdx
+ * * Assuming 0 <= srcFrameIdx < dstFrameIdx < framesState.length
+ * * Assuming the order of steps in the sequence and the order of frames are correct.
+ */
+function moveStep(framesState: PresentationFlowState["frames"], srcStepIdx: StepIndex, srcFrameIdx: number, dstFrameIdx: number): PresentationFlowState["frames"] {
+  const updatedFramesFragment: Frame[] = []
+  const stepIdxsToMove: StepIndex[] = []
+  framesState.slice(srcFrameIdx + 1, dstFrameIdx + 1).forEach((frame) => {
+    const newFrame: Frame = [];
+    frame.forEach((stepIdx) => {
+      const shouldMove = stepIdx.sequenceId === srcStepIdx.sequenceId
+      if (shouldMove) {
+        stepIdxsToMove.push(stepIdx);
+      } else {
+        newFrame.push(stepIdx);
+      }
+    });
+    updatedFramesFragment.push(newFrame);
+  })
+  const newInsertedFrames: Frame[] = stepIdxsToMove.map((stepIdx) => [{ ...stepIdx }]);
+
+  const srcFrame = framesState[srcFrameIdx];
+  const dstFrame = updatedFramesFragment[updatedFramesFragment.length - 1];
+
+  const updatedSrcFrame = [...srcFrame].filter((stepIdx) => !stepIndexEquals(stepIdx, srcStepIdx));
+  const updatedDstFrame = [...dstFrame, { ...srcStepIdx }];
+
+  const newFrames = [
+    ...framesState.slice(0, srcFrameIdx),
+    updatedSrcFrame,
+    ...[
+      ...updatedFramesFragment.slice(0, -1),
+      updatedDstFrame,
+    ],
+    ...newInsertedFrames,
+    ...framesState.slice(dstFrameIdx + 1),
+  ]
+
+  return newFrames.filter((frame) => frame.length > 0);
 }
