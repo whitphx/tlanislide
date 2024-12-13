@@ -45,7 +45,7 @@ describe('PresentationFlow', () => {
     it('can add steps', () => {
       flow.pushStep({
         type: "camera",
-        focusShapeId: shapeId1,
+        shapeId: shapeId1,
         zoomToBoundsParams: {
           inset: 100,
         },
@@ -56,11 +56,11 @@ describe('PresentationFlow', () => {
       flow.pushStep({ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 400 } } })
 
       expect(flow.getFrames()).toEqual([
-        new Set([{ type: "camera", focusShapeId: shapeId1, zoomToBoundsParams: { inset: 100 } }]),
-        new Set([{ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 100 } } }]),
-        new Set([{ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 200 } } }]),
-        new Set([{ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 300 } } }]),
-        new Set([{ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 400 } } }]),
+        [{ type: "camera", shapeId: shapeId1, zoomToBoundsParams: { inset: 100 } }],
+        [{ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 100 } } }],
+        [{ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 200 } } }],
+        [{ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 300 } } }],
+        [{ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 400 } } }],
       ]);
     });
 
@@ -73,14 +73,14 @@ describe('PresentationFlow', () => {
         beforeEach(() => {
           cameraStep1 = {
             type: "camera",
-            focusShapeId: shapeId1,
+            shapeId: shapeId1,
             zoomToBoundsParams: {
               inset: 100,
             },
           }
           cameraStep2 = {
             type: "camera",
-            focusShapeId: shapeId1,
+            shapeId: shapeId1,
             zoomToBoundsParams: {
               inset: 200,
             },
@@ -100,13 +100,13 @@ describe('PresentationFlow', () => {
           flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }, 0);
 
           expect(flow.getFrames()).toEqual([
-            new Set([
+            [
               cameraStep1,
               shapeStep1,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep2,
-            ]),
+            ],
           ]);
         });
 
@@ -114,13 +114,13 @@ describe('PresentationFlow', () => {
           flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }, 2);
 
           expect(flow.getFrames()).toEqual([
-            new Set([
+            [
               cameraStep1,
-            ]),
-            new Set([
-              shapeStep1,
+            ],
+            [
               cameraStep2,
-            ]),
+              shapeStep1,
+            ],
           ]);
         });
       });
@@ -136,21 +136,21 @@ describe('PresentationFlow', () => {
         beforeEach(() => {
           cameraStep0 = {
             type: "camera",
-            focusShapeId: shapeId1,
+            shapeId: shapeId1,
             zoomToBoundsParams: {
               inset: 0,
             },
           }
           cameraStep1 = {
             type: "camera",
-            focusShapeId: shapeId1,
+            shapeId: shapeId1,
             zoomToBoundsParams: {
               inset: 100,
             },
           }
           cameraStep2 = {
             type: "camera",
-            focusShapeId: shapeId1,
+            shapeId: shapeId1,
             zoomToBoundsParams: {
               inset: 200,
             },
@@ -192,22 +192,22 @@ describe('PresentationFlow', () => {
           })
 
           expect(flow.getFrames()).toEqual([
-            new Set([
+            [
               shapeStep0,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep0,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep1,
               shapeStep1,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep2,
-            ]),
-            new Set([
+            ],
+            [
               shapeStep2,
-            ]),
+            ],
           ]);
         });
 
@@ -215,22 +215,22 @@ describe('PresentationFlow', () => {
           flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 2 }, 2);
 
           expect(flow.getFrames()).toEqual([
-            new Set([
+            [
               shapeStep0,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep0,
-            ]),
-            new Set([
+            ],
+            [
               shapeStep1,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep1,
               shapeStep2,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep2,
-            ]),
+            ],
           ]);
         });
 
@@ -238,22 +238,22 @@ describe('PresentationFlow', () => {
           flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }, 2);
 
           expect(flow.getFrames()).toEqual([
-            new Set([
+            [
               cameraStep0,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep1,
               shapeStep0,
-            ]),
-            new Set([
+            ],
+            [
               shapeStep1,
-            ]),
-            new Set([
+            ],
+            [
               cameraStep2,
-            ]),
-            new Set([
+            ],
+            [
               shapeStep2,
-            ]),
+            ],
           ]);
         });
       });

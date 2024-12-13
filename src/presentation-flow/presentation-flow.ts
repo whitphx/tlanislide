@@ -10,14 +10,14 @@ function stepIndexEquals(a: StepIndex, b: StepIndex) {
   return a.sequenceId === b.sequenceId && a.stepIndex === b.stepIndex;
 }
 
-type Frame = StepIndex[]; // Semantically equivalent to Set<StepIndex>, but use array for easier immutable manipulation.
+type Frame = StepIndex[];  // Semantically equivalent to Set<StepIndex>, `StepIndex` is not a primitive type and doesn't work with `Set`. Also, we use array for easier manipulation.
 
 export interface BaseStep {
   type: string;
 }
 export interface CameraStep extends BaseStep {
   type: "camera";
-  focusShapeId: TLShapeId;
+  shapeId: TLShapeId;
   zoomToBoundsParams: {
     inset?: number;
     targetZoom?: number;
@@ -62,7 +62,7 @@ export function getShapeSequenceId(shapeId: TLShapeId): ShapeSequenceId {
   return `ShapeSeq:${shapeId}`;
 }
 
-export type ComputedFrame = Set<Step>;
+export type ComputedFrame = Step[];  // Semantically equivalent to Set<Step>, `Step` is not a primitive type and doesn't work with `Set`. Also, we use array for easier manipulation.
 
 interface PresentationFlowState {
   sequences: SequenceMap;
@@ -102,7 +102,7 @@ export class PresentationFlow {
         const sequence = this.state.sequences[stepId.sequenceId];
         return sequence.steps[stepId.stepIndex];
       });
-      return new Set(computedSteps);
+      return computedSteps;
     });
   }
 
@@ -142,7 +142,7 @@ export class PresentationFlow {
     });
   }
 
-  public insertStep(stepPartial: Omit<T, "type" | "frameIndex">, index: number) {
+  public insertStep(step: Step, index: number) {
     // TODO
   }
 
