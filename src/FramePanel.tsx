@@ -1,6 +1,6 @@
 import { track, useEditor, stopEventPropagation } from "tldraw";
 import { $currentFrameIndex } from "./frame";
-import { $presentationFlow } from "./frame";
+import { $presentationFlow, runFrame } from "./frame";
 
 export const FramePanel = track(() => {
   const editor = useEditor();
@@ -30,17 +30,7 @@ export const FramePanel = track(() => {
             key={i} // TODO: Use a unique key
             onClick={() => {
               $currentFrameIndex.set(i);
-              const cameraStep = frameSteps.find(
-                (step) => step.type === "camera"
-              );
-              if (cameraStep) {
-                const bounds = editor.getShapePageBounds(cameraStep.shapeId);
-                if (!bounds) {
-                  return;
-                }
-
-                editor.zoomToBounds(bounds, cameraStep.zoomToBoundsParams);
-              }
+              runFrame(editor, frameSteps, { skipAnime: true });
             }}
             style={{
               color: isSelected ? "red" : "black",

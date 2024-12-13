@@ -7,60 +7,57 @@ import {
   TldrawUiMenuItem,
   DefaultKeyboardShortcutsDialog,
   DefaultKeyboardShortcutsDialogContent,
-  computed,
   createShapeId,
   EASINGS,
 } from "tldraw";
-import type { TLUiOverrides, TLComponents } from "tldraw";
+import type { TLUiOverrides, TLComponents, Editor } from "tldraw";
 import "tldraw/tldraw.css";
 
 import { SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { FramePanel } from "./FramePanel";
-import {
-  $currentSlide,
-  $presentationFlow,
-  getSlides,
-  moveToSlide,
-} from "./frame";
+import { $currentFrameIndex, $presentationFlow, runFrame } from "./frame";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
 
 const myUiOverrides: TLUiOverrides = {
   actions(editor, actions, helpers) {
-    const $slides = computed("slides", () => getSlides(editor));
-
-    actions["next-slide"] = {
-      id: "next-slide",
-      label: "Next Slide",
+    actions["next-frame"] = {
+      id: "next-frame",
+      label: "Next Frame",
       kbd: "right",
       onSelect() {
-        const slides = $slides.get();
-        const currentSlide = $currentSlide.get();
-        const index = slides.findIndex((s) => s.id === currentSlide?.id);
-        const nextSlide = slides[index + 1] ?? currentSlide ?? slides[0];
-        if (nextSlide) {
-          editor.stopCameraAnimation();
-          moveToSlide(editor, nextSlide);
+        const frames = $presentationFlow.getFrames();
+        const currentFrameIndex = $currentFrameIndex.get();
+        const nextFrameIndex = currentFrameIndex + 1;
+        const nextFrame = frames[nextFrameIndex];
+        if (nextFrame == null) {
+          return;
         }
+
+        $currentFrameIndex.set(nextFrameIndex);
+        editor.stopCameraAnimation();
+        runFrame(editor, nextFrame);
       },
     };
 
-    actions["prev-slide"] = {
-      id: "prev-slide",
-      label: "Previous Slide",
+    actions["prev-frame"] = {
+      id: "prev-frame",
+      label: "Previous Frame",
       kbd: "left",
       onSelect() {
-        const slides = $slides.get();
-        const currentSlide = $currentSlide.get();
-        const index = slides.findIndex((s) => s.id === currentSlide?.id);
-        const prevSlide =
-          slides[index - 1] ?? currentSlide ?? slides[slides.length - 1];
-        if (prevSlide) {
-          editor.stopCameraAnimation();
-          moveToSlide(editor, prevSlide);
+        const frames = $presentationFlow.getFrames();
+        const currentFrameIndex = $currentFrameIndex.get();
+        const prevFrameIndex = currentFrameIndex - 1;
+        const prevFrame = frames[prevFrameIndex];
+        if (prevFrame == null) {
+          return;
         }
+
+        $currentFrameIndex.set(prevFrameIndex);
+        editor.stopCameraAnimation();
+        runFrame(editor, prevFrame, { skipAnime: true });
       },
     };
 
@@ -195,6 +192,17 @@ function App() {
       shapeId: slide2Id,
       zoomToBoundsParams: {
         inset: 200,
+        animation: {
+          duration: 1000,
+          easing: EASINGS.easeInCubic, // TODO: JSON serializable
+        },
+      },
+    });
+    $presentationFlow.pushStep({
+      type: "camera",
+      shapeId: slide1Id,
+      zoomToBoundsParams: {
+        inset: 300,
         animation: {
           duration: 1000,
           easing: EASINGS.easeInCubic, // TODO: JSON serializable
