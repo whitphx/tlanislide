@@ -1,19 +1,23 @@
 import type { TLShapeId, TLCameraMoveOptions, TLShapePartial } from "tldraw"
 import { atom, computed } from "tldraw";
 
-interface CameraStepId {
+interface CameraStepIndex {
   type: "camera";
   stepIndex: number;
 }
-interface ShapeStepId {
+interface ShapeStepIndex {
   type: "shape";
   sequenceId: ShapeSequenceId;
   stepIndex: number;
 }
-type StepId = CameraStepId | ShapeStepId;
+type StepIndex = CameraStepIndex | ShapeStepIndex;
+
+function stepIndexEquals(a: StepIndex, b: StepIndex) {
+  return a.type === b.type && a.stepIndex === b.stepIndex;
+}
 
 interface Frame {
-  steps: Set<StepId>;
+  steps: Set<StepIndex>;
 };
 
 export interface BaseStep {
@@ -53,20 +57,31 @@ export interface ShapeSequence extends BaseSequence<ShapeStep> {
 
 export type Sequence = CameraSequence | ShapeSequence;
 
-export type ShapeSequenceId = TLShapeId;
+export const CAMERA_SEQUENCE_ID = "CameraSeq" as const;
+export type CameraSequenceId = typeof CAMERA_SEQUENCE_ID;
+export type ShapeSequenceId = `ShapeSeq:${TLShapeId}`;
+export type SequenceId = CameraSequenceId | ShapeSequenceId;
+type SeqIdToSeqMap<K extends string, V> = {
+  [P in K]: V;
+}
+type SequenceMap = SeqIdToSeqMap<CameraSequenceId, CameraSequence> & SeqIdToSeqMap<ShapeSequenceId, ShapeSequence>;
+
+export function getShapeSequenceId(shapeId: TLShapeId): ShapeSequenceId {
+  return `ShapeSeq:${shapeId}`;
+}
 
 export type ComputedFrame = Set<Step>;
 
 interface PresentationFlowState {
-  cameraSequence: CameraSequence;
-  shapeSequences: Record<ShapeSequenceId, ShapeSequence>;
+  sequences: SequenceMap;
   frames: Frame[];
 }
 
 export class PresentationFlow {
   private readonly _state = atom<PresentationFlowState>('PresentationFlow._state', {
-    cameraSequence: { type: "camera", steps: [] },
-    shapeSequences: {},
+    sequences: {
+      [CAMERA_SEQUENCE_ID]: { type: "camera", steps: [] },
+    },
     frames: [],
   });
 
@@ -75,20 +90,20 @@ export class PresentationFlow {
   }
 
   @computed getCameraSequence(): CameraSequence {
-    return this.state.cameraSequence;
+    return this.state.sequences[CAMERA_SEQUENCE_ID];
   }
 
-  @computed getShapeSequences(): Record<TLShapeId, ShapeSequence> {
-    return this.state.shapeSequences
+  @computed getShapeSequences(): ShapeSequence[] {
+    return Object.values(this.state.sequences).filter((sequence): sequence is ShapeSequence => sequence.type === "shape");
   };
 
   @computed getFrames(): ComputedFrame[] {
     return this.state.frames.map((frame) => {
       const computedSteps = Array.from(frame.steps).map((stepId) => {
         if (stepId.type === "camera") {
-          return this.state.cameraSequence.steps[stepId.stepIndex];
+          return this.state.sequences[CAMERA_SEQUENCE_ID].steps[stepId.stepIndex];
         } else {
-          const sequence = this.state.shapeSequences[stepId.sequenceId];
+          const sequence = this.state.sequences[stepId.sequenceId];
           return sequence.steps[stepId.stepIndex];
         }
       });
@@ -97,13 +112,14 @@ export class PresentationFlow {
   }
 
   public addShapeSequence(shapeId: TLShapeId) {
+    const shapeSequenceId = getShapeSequenceId(shapeId);
     const newShapeSequence: ShapeSequence = { type: "shape", shapeId, steps: [] };
     this._state.update((state) => {
       return {
         ...state,
-        shapeSequences: {
-          ...state.shapeSequences,
-          [shapeId]: newShapeSequence,
+        sequences: {
+          ...state.sequences,
+          [shapeSequenceId]: newShapeSequence,
         },
       }
     });
@@ -113,14 +129,17 @@ export class PresentationFlow {
     const step = { type: "camera" as const, ...stepPartial };
     this._state.update((state) => {
       const newFrame: Frame = {
-        steps: new Set([{ type: "camera", stepIndex: state.cameraSequence.steps.length }]),
+        steps: new Set([{ type: "camera", stepIndex: state.sequences[CAMERA_SEQUENCE_ID].steps.length }]),
       };
 
       return {
         ...state,
-        cameraSequence: {
-          ...state.cameraSequence,
-          steps: [...state.cameraSequence.steps, step],
+        sequences: {
+          ...state.sequences,
+          [CAMERA_SEQUENCE_ID]: {
+            ...state.sequences[CAMERA_SEQUENCE_ID],
+            steps: [...state.sequences[CAMERA_SEQUENCE_ID].steps, step],
+          },
         },
         frames: [
           ...state.frames,
@@ -131,21 +150,22 @@ export class PresentationFlow {
   }
   public pushShapeStep(shapeId: TLShapeId, stepPartial: Omit<ShapeStep, "type" | "shapeId">) {
     const step = { type: "shape" as const, shapeId, ...stepPartial };
+    const shapeSequenceId = getShapeSequenceId(shapeId);
     this._state.update((state) => {
-      const targetSequence = state.shapeSequences[shapeId];
+      const targetSequence = state.sequences[shapeSequenceId];
       if (!targetSequence) {
         throw new Error(`Shape sequence with id ${shapeId} does not exist`);
       }
 
       const newFrame: Frame = {
-        steps: new Set([{ type: "shape", sequenceId: shapeId, stepIndex: targetSequence.steps.length }]),
+        steps: new Set([{ type: "shape", sequenceId: shapeSequenceId, stepIndex: targetSequence.steps.length }]),
       };
 
       return {
         ...state,
-        shapeSequences: {
-          ...state.shapeSequences,
-          [shapeId]: {
+        sequences: {
+          ...state.sequences,
+          [shapeSequenceId]: {
             ...targetSequence,
             steps: [...targetSequence.steps, step],
           },
@@ -172,6 +192,42 @@ export class PresentationFlow {
    * To achieve it, the steps after the current step can also be moved to the new frame.
    * If there are not enough frames, new frames will be created.
    */
-  public moveStepTo(stepId: StepId, frameIndex: number, mode: "before" | "after" | "merge") {
+  public moveStepTo(srcStepIdx: StepIndex, dstFrameIdx: number) {
+    this._state.update((state) => {
+      if (dstFrameIdx < 0 || dstFrameIdx >= state.frames.length) {
+        throw new Error(`Frame with index ${dstFrameIdx} not found`);
+      }
+
+      const srcFrameIdx = state.frames.findIndex((frame) => Array.from(frame.steps).some((frame) => stepIndexEquals(frame, srcStepIdx)));
+      if (srcFrameIdx === -1) {
+        throw new Error(`Step with index ${srcStepIdx.stepIndex} not found`);
+      }
+
+      if (srcFrameIdx === dstFrameIdx) {
+        return state;
+      }
+
+      const srcFrame = state.frames[srcFrameIdx];
+      const dstFrame = state.frames[dstFrameIdx];
+
+      const newFrames = state.frames.map((frame, idx) => {
+        if (idx === srcFrameIdx) {
+          return {
+            steps: new Set([...srcFrame.steps].filter((step) => !stepIndexEquals(step, srcStepIdx))),
+          };
+        } else if (idx === dstFrameIdx) {
+          return {
+            steps: new Set([...dstFrame.steps, { ...srcStepIdx }]),
+          };
+        } else {
+          return frame;
+        }
+      }).filter((frame) => frame.steps.size > 0);
+
+      return {
+        ...state,
+        frames: newFrames,
+      };
+    });
   }
 }
