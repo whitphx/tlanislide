@@ -19,7 +19,7 @@ import { SlideShapeTool } from "./SlideShapeTool";
 import { FramePanel } from "./FramePanel";
 import {
   $currentSlide,
-  presentationFlow,
+  $presentationFlow,
   getSlides,
   moveToSlide,
 } from "./frame";
@@ -182,15 +182,15 @@ function App() {
       throw new Error("Arrow 2 not found");
     }
 
-    presentationFlow.initialize();
-    presentationFlow.pushStep({
+    $presentationFlow.initialize();
+    $presentationFlow.pushStep({
       type: "camera",
       shapeId: slide1Id,
       zoomToBoundsParams: {
         inset: 100,
       },
     });
-    presentationFlow.pushStep({
+    $presentationFlow.pushStep({
       type: "camera",
       shapeId: slide2Id,
       zoomToBoundsParams: {
