@@ -10,9 +10,7 @@ function stepIndexEquals(a: StepIndex, b: StepIndex) {
   return a.sequenceId === b.sequenceId && a.stepIndex === b.stepIndex;
 }
 
-interface Frame {
-  steps: Set<StepIndex>;
-};
+type Frame = Set<StepIndex>
 
 export interface BaseStep {
   type: string;
@@ -93,7 +91,7 @@ export class PresentationFlow {
 
   @computed getFrames(): ComputedFrame[] {
     return this.state.frames.map((frame) => {
-      const computedSteps = Array.from(frame.steps).map((stepId) => {
+      const computedSteps = Array.from(frame).map((stepId) => {
         const sequence = this.state.sequences[stepId.sequenceId];
         return sequence.steps[stepId.stepIndex];
       });
@@ -118,9 +116,7 @@ export class PresentationFlow {
   public pushStep(step: Step) {
     this._state.update((state) => {
       const targetSequenceId = step.type === "camera" ? CAMERA_SEQUENCE_ID : getShapeSequenceId(step.shapeId);
-      const newFrame: Frame = {
-        steps: new Set([{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }]),
-      };
+      const newFrame: Frame = new Set([{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }]);
 
       return {
         ...state,
@@ -159,7 +155,7 @@ export class PresentationFlow {
         throw new Error(`Frame with index ${dstFrameIdx} not found`);
       }
 
-      const srcFrameIdx = state.frames.findIndex((frame) => Array.from(frame.steps).some((frame) => stepIndexEquals(frame, srcStepIdx)));
+      const srcFrameIdx = state.frames.findIndex((frame) => Array.from(frame).some((stepIdx) => stepIndexEquals(stepIdx, srcStepIdx)));
       if (srcFrameIdx === -1) {
         throw new Error(`Step with index ${srcStepIdx.stepIndex} not found`);
       }
@@ -173,17 +169,13 @@ export class PresentationFlow {
 
       const newFrames = state.frames.map((frame, idx) => {
         if (idx === srcFrameIdx) {
-          return {
-            steps: new Set([...srcFrame.steps].filter((step) => !stepIndexEquals(step, srcStepIdx))),
-          };
+          return new Set([...srcFrame].filter((step) => !stepIndexEquals(step, srcStepIdx)));
         } else if (idx === dstFrameIdx) {
-          return {
-            steps: new Set([...dstFrame.steps, { ...srcStepIdx }]),
-          };
+          return new Set([...dstFrame, { ...srcStepIdx }]);
         } else {
           return frame;
         }
-      }).filter((frame) => frame.steps.size > 0);
+      }).filter((frame) => frame.size > 0);
 
       return {
         ...state,
