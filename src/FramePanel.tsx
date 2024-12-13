@@ -17,30 +17,34 @@ export const FramePanel = track(() => {
       }}
       onPointerDown={(e) => stopEventPropagation(e)}
     >
-      {frames.map((frameSteps, i) => {
-        const shapeIds = frameSteps.map((step) => step.shapeId);
-        const isSelected = shapeIds.some((shapeId) =>
-          selectedShapeIds.includes(shapeId)
-        );
+      <ol>
+        {frames.map((frameSteps, i) => {
+          const shapeIds = frameSteps.map((step) => step.shapeId);
+          const isSelected = shapeIds.some((shapeId) =>
+            selectedShapeIds.includes(shapeId)
+          );
 
-        const isCurrent = i === currentFrameIndex;
+          const isCurrent = i === currentFrameIndex;
 
-        return (
-          <button
-            key={i} // TODO: Use a unique key
-            onClick={() => {
-              $currentFrameIndex.set(i);
-              runFrame(editor, frameSteps, { skipAnime: true });
-            }}
-            style={{
-              color: isSelected ? "red" : "black",
-              fontWeight: isCurrent ? "bold" : "normal",
-            }}
-          >
-            Frame {i + 1}
-          </button>
-        );
-      })}
+          return (
+            <li>
+              <button
+                key={i} // TODO: Use a unique key
+                onClick={() => {
+                  $currentFrameIndex.set(i);
+                  runFrame(editor, frameSteps, { skipAnime: true });
+                }}
+                style={{
+                  color: isSelected ? "red" : "black",
+                  fontWeight: isCurrent ? "bold" : "normal",
+                }}
+              >
+                Frame {i + 1}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 });
