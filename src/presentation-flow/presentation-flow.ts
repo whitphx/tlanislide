@@ -84,6 +84,18 @@ export class PresentationFlow {
     this._state.set(newState);
   }
 
+  initialize() {
+    this.setState({
+      frames: [],
+      sequences: {
+        [CAMERA_SEQUENCE_ID]: {
+          type: "camera",
+          steps: [],
+        }
+      }
+    })
+  }
+
   get state() {
     return this._state.get();
   }

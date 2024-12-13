@@ -1,5 +1,8 @@
 import { atom, EASINGS, type Editor } from "tldraw";
 import { SlideShape, SlideShapeType } from "./SlideShapeUtil";
+import { PresentationFlow } from "./presentation-flow";
+
+export const presentationFlow = new PresentationFlow();
 
 export const $currentSlide = atom<SlideShape | null>("current slide", null);
 

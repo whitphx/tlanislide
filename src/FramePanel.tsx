@@ -1,14 +1,13 @@
 import { track, useEditor, stopEventPropagation } from "tldraw";
 import { $currentFrameIndex } from "./frame";
-import { usePresentationFlow } from "./PresentationFlowContext";
+import { presentationFlow } from "./frame";
 
 export const FramePanel = track(() => {
   const editor = useEditor();
   const selectedShapes = editor.getSelectedShapes();
   const selectedShapeIds = selectedShapes.map((shape) => shape.id);
 
-  const flow = usePresentationFlow();
-  const frames = flow.getFrames();
+  const frames = presentationFlow.getFrames();
 
   const currentFrameIndex = $currentFrameIndex.get();
   return (
