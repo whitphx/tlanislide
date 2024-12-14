@@ -100,14 +100,6 @@ export class PresentationFlow {
     return this._state.get();
   }
 
-  @computed getCameraSequence(): CameraSequence {
-    return this.state.sequences[CAMERA_SEQUENCE_ID];
-  }
-
-  @computed getShapeSequences(): ShapeSequence[] {
-    return Object.values(this.state.sequences).filter((sequence): sequence is ShapeSequence => sequence.type === "shape");
-  };
-
   @computed getFrames(): ComputedFrame[] {
     return this.state.frames.map((frame) => {
       const computedSteps = frame.map((stepId) => {
