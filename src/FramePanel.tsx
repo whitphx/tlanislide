@@ -4,8 +4,6 @@ import { $presentationFlow, runFrame } from "./frame";
 
 export const FramePanel = track(() => {
   const editor = useEditor();
-  const selectedShapes = editor.getSelectedShapes();
-  const selectedShapeIds = selectedShapes.map((shape) => shape.id);
 
   const frames = $presentationFlow.getFrames();
 
@@ -18,24 +16,19 @@ export const FramePanel = track(() => {
       onPointerDown={(e) => stopEventPropagation(e)}
     >
       <ol>
-        {frames.map((frameSteps, i) => {
-          const shapeIds = frameSteps.map((step) => step.shapeId);
-          const isSelected = shapeIds.some((shapeId) =>
-            selectedShapeIds.includes(shapeId)
-          );
-
+        {frames.map((frame, i) => {
           const isCurrent = i === currentFrameIndex;
 
           return (
-            <li>
+            <li
+              key={i} // TODO: Use a unique key
+            >
               <button
-                key={i} // TODO: Use a unique key
                 onClick={() => {
                   $currentFrameIndex.set(i);
-                  runFrame(editor, frameSteps, { skipAnime: true });
+                  runFrame(editor, frame, { skipAnime: true });
                 }}
                 style={{
-                  color: isSelected ? "red" : "black",
                   fontWeight: isCurrent ? "bold" : "normal",
                 }}
               >

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createShapeId } from "tldraw"
-import { PresentationFlow, getShapeSequenceId, CAMERA_SEQUENCE_ID, CameraStep, ShapeStep, ShapeSequence, CameraSequence } from './presentation-flow'
+import { PresentationFlow, getShapeSequenceId, CAMERA_SEQUENCE_ID, CameraStep, ShapeStep, ShapeSequence, CameraSequence, SequenceId } from './presentation-flow'
 
 describe('PresentationFlow', () => {
   let flow: PresentationFlow
@@ -18,245 +18,316 @@ describe('PresentationFlow', () => {
     });
 
     it('can add shape sequences', () => {
-      const shapeId1 = createShapeId("shape-1");
-      const shapeId2 = createShapeId("shape-2");
+      const shapeSeqId1 = flow.addShapeSequence({ type: "text", x: 100, y: 0, props: { text: "Hello" } });
+      const shapeSeqId2 = flow.addShapeSequence({ type: "text", x: 200, y: 0, props: { text: "World" } });
 
-      flow.addShapeSequence(shapeId1);
-      flow.addShapeSequence(shapeId2);
-
-      const sequences = Object.values(flow.state.sequences);
-      expect(sequences).toEqual(expect.arrayContaining([
-        { type: "camera", steps: [] },
-        { type: "shape", shapeId: shapeId1, steps: [] },
-        { type: "shape", shapeId: shapeId2, steps: [] },
-      ]));
+      expect(flow.state.sequences).toEqual({
+        [CAMERA_SEQUENCE_ID]: {
+          type: "camera",
+          steps: [],
+        },
+        [shapeSeqId1]: {
+          type: "shape",
+          initialShape: { type: "text", x: 100, y: 0, props: { text: "Hello" } },
+          steps: [],
+        },
+        [shapeSeqId2]: {
+          type: "shape",
+          initialShape: { type: "text", x: 200, y: 0, props: { text: "World" } },
+          steps: [],
+        },
+      })
     })
   });
 
   describe('Step management', () => {
-    const shapeId1 = createShapeId("shape-1");
-    const shapeId2 = createShapeId("shape-2");
+    let shapeSeqId1: SequenceId
+    let shapeSeqId2: SequenceId
 
     beforeEach(() => {
-      flow.addShapeSequence(shapeId1);
-      flow.addShapeSequence(shapeId2);
+      shapeSeqId1 = flow.addShapeSequence({ type: "geo", x: 0, y: 0 });
+      shapeSeqId2 = flow.addShapeSequence({ type: "geo", x: 0, y: 0 });
     });
 
     it('can add steps', () => {
-      flow.pushStep({
+      flow.pushStep(CAMERA_SEQUENCE_ID, {
         type: "camera",
-        shapeId: shapeId1,
+        shapeId: createShapeId("camera-target"),
         zoomToBoundsParams: {
           inset: 100,
         },
       })
-      flow.pushStep({ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 100 } } })
-      flow.pushStep({ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 200 } } })
-      flow.pushStep({ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 300 } } })
-      flow.pushStep({ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 400 } } })
+      flow.pushStep(shapeSeqId1, { type: "shape", shape: { type: "geo", x: 100, y: 0 } })
+      flow.pushStep(shapeSeqId1, { type: "shape", shape: { type: "geo", x: 200, y: 0 } })
+      flow.pushStep(shapeSeqId2, { type: "shape", shape: { type: "geo", x: 300, y: 0 } })
+      flow.pushStep(shapeSeqId2, { type: "shape", shape: { type: "geo", x: 400, y: 0 } })
 
       expect(flow.getFrames()).toEqual([
-        [{ type: "camera", shapeId: shapeId1, zoomToBoundsParams: { inset: 100 } }],
-        [{ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 100 } } }],
-        [{ type: "shape", shapeId: shapeId1, animateShapeParams: { partial: { x: 200 } } }],
-        [{ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 300 } } }],
-        [{ type: "shape", shapeId: shapeId2, animateShapeParams: { partial: { x: 400 } } }],
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
+          [shapeSeqId1]: { type: "at", index: 0 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
+          [shapeSeqId1]: { type: "at", index: 1 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
+          [shapeSeqId1]: { type: "after", index: 1 },
+          [shapeSeqId2]: { type: "at", index: 0 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
+          [shapeSeqId1]: { type: "after", index: 1 },
+          [shapeSeqId2]: { type: "at", index: 1 },
+        },
+      ])
+    });
+  });
+
+  describe('moveStepToFrame: when moving a step to a different frame without side effects', () => {
+    let shapeSeqId1: SequenceId
+    let shapeSeqId2: SequenceId
+
+    beforeEach(() => {
+      shapeSeqId1 = flow.addShapeSequence({ type: "geo", x: 0, y: 0 });
+      shapeSeqId2 = flow.addShapeSequence({ type: "geo", x: 0, y: 0 });
+    });
+
+    let cameraStep1: CameraStep
+    let cameraStep2: CameraStep
+    let shapeStep1: ShapeStep
+
+    beforeEach(() => {
+      cameraStep1 = {
+        type: "camera",
+        shapeId: createShapeId("camera-target"),
+        zoomToBoundsParams: {
+          inset: 100,
+        },
+      }
+      cameraStep2 = {
+        type: "camera",
+        shapeId: createShapeId("camera-target"),
+        zoomToBoundsParams: {
+          inset: 200,
+        },
+      }
+      shapeStep1 = {
+        type: "shape",
+        shape: { type: "geo", x: 100, y: 0 },
+      }
+
+      flow.pushStep(CAMERA_SEQUENCE_ID, cameraStep1)
+      flow.pushStep(shapeSeqId1, shapeStep1)
+      flow.pushStep(CAMERA_SEQUENCE_ID, cameraStep2)
+    });
+
+    it('can move a step to another earlier frame', () => {
+      flow.moveStepToFrame({ sequenceId: shapeSeqId1, stepIndex: 0 }, 0);
+
+      expect(flow.getFrames()).toEqual([
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
+          [shapeSeqId1]: { type: "at", index: 0 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
+          [shapeSeqId1]: { type: "after", index: 0 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        }
       ]);
     });
 
-    describe('moveStepToFrame', () => {
-      describe('when moving a step to a different frame without side effects', () => {
-        let cameraStep1: CameraStep
-        let cameraStep2: CameraStep
-        let shapeStep1: ShapeStep
+    it('can move a step to another later frame', () => {
+      flow.moveStepToFrame({ sequenceId: shapeSeqId1, stepIndex: 0 }, 2);
 
-        beforeEach(() => {
-          cameraStep1 = {
-            type: "camera",
-            shapeId: shapeId1,
-            zoomToBoundsParams: {
-              inset: 100,
-            },
-          }
-          cameraStep2 = {
-            type: "camera",
-            shapeId: shapeId1,
-            zoomToBoundsParams: {
-              inset: 200,
-            },
-          }
-          shapeStep1 = {
-            type: "shape",
-            shapeId: shapeId1,
-            animateShapeParams: { partial: { x: 100 } },
-          }
+      expect(flow.getFrames()).toEqual([
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
+          [shapeSeqId1]: { type: "at", index: 0 },
+          [shapeSeqId2]: { type: "after", index: -1 },
+        }
+      ]);
+    });
+  });
 
-          flow.pushStep(cameraStep1)
-          flow.pushStep(shapeStep1)
-          flow.pushStep(cameraStep2)
-        });
+  describe('moveStepToFrame: when moving a step to a different frame with side effects', () => {
+    let cameraStep0: CameraStep
+    let cameraStep1: CameraStep
+    let cameraStep2: CameraStep
+    let shapeStep0: ShapeStep
+    let shapeStep1: ShapeStep
+    let shapeStep2: ShapeStep
+    const cameraShapeId = createShapeId("camera-target");
+    const shapeSeqId0 = getShapeSequenceId("0");
+    const shapeSeqId1 = getShapeSequenceId("1");
 
-        it('can move a step to another earlier frame', () => {
-          flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }, 0);
+    beforeEach(() => {
+      cameraStep0 = {
+        type: "camera",
+        shapeId: cameraShapeId,
+        zoomToBoundsParams: {
+          inset: 0,
+        },
+      }
+      cameraStep1 = {
+        type: "camera",
+        shapeId: cameraShapeId,
+        zoomToBoundsParams: {
+          inset: 100,
+        },
+      }
+      cameraStep2 = {
+        type: "camera",
+        shapeId: cameraShapeId,
+        zoomToBoundsParams: {
+          inset: 200,
+        },
+      }
+      shapeStep0 = {
+        type: "shape",
+        shape: { type: "geo", x: 0, y: 0 },
+      }
+      shapeStep1 = {
+        type: "shape",
+        shape: { type: "geo", x: 100, y: 0 },
+      }
+      shapeStep2 = {
+        type: "shape",
+        shape: { type: "geo", x: 200, y: 0 },
+      }
 
-          expect(flow.getFrames()).toEqual([
-            [
-              cameraStep1,
-              shapeStep1,
-            ],
-            [
-              cameraStep2,
-            ],
-          ]);
-        });
-
-        it('can move a step to another later frame', () => {
-          flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }, 2);
-
-          expect(flow.getFrames()).toEqual([
-            [
-              cameraStep1,
-            ],
-            [
-              cameraStep2,
-              shapeStep1,
-            ],
-          ]);
-        });
+      flow.setState({
+        sequences: {
+          [CAMERA_SEQUENCE_ID]: {
+            type: "camera" as const,
+            steps: [cameraStep0, cameraStep1, cameraStep2],
+          },
+          [shapeSeqId0]: {
+            type: "shape" as const,
+            initialShape: { type: "geo", x: 0, y: 0 },
+            steps: [shapeStep0, shapeStep1, shapeStep2],
+          },
+          [shapeSeqId1]: {
+            type: "shape" as const,
+            initialShape: { type: "geo", x: 0, y: 0 },
+            steps: [],
+          },
+        },
+        frames: [
+          [{ sequenceId: shapeSeqId0, stepIndex: 0 }],
+          [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 0 }],
+          [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 1 }, { sequenceId: shapeSeqId0, stepIndex: 1 }],
+          [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 2 },],
+          [{ sequenceId: shapeSeqId0, stepIndex: 2 }],
+        ],
       });
 
-      describe('when moving a step to a different frame with side effects', () => {
-        let cameraStep0: CameraStep
-        let cameraStep1: CameraStep
-        let cameraStep2: CameraStep
-        let shapeStep0: ShapeStep
-        let shapeStep1: ShapeStep
-        let shapeStep2: ShapeStep
+      expect(flow.getFrames()).toEqual([
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: -1 },
+          [shapeSeqId0]: { type: "at", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
+          [shapeSeqId0]: { type: "after", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
+          [shapeSeqId0]: { type: "at", index: 1 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 2 },
+          [shapeSeqId0]: { type: "after", index: 1 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 2 },
+          [shapeSeqId0]: { type: "at", index: 2 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+      ]);
+    });
 
-        beforeEach(() => {
-          cameraStep0 = {
-            type: "camera",
-            shapeId: shapeId1,
-            zoomToBoundsParams: {
-              inset: 0,
-            },
-          }
-          cameraStep1 = {
-            type: "camera",
-            shapeId: shapeId1,
-            zoomToBoundsParams: {
-              inset: 100,
-            },
-          }
-          cameraStep2 = {
-            type: "camera",
-            shapeId: shapeId1,
-            zoomToBoundsParams: {
-              inset: 200,
-            },
-          }
-          shapeStep0 = {
-            type: "shape",
-            shapeId: shapeId1,
-            animateShapeParams: { partial: { x: 0 } },
-          }
-          shapeStep1 = {
-            type: "shape",
-            shapeId: shapeId1,
-            animateShapeParams: { partial: { x: 100 } },
-          }
-          shapeStep2 = {
-            type: "shape",
-            shapeId: shapeId1,
-            animateShapeParams: { partial: { x: 200 } },
-          }
-          flow.setState({
-            sequences: {
-              [CAMERA_SEQUENCE_ID]: {
-                type: "camera" as const,
-                steps: [cameraStep0, cameraStep1, cameraStep2],
-              },
-              [getShapeSequenceId(shapeId1)]: {
-                type: "shape" as const,
-                shapeId: shapeId1,
-                steps: [shapeStep0, shapeStep1, shapeStep2],
-              },
-            },
-            frames: [
-              [{ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }],
-              [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 0 }],
-              [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 1 }, { sequenceId: getShapeSequenceId(shapeId1), stepIndex: 1 }],
-              [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 2 },],
-              [{ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 2 }],
-            ],
-          })
+    it('can move a step to another earlier frame, pushing other steps in the same sequence to newly created frames to keep the order', () => {
+      flow.moveStepToFrame({ sequenceId: shapeSeqId0, stepIndex: 2 }, 2);
 
-          expect(flow.getFrames()).toEqual([
-            [
-              shapeStep0,
-            ],
-            [
-              cameraStep0,
-            ],
-            [
-              cameraStep1,
-              shapeStep1,
-            ],
-            [
-              cameraStep2,
-            ],
-            [
-              shapeStep2,
-            ],
-          ]);
-        });
+      expect(flow.getFrames()).toEqual([
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: -1 },
+          [shapeSeqId0]: { type: "at", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
+          [shapeSeqId0]: { type: "after", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
+          [shapeSeqId0]: { type: "at", index: 1 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
+          [shapeSeqId0]: { type: "at", index: 2 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 2 },
+          [shapeSeqId0]: { type: "after", index: 2 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+      ]);
+    });
 
-        it('can move a step to another earlier frame, pushing other steps in the same sequence to newly created frames to keep the order', () => {
-          flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 2 }, 2);
+    it('can move a step to another later frame, pushing other steps in the same sequence to newly created frames to keep the order', () => {
+      flow.moveStepToFrame({ sequenceId: shapeSeqId0, stepIndex: 0 }, 2);
 
-          expect(flow.getFrames()).toEqual([
-            [
-              shapeStep0,
-            ],
-            [
-              cameraStep0,
-            ],
-            [
-              shapeStep1,
-            ],
-            [
-              cameraStep1,
-              shapeStep2,
-            ],
-            [
-              cameraStep2,
-            ],
-          ]);
-        });
-
-        it('can move a step to another later frame, pushing other steps in the same sequence to newly created frames to keep the order', () => {
-          flow.moveStepToFrame({ sequenceId: getShapeSequenceId(shapeId1), stepIndex: 0 }, 2);
-
-          expect(flow.getFrames()).toEqual([
-            [
-              cameraStep0,
-            ],
-            [
-              cameraStep1,
-              shapeStep0,
-            ],
-            [
-              shapeStep1,
-            ],
-            [
-              cameraStep2,
-            ],
-            [
-              shapeStep2,
-            ],
-          ]);
-        });
-      });
+      expect(flow.getFrames()).toEqual([
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
+          [shapeSeqId0]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
+          [shapeSeqId0]: { type: "at", index: 0 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 1 },
+          [shapeSeqId0]: { type: "at", index: 1 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "at", index: 2 },
+          [shapeSeqId0]: { type: "after", index: 1 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+        {
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: 2 },
+          [shapeSeqId0]: { type: "at", index: 2 },
+          [shapeSeqId1]: { type: "after", index: -1 },
+        },
+      ]);
     });
   });
 });

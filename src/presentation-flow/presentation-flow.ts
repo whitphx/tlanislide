@@ -25,11 +25,8 @@ export interface CameraStep extends BaseStep {
 }
 export interface ShapeStep<T extends TLShape = TLShape> extends BaseStep {
   type: "shape";
-  shapeId: TLShapeId;
-  animateShapeParams: {
-    partial: Omit<TLShapePartial<T>, "id" | "type">;
-    opts?: TLCameraMoveOptions;
-  }
+  shape: Omit<TLShapePartial<T>, "id">;
+  animateShapeOpts?: TLCameraMoveOptions;
 }
 type Step<T extends TLShape = TLShape> = CameraStep | ShapeStep<T>;
 
@@ -42,27 +39,51 @@ export interface CameraSequence extends BaseSequence<CameraStep> {
   type: "camera";
 }
 
-export interface ShapeSequence extends BaseSequence<ShapeStep> {
+export interface ShapeSequence<T extends TLShape = TLShape> extends BaseSequence<ShapeStep<T>> {
   type: "shape";
-  shapeId: TLShapeId;
+  initialShape: Omit<TLShapePartial<T>, "id">;
 }
 
 export type Sequence = CameraSequence | ShapeSequence;
 
 export const CAMERA_SEQUENCE_ID = "CameraSeq" as const;
 export type CameraSequenceId = typeof CAMERA_SEQUENCE_ID;
-export type ShapeSequenceId = `ShapeSeq:${TLShapeId}`;
+export type ShapeSequenceId = `ShapeSeq:${string}`;
 export type SequenceId = CameraSequenceId | ShapeSequenceId;
 type SeqIdToSeqMap<K extends string, V> = {
   [P in K]: V;
 }
 type SequenceMap = SeqIdToSeqMap<CameraSequenceId, CameraSequence> & SeqIdToSeqMap<ShapeSequenceId, ShapeSequence>;
 
-export function getShapeSequenceId(shapeId: TLShapeId): ShapeSequenceId {
-  return `ShapeSeq:${shapeId}`;
+export function getShapeSequenceId(str: string): ShapeSequenceId {
+  return `ShapeSeq:${str}`;
 }
 
-export type ComputedFrame = Step[];  // Semantically equivalent to Set<Step>, `Step` is not a primitive type and doesn't work with `Set`. Also, we use array for easier manipulation.
+export type RelativeStepIndex = { type: "at" | "after", index: number }
+export type ComputedFrame = Record<SequenceId, RelativeStepIndex>;
+
+class UniqueRandomIdGenerator {
+  private readonly _usedIds = new Set<string>();
+
+  static randomId(length: number) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  generateId(length: number) {
+    let id = "";
+    do {
+      id = UniqueRandomIdGenerator.randomId(length);
+    } while (this._usedIds.has(id));
+    this._usedIds.add(id);
+    return id;
+  }
+}
+const idGenerator = new UniqueRandomIdGenerator();
 
 interface PresentationFlowState {
   sequences: SequenceMap;
@@ -101,18 +122,35 @@ export class PresentationFlow {
   }
 
   @computed getFrames(): ComputedFrame[] {
-    return this.state.frames.map((frame) => {
-      const computedSteps = frame.map((stepId) => {
-        const sequence = this.state.sequences[stepId.sequenceId];
-        return sequence.steps[stepId.stepIndex];
+    const sequenceIds = Object.keys(this.state.sequences) as SequenceId[];
+    const latestIndexes = sequenceIds.reduce((acc, sequenceId) => {
+      acc[sequenceId] = -1;
+      return acc;
+    }, {} as Record<SequenceId, number>);
+
+    const computedFrames: ComputedFrame[] = [];
+    this.state.frames.forEach((frame) => {
+      const computedFrame: ComputedFrame = {
+        [CAMERA_SEQUENCE_ID]: { type: "after", index: latestIndexes[CAMERA_SEQUENCE_ID] },
+      };
+      const unseenSequenceIdSet = new Set(sequenceIds);
+      frame.forEach((stepIdx) => {
+        unseenSequenceIdSet.delete(stepIdx.sequenceId);
+        computedFrame[stepIdx.sequenceId] = { type: "at", index: stepIdx.stepIndex };
+        latestIndexes[stepIdx.sequenceId] = stepIdx.stepIndex;
       });
-      return computedSteps;
+      unseenSequenceIdSet.forEach((sequenceId) => {
+        computedFrame[sequenceId] = { type: "after", index: latestIndexes[sequenceId] };
+      });
+      computedFrames.push(computedFrame);
     });
+    return computedFrames;
   }
 
-  public addShapeSequence(shapeId: TLShapeId) {
-    const shapeSequenceId = getShapeSequenceId(shapeId);
-    const newShapeSequence: ShapeSequence = { type: "shape", shapeId, steps: [] };
+  public addShapeSequence<T extends TLShape = TLShape>(initialShape: Omit<TLShapePartial<T>, "id">): ShapeSequenceId {
+    const id = idGenerator.generateId(8);
+    const shapeSequenceId: ShapeSequenceId = getShapeSequenceId(id);
+    const newShapeSequence: ShapeSequence = { type: "shape", initialShape, steps: [] };
     this._state.update((state) => {
       return {
         ...state,
@@ -122,24 +160,29 @@ export class PresentationFlow {
         },
       }
     });
+    return shapeSequenceId;
   }
 
-  public pushStep<T extends TLShape = TLShape>(step: Step<T>) {
+  public pushStep<T extends TLShape = TLShape>(sequenceId: SequenceId, step: Step<T>) {
     this._state.update((state) => {
-      const targetSequenceId = step.type === "camera" ? CAMERA_SEQUENCE_ID : getShapeSequenceId(step.shapeId);
-      if (!state.sequences[targetSequenceId]) {
-        throw new Error(`Sequence with id ${targetSequenceId} not found`);
+      const sequence = state.sequences[sequenceId]
+      if (sequence == null) {
+        throw new Error(`Sequence with id ${sequenceId} not found`);
       }
 
-      const newFrame: Frame = [{ sequenceId: targetSequenceId, stepIndex: state.sequences[targetSequenceId].steps.length }];
+      if (sequence.type !== step.type) {
+        throw new Error(`Step type ${step.type} does not match sequence type ${sequence.type}`);
+      }
+
+      const newFrame: Frame = [{ sequenceId: sequenceId, stepIndex: state.sequences[sequenceId].steps.length }];
 
       return {
         ...state,
         sequences: {
           ...state.sequences,
-          [targetSequenceId]: {
-            ...state.sequences[targetSequenceId],
-            steps: [...state.sequences[targetSequenceId].steps, step],
+          [sequenceId]: {
+            ...state.sequences[sequenceId],
+            steps: [...state.sequences[sequenceId].steps, step],
           },
         },
         frames: [

@@ -17,7 +17,13 @@ import "tldraw/tldraw.css";
 import { SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { FramePanel } from "./FramePanel";
-import { $currentFrameIndex, $presentationFlow, runFrame } from "./frame";
+import {
+  $currentFrameIndex,
+  $presentationFlow,
+  renderInitialShapes,
+  runFrame,
+} from "./frame";
+import { CAMERA_SEQUENCE_ID } from "./presentation-flow";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -156,39 +162,15 @@ function App() {
       throw new Error("Arrow 1 not found");
     }
 
-    const arrow2Id = createShapeId("arrow-2");
-    editor.createShapes([
-      {
-        id: arrow2Id,
-        type: "arrow",
-        x: 700,
-        y: 500,
-        props: {
-          start: {
-            x: 0,
-            y: 0,
-          },
-          end: {
-            x: 0,
-            y: 300,
-          },
-        },
-      },
-    ]);
-    const arrow2 = editor.getShape(arrow2Id);
-    if (arrow2 == null) {
-      throw new Error("Arrow 2 not found");
-    }
-
     $presentationFlow.initialize();
-    $presentationFlow.pushStep({
+    $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
       type: "camera",
       shapeId: slide1Id,
       zoomToBoundsParams: {
         inset: 100,
       },
     });
-    $presentationFlow.pushStep({
+    $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
       type: "camera",
       shapeId: slide2Id,
       zoomToBoundsParams: {
@@ -199,7 +181,7 @@ function App() {
         },
       },
     });
-    $presentationFlow.pushStep({
+    $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
       type: "camera",
       shapeId: slide1Id,
       zoomToBoundsParams: {
@@ -210,25 +192,47 @@ function App() {
         },
       },
     });
-    $presentationFlow.addShapeSequence(arrow1Id);
-    $presentationFlow.pushStep<TLArrowShape>({
-      type: "shape",
-      shapeId: arrow1Id,
-      animateShapeParams: {
-        partial: {
-          props: {
-            start: { x: 0, y: 0 },
-            end: { x: 0, y: 300 },
-          },
+    const shapeSeqId1 = $presentationFlow.addShapeSequence({
+      type: "arrow",
+      x: 700,
+      y: 500,
+      props: {
+        start: {
+          x: 0,
+          y: 0,
         },
-        opts: {
-          animation: {
-            duration: 1000,
-            easing: EASINGS.easeInCubic, // TODO: JSON serializable
-          },
+        end: {
+          x: 0,
+          y: 300,
         },
       },
     });
+    $presentationFlow.pushStep<TLArrowShape>(shapeSeqId1, {
+      type: "shape",
+      shape: {
+        type: "arrow",
+        x: 700,
+        y: 500,
+        props: {
+          start: {
+            x: 0,
+            y: 0,
+          },
+          end: {
+            x: 300,
+            y: 300,
+          },
+        },
+      },
+      animateShapeOpts: {
+        animation: {
+          duration: 1000,
+          easing: EASINGS.easeInCubic, // TODO: JSON serializable
+        },
+      },
+    });
+
+    renderInitialShapes(editor);
   };
 
   return (
