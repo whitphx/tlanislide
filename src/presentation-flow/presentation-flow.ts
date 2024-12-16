@@ -96,14 +96,17 @@ interface PresentationFlowState {
   sequences: SequenceMap;
   frames: Frame[];
 }
-
-export class PresentationFlow {
-  private readonly _state = atom<PresentationFlowState>('PresentationFlow._state', {
+function getEmptyPresentationFlowState(): PresentationFlowState {
+  return {
     sequences: {
       [CAMERA_SEQUENCE_ID]: { type: "camera", steps: [] },
     },
     frames: [],
-  });
+  }
+}
+
+export class PresentationFlow {
+  private readonly _state = atom<PresentationFlowState>('PresentationFlow._state', getEmptyPresentationFlowState());
 
   setState(newState: PresentationFlowState) {
     if (newState.sequences[CAMERA_SEQUENCE_ID]?.type !== "camera") {
@@ -113,15 +116,7 @@ export class PresentationFlow {
   }
 
   initialize() {
-    this.setState({
-      frames: [],
-      sequences: {
-        [CAMERA_SEQUENCE_ID]: {
-          type: "camera",
-          steps: [],
-        }
-      }
-    })
+    this.setState(getEmptyPresentationFlowState())
   }
 
   get state() {
