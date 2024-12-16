@@ -1,6 +1,8 @@
 import { track, useEditor, stopEventPropagation } from "tldraw";
-import { $currentFrameIndex, $presentationMode } from "./frame";
+import { $currentFrameIndex, $presentationMode, AnimeDataMeta } from "./frame";
 import { $presentationFlow, runFrame } from "./frame";
+import { SlideShapeType } from "./SlideShapeUtil";
+import { CAMERA_SEQUENCE_ID } from "./presentation-flow";
 
 export const FramePanel = track(() => {
   const editor = useEditor();
@@ -39,6 +41,69 @@ export const FramePanel = track(() => {
         })}
       </ol>
       <div>
+        <button
+          onClick={() => {
+            const selectedShapes = editor
+              .getSelectedShapes()
+              .filter(
+                (shape) =>
+                  shape.type !== SlideShapeType && shape.meta?.anime == null
+              );
+            selectedShapes.forEach((shape) => {
+              $presentationFlow.addShapeSequence(shape);
+            });
+            editor.deleteShapes(selectedShapes);
+          }}
+        >
+          Animate the selected shape
+        </button>
+        <button
+          onClick={() => {
+            const selectedShapes = editor.getSelectedShapes();
+            selectedShapes.forEach((shape) => {
+              const animeMeta = shape.meta?.anime as
+                | AnimeDataMeta["anime"]
+                | undefined;
+              if (animeMeta == null) {
+                console.warn("Shape is not animated");
+                return;
+              }
+
+              const newShape = { ...shape, x: shape.x + 100, y: shape.y + 100 };
+              $presentationFlow.pushStep(animeMeta.sequenceId, {
+                type: "shape",
+                shape: newShape,
+                animateShapeOpts: {
+                  animation: {
+                    duration: 1000,
+                  },
+                },
+              });
+            });
+          }}
+        >
+          Add new animation to the selected shape
+        </button>
+        <button
+          onClick={() => {
+            const selectedSlideShapes = editor
+              .getSelectedShapes()
+              .filter((shape) => shape.type === SlideShapeType);
+            selectedSlideShapes.forEach((slideShape) => {
+              $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
+                type: "camera",
+                shapeId: slideShape.id,
+                zoomToBoundsParams: {
+                  animation: {
+                    duration: 1000,
+                  },
+                },
+              });
+            });
+          }}
+        >
+          Add the selected slide as a new frame
+        </button>
         <label>
           Presentation mode
           <input

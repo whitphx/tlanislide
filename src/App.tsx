@@ -20,7 +20,7 @@ import type {
 } from "tldraw";
 import "tldraw/tldraw.css";
 
-import { SlideShapeUtil } from "./SlideShapeUtil";
+import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { FramePanel } from "./FramePanel";
 import {
@@ -264,6 +264,20 @@ function App() {
         }
       }
     );
+
+    editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
+      if (shape.type === SlideShapeType) {
+        $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
+          type: "camera",
+          shapeId: shape.id,
+          zoomToBoundsParams: {
+            animation: {
+              duration: 1000,
+            },
+          },
+        });
+      }
+    });
 
     $presentationFlow.initialize();
     $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
