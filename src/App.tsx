@@ -29,6 +29,7 @@ import {
   runInitialFrame,
   runFrame,
   AnimeDataMeta,
+  runCurrentFrame,
 } from "./frame";
 import {
   CAMERA_SEQUENCE_ID,
@@ -381,7 +382,7 @@ function App() {
     //   },
     // });
 
-    runInitialFrame(editor);
+    runCurrentFrame(editor, { skipAnime: true });
   };
 
   return (

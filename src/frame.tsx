@@ -53,6 +53,20 @@ function createSequenceShapeId(sequenceId: ShapeSequenceId): TLShapeId {
   return createShapeId(`Sequence:${sequenceId}`);
 }
 
+export interface RunFrameOption {
+  skipAnime?: boolean;
+}
+
+export function runCurrentFrame(editor: Editor, options?: RunFrameOption) {
+  const currentFrameIndex = $currentFrameIndex.get();
+  if (currentFrameIndex === "initial") {
+    runInitialFrame(editor);
+  } else {
+    const frame = $presentationFlow.getFrames()[currentFrameIndex];
+    runFrame(editor, frame, options);
+  }
+}
+
 export function runInitialFrame(editor: Editor) {
   const sequenceIds = Object.keys(
     $presentationFlow.state.sequences
@@ -90,9 +104,6 @@ export function runInitialFrame(editor: Editor) {
   });
 }
 
-export interface RunFrameOption {
-  skipAnime?: boolean;
-}
 export function runFrame(
   editor: Editor,
   frame: ComputedFrame,
@@ -171,7 +182,9 @@ export function runFrame(
             },
             id: animeShapeId,
           },
-          deserializeTLCameraMoveOptions(curStep.animateShapeOpts)
+          curStep.animateShapeOpts
+            ? deserializeTLCameraMoveOptions(curStep.animateShapeOpts)
+            : undefined
         );
       } else if (stepPosition.type === "after") {
         const curShape =
