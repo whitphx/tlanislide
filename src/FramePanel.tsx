@@ -18,7 +18,7 @@ interface FrameColumnProps {
   shapeSequenceIds: ShapeSequenceId[];
   frameName: string;
   isFocused: boolean;
-  onClick: () => void;
+  onFocus: () => void;
   onShapeSelect: (sequenceId: ShapeSequenceId) => void;
   getStepContent: (sequenceId: SequenceId) => string | null;
 }
@@ -32,7 +32,7 @@ function FrameColumn(props: FrameColumnProps) {
         }}
       >
         <button
-          onClick={props.onClick}
+          onClick={props.onFocus}
           style={{
             fontWeight: props.isFocused ? "bold" : "normal",
           }}
@@ -101,7 +101,7 @@ export const FramePanel = track(() => {
           shapeSequenceIds={shapeSequenceIds}
           isFocused={currentFrameIndex === "initial"}
           getStepContent={() => "*"}
-          onClick={() => {
+          onFocus={() => {
             $currentFrameIndex.set("initial");
             runInitialFrame(editor);
           }}
@@ -130,7 +130,7 @@ export const FramePanel = track(() => {
               const stepIndex = frame[sequenceId];
               return stepIndex?.type === "at" ? `${stepIndex.index + 1}` : null;
             }}
-            onClick={() => {
+            onFocus={() => {
               $currentFrameIndex.set(frameIdx);
               runFrame(editor, frame, { skipAnime: true });
             }}
