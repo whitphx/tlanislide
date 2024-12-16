@@ -6,7 +6,7 @@ settings:
 
 importers:
 
-  .:
+  packages/tlanislide:
     dependencies:
       react:
         specifier: ^18.3.1
