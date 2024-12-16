@@ -1,4 +1,4 @@
-import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS, TLStore } from "tldraw"
+import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS, TLStore, JsonObject } from "tldraw"
 import { atom, computed, uniqueId } from "tldraw";
 
 interface StepIndex {
@@ -69,7 +69,7 @@ export function getShapeSequenceId(str: string): ShapeSequenceId {
 export type RelativeStepIndex = { type: "at" | "after", index: number }
 export type ComputedFrame = Record<SequenceId, RelativeStepIndex>;
 
-interface PresentationFlowState {
+export interface PresentationFlowState {
   sequences: SequenceMap;
   frames: Frame[];
 }

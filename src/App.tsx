@@ -8,8 +8,6 @@ import {
   DefaultKeyboardShortcutsDialog,
   DefaultKeyboardShortcutsDialogContent,
   createShapeId,
-  EASINGS,
-  TLArrowShape,
   react,
 } from "tldraw";
 import type {
@@ -17,6 +15,7 @@ import type {
   TLComponents,
   Editor,
   TLShapePartial,
+  JsonObject,
 } from "tldraw";
 import "tldraw/tldraw.css";
 
@@ -31,7 +30,11 @@ import {
   runFrame,
   AnimeDataMeta,
 } from "./frame";
-import { CAMERA_SEQUENCE_ID, ShapeSequenceId } from "./presentation-flow";
+import {
+  CAMERA_SEQUENCE_ID,
+  PresentationFlowState,
+  ShapeSequenceId,
+} from "./presentation-flow";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -290,75 +293,93 @@ function App() {
       }
     });
 
-    $presentationFlow.initialize();
-    $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
-      type: "camera",
-      shapeId: slide1Id,
-      zoomToBoundsParams: {
-        inset: 100,
-      },
+    // Save and load presentation flow state to/from the page's metadata
+    const initPresentationFlow = editor.getCurrentPage().meta?.presentationFlow;
+    if (initPresentationFlow) {
+      $presentationFlow.setState(
+        initPresentationFlow as unknown as PresentationFlowState
+      );
+    }
+    react("Save state to page meta", () => {
+      const state = $presentationFlow.state;
+      editor.updatePage({
+        ...editor.getCurrentPage(),
+        meta: {
+          ...editor.getCurrentPage().meta,
+          presentationFlow: state as unknown as JsonObject,
+        },
+      });
     });
-    $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
-      type: "camera",
-      shapeId: slide2Id,
-      zoomToBoundsParams: {
-        inset: 200,
-        animation: {
-          duration: 1000,
-          easing: "easeInCubic",
-        },
-      },
-    });
-    $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
-      type: "camera",
-      shapeId: slide1Id,
-      zoomToBoundsParams: {
-        inset: 300,
-        animation: {
-          duration: 1000,
-          easing: "easeInCubic",
-        },
-      },
-    });
-    const shapeSeqId1 = $presentationFlow.addShapeSequence({
-      type: "arrow",
-      x: 700,
-      y: 500,
-      props: {
-        start: {
-          x: 0,
-          y: 0,
-        },
-        end: {
-          x: 0,
-          y: 300,
-        },
-      },
-    });
-    $presentationFlow.pushStep<TLArrowShape>(shapeSeqId1, {
-      type: "shape",
-      shape: {
-        type: "arrow",
-        x: 700,
-        y: 500,
-        props: {
-          start: {
-            x: 0,
-            y: 0,
-          },
-          end: {
-            x: 300,
-            y: 300,
-          },
-        },
-      },
-      animateShapeOpts: {
-        animation: {
-          duration: 1000,
-          easing: "easeInCubic",
-        },
-      },
-    });
+
+    // $presentationFlow.initialize();
+    // $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
+    //   type: "camera",
+    //   shapeId: slide1Id,
+    //   zoomToBoundsParams: {
+    //     inset: 100,
+    //   },
+    // });
+    // $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
+    //   type: "camera",
+    //   shapeId: slide2Id,
+    //   zoomToBoundsParams: {
+    //     inset: 200,
+    //     animation: {
+    //       duration: 1000,
+    //       easing: "easeInCubic",
+    //     },
+    //   },
+    // });
+    // $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
+    //   type: "camera",
+    //   shapeId: slide1Id,
+    //   zoomToBoundsParams: {
+    //     inset: 300,
+    //     animation: {
+    //       duration: 1000,
+    //       easing: "easeInCubic",
+    //     },
+    //   },
+    // });
+    // const shapeSeqId1 = $presentationFlow.addShapeSequence({
+    //   type: "arrow",
+    //   x: 700,
+    //   y: 500,
+    //   props: {
+    //     start: {
+    //       x: 0,
+    //       y: 0,
+    //     },
+    //     end: {
+    //       x: 0,
+    //       y: 300,
+    //     },
+    //   },
+    // });
+    // $presentationFlow.pushStep<TLArrowShape>(shapeSeqId1, {
+    //   type: "shape",
+    //   shape: {
+    //     type: "arrow",
+    //     x: 700,
+    //     y: 500,
+    //     props: {
+    //       start: {
+    //         x: 0,
+    //         y: 0,
+    //       },
+    //       end: {
+    //         x: 300,
+    //         y: 300,
+    //       },
+    //     },
+    //   },
+    //   animateShapeOpts: {
+    //     animation: {
+    //       duration: 1000,
+    //       easing: "easeInCubic",
+    //     },
+    //   },
+    // });
 
     runInitialFrame(editor);
   };
@@ -366,6 +387,7 @@ function App() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       <Tldraw
+        persistenceKey="tlanislide-dev"
         onMount={handleMount}
         components={components}
         overrides={myUiOverrides}
