@@ -19,7 +19,7 @@ interface FrameColumnProps {
   frameName: string;
   isFocused: boolean;
   onClick: () => void;
-  stepExists: (sequenceId: SequenceId) => boolean;
+  stepLabel: (sequenceId: SequenceId) => string;
 }
 function FrameColumn(props: FrameColumnProps) {
   return (
@@ -45,7 +45,7 @@ function FrameColumn(props: FrameColumnProps) {
           gridRow: 2,
         }}
       >
-        {props.stepExists(CAMERA_SEQUENCE_ID) ? "c" : "-"}
+        {props.stepLabel(CAMERA_SEQUENCE_ID)}
       </div>
       {props.shapeSequenceIds.map((sequenceId, sequenceIdx) => {
         return (
@@ -56,7 +56,7 @@ function FrameColumn(props: FrameColumnProps) {
               gridRow: sequenceIdx + 3,
             }}
           >
-            {props.stepExists(sequenceId) ? "s" : "-"}
+            {props.stepLabel(sequenceId)}
           </div>
         );
       })}
@@ -94,7 +94,7 @@ export const FramePanel = track(() => {
           frameName="Initial state"
           shapeSequenceIds={shapeSequenceIds}
           isFocused={currentFrameIndex === "initial"}
-          stepExists={() => true}
+          stepLabel={() => "*"}
           onClick={() => {
             $currentFrameIndex.set("initial");
             runInitialFrame(editor);
@@ -107,7 +107,10 @@ export const FramePanel = track(() => {
             columnIndex={frameIdx + 1}
             shapeSequenceIds={shapeSequenceIds}
             isFocused={frameIdx === currentFrameIndex}
-            stepExists={(sequenceId) => frame[sequenceId]?.type === "at"}
+            stepLabel={(sequenceId) => {
+              const stepIndex = frame[sequenceId];
+              return stepIndex?.type === "at" ? `${stepIndex.index + 1}` : "-";
+            }}
             onClick={() => {
               $currentFrameIndex.set(frameIdx);
               runFrame(editor, frame, { skipAnime: true });
