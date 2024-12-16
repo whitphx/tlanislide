@@ -135,58 +135,6 @@ const components: TLComponents = {
 
 function App() {
   const handleMount = (editor: Editor) => {
-    const slide1Id = createShapeId("slide-1");
-    editor.createShapes([
-      {
-        id: slide1Id,
-        type: "slide",
-        x: 200,
-        y: 200,
-      },
-    ]);
-    const slide1 = editor.getShape(slide1Id);
-    if (slide1 == null) {
-      throw new Error("Slide 1 not found");
-    }
-
-    const slide2Id = createShapeId("slide-2");
-    editor.createShapes([
-      {
-        id: slide2Id,
-        type: "slide",
-        x: 600,
-        y: 400,
-      },
-    ]);
-    const slide2 = editor.getShape(slide2Id);
-    if (slide2 == null) {
-      throw new Error("Slide 2 not found");
-    }
-
-    const arrow1Id = createShapeId("arrow-1");
-    editor.createShapes([
-      {
-        id: arrow1Id,
-        type: "arrow",
-        x: 700,
-        y: 500,
-        props: {
-          start: {
-            x: 0,
-            y: 0,
-          },
-          end: {
-            x: 300,
-            y: 0,
-          },
-        },
-      },
-    ]);
-    const arrow1 = editor.getShape(arrow1Id);
-    if (arrow1 == null) {
-      throw new Error("Arrow 1 not found");
-    }
-
     react("Render anime phantom shapes", () => {
       if ($presentationMode.get()) {
         return;
@@ -312,6 +260,58 @@ function App() {
         },
       });
     });
+
+    // const slide1Id = createShapeId("slide-1");
+    // editor.createShapes([
+    //   {
+    //     id: slide1Id,
+    //     type: "slide",
+    //     x: 200,
+    //     y: 200,
+    //   },
+    // ]);
+    // const slide1 = editor.getShape(slide1Id);
+    // if (slide1 == null) {
+    //   throw new Error("Slide 1 not found");
+    // }
+
+    // const slide2Id = createShapeId("slide-2");
+    // editor.createShapes([
+    //   {
+    //     id: slide2Id,
+    //     type: "slide",
+    //     x: 600,
+    //     y: 400,
+    //   },
+    // ]);
+    // const slide2 = editor.getShape(slide2Id);
+    // if (slide2 == null) {
+    //   throw new Error("Slide 2 not found");
+    // }
+
+    // const arrow1Id = createShapeId("arrow-1");
+    // editor.createShapes([
+    //   {
+    //     id: arrow1Id,
+    //     type: "arrow",
+    //     x: 700,
+    //     y: 500,
+    //     props: {
+    //       start: {
+    //         x: 0,
+    //         y: 0,
+    //       },
+    //       end: {
+    //         x: 300,
+    //         y: 0,
+    //       },
+    //     },
+    //   },
+    // ]);
+    // const arrow1 = editor.getShape(arrow1Id);
+    // if (arrow1 == null) {
+    //   throw new Error("Arrow 1 not found");
+    // }
 
     // $presentationFlow.initialize();
     // $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
