@@ -1,5 +1,5 @@
 import { track, useEditor, stopEventPropagation } from "tldraw";
-import { $currentFrameIndex } from "./frame";
+import { $currentFrameIndex, $presentationMode } from "./frame";
 import { $presentationFlow, runFrame } from "./frame";
 
 export const FramePanel = track(() => {
@@ -38,6 +38,19 @@ export const FramePanel = track(() => {
           );
         })}
       </ol>
+      <div>
+        <label>
+          Presentation mode
+          <input
+            type="checkbox"
+            checked={$presentationMode.get()}
+            onChange={(e) => {
+              $presentationMode.set(e.target.checked);
+              runFrame(editor, frames[currentFrameIndex]);
+            }}
+          />
+        </label>
+      </div>
     </div>
   );
 });

@@ -1,4 +1,10 @@
-import { atom, createShapeId, TLShapeId, type Editor } from "tldraw";
+import {
+  atom,
+  createShapeId,
+  JsonObject,
+  TLShapeId,
+  type Editor,
+} from "tldraw";
 import {
   ComputedFrame,
   PresentationFlow,
@@ -7,7 +13,17 @@ import {
 
 export const $presentationFlow = new PresentationFlow();
 
+export const $presentationMode = atom<boolean>("presentation mode", false);
+
 export const $currentFrameIndex = atom<number>("current frame index", 0);
+
+export interface AnimeDataMeta extends JsonObject {
+  anime: {
+    type: "presentation" | "edit";
+    sequenceId: ShapeSequenceId;
+    index: number | "initial";
+  };
+}
 
 function createSequenceShapeId(sequenceId: ShapeSequenceId): TLShapeId {
   return createShapeId(`Sequence:${sequenceId}`);
@@ -24,15 +40,24 @@ export function renderInitialShapes(editor: Editor) {
       const animeShapeId = createSequenceShapeId(sequenceId);
 
       const animeShape = editor.getShape(animeShapeId);
+      const meta: AnimeDataMeta = {
+        anime: {
+          type: "presentation",
+          sequenceId,
+          index: "initial",
+        },
+      };
       if (animeShape == null) {
         editor.createShape({
           ...initialShape,
           id: animeShapeId,
+          meta,
         });
       } else {
         editor.updateShape({
           ...initialShape,
           id: animeShapeId,
+          meta,
         });
       }
     }
@@ -77,17 +102,27 @@ export function runFrame(
 
         const animeShapeId = createSequenceShapeId(sequenceId);
 
+        const meta: AnimeDataMeta = {
+          anime: {
+            type: "presentation",
+            sequenceId,
+            index: stepPosition.index,
+          },
+        };
+
         // Ensure the previous shape exists
         const animeShape = editor.getShape(animeShapeId);
         if (animeShape == null) {
           editor.createShape({
             ...prevShape,
             id: animeShapeId,
+            meta,
           });
         } else {
           editor.updateShape({
             ...prevShape,
             id: animeShapeId,
+            meta,
           });
         }
 
@@ -116,15 +151,26 @@ export function runFrame(
         const animeShapeId = createSequenceShapeId(sequenceId);
         // Ensure the current shape exists
         const animeShape = editor.getShape(animeShapeId);
+
+        const meta: AnimeDataMeta = {
+          anime: {
+            type: "presentation",
+            sequenceId,
+            index: stepPosition.index >= 0 ? stepPosition.index : "initial",
+          },
+        };
+
         if (animeShape == null) {
           editor.createShape({
             ...curShape,
             id: animeShapeId,
+            meta,
           });
         } else {
           editor.updateShape({
             ...curShape,
             id: animeShapeId,
+            meta,
           });
         }
       }

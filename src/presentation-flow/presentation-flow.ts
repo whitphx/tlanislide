@@ -193,6 +193,50 @@ export class PresentationFlow {
     });
   }
 
+  public updateShape(sequenceId: ShapeSequenceId, stepIndex: number | "initial", shape: Omit<TLShapePartial, "id" | "meta">) {
+    this._state.update((state) => {
+      const sequence = state.sequences[sequenceId];
+      if (sequence == null) {
+        throw new Error(`Sequence with id ${sequenceId} not found`);
+      }
+
+      if (sequence.type !== "shape") {
+        throw new Error(`Sequence with id ${sequenceId} is not a shape sequence`);
+      }
+
+      if (stepIndex === "initial") {
+        return {
+          ...state,
+          sequences: {
+            ...state.sequences,
+            [sequenceId]: {
+              ...sequence,
+              initialShape: shape,
+            },
+          },
+        };
+      }
+
+      if (stepIndex < 0 || stepIndex >= sequence.steps.length) {
+        throw new Error(`Step index ${stepIndex} out of range`);
+      }
+
+      const newSteps = [...sequence.steps];
+      newSteps[stepIndex] = { ...newSteps[stepIndex], shape };
+
+      return {
+        ...state,
+        sequences: {
+          ...state.sequences,
+          [sequenceId]: {
+            ...sequence,
+            steps: newSteps,
+          },
+        },
+      };
+    });
+  }
+
   public insertStep(step: Step, index: number) {
     // TODO
   }

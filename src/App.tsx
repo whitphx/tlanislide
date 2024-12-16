@@ -10,8 +10,14 @@ import {
   createShapeId,
   EASINGS,
   TLArrowShape,
+  react,
 } from "tldraw";
-import type { TLUiOverrides, TLComponents, Editor } from "tldraw";
+import type {
+  TLUiOverrides,
+  TLComponents,
+  Editor,
+  TLShapePartial,
+} from "tldraw";
 import "tldraw/tldraw.css";
 
 import { SlideShapeUtil } from "./SlideShapeUtil";
@@ -20,8 +26,10 @@ import { FramePanel } from "./FramePanel";
 import {
   $currentFrameIndex,
   $presentationFlow,
+  $presentationMode,
   renderInitialShapes,
   runFrame,
+  AnimeDataMeta,
 } from "./frame";
 import { CAMERA_SEQUENCE_ID } from "./presentation-flow";
 
@@ -162,6 +170,101 @@ function App() {
       throw new Error("Arrow 1 not found");
     }
 
+    react("Render anime phantom shapes", () => {
+      if ($presentationMode.get()) {
+        return;
+      }
+
+      Object.entries($presentationFlow.state.sequences).forEach(
+        ([sequenceId, sequence]) => {
+          if (sequence.type !== "shape") {
+            return;
+          }
+
+          const animeShapeId = createShapeId(
+            `AnimePhantom:${sequenceId}:initial`
+          );
+          const meta: AnimeDataMeta = {
+            anime: {
+              type: "edit",
+              sequenceId,
+              index: "initial",
+            },
+          };
+          const animeShape = editor.getShape(animeShapeId);
+          if (animeShape == null) {
+            editor.createShape({
+              ...sequence.initialShape,
+              id: animeShapeId,
+              meta,
+            });
+          } else {
+            editor.updateShape({
+              ...sequence.initialShape,
+              id: animeShapeId,
+              meta,
+            });
+          }
+
+          sequence.steps.forEach((step, stepIndex) => {
+            const animeShapeId = createShapeId(
+              `AnimePhantom:${sequenceId}:${stepIndex}`
+            );
+            const meta: AnimeDataMeta = {
+              anime: {
+                type: "edit",
+                sequenceId,
+                index: stepIndex,
+              },
+            };
+            const animeShape = editor.getShape(animeShapeId);
+            if (animeShape == null) {
+              editor.createShape({
+                ...step.shape,
+                id: animeShapeId,
+                meta,
+              });
+            } else {
+              editor.updateShape({
+                ...step.shape,
+                id: animeShapeId,
+                meta,
+              });
+            }
+          });
+        }
+      );
+    });
+
+    editor.sideEffects.registerAfterChangeHandler(
+      "shape",
+      (prevShape, nextShape) => {
+        if ($presentationMode.get()) {
+          return;
+        }
+
+        const anime = nextShape.meta?.anime;
+        if (!anime) {
+          return;
+        }
+
+        const { type, sequenceId, index } = anime as AnimeDataMeta["anime"];
+        if (type !== "edit") {
+          return;
+        }
+
+        const updatedShape: TLShapePartial = Object.assign({}, nextShape);
+        delete updatedShape.meta;
+        delete updatedShape.opacity;
+
+        if (index === "initial") {
+          $presentationFlow.updateShape(sequenceId, "initial", updatedShape);
+        } else {
+          $presentationFlow.updateShape(sequenceId, index, updatedShape);
+        }
+      }
+    );
+
     $presentationFlow.initialize();
     $presentationFlow.pushStep(CAMERA_SEQUENCE_ID, {
       type: "camera",
@@ -243,6 +346,24 @@ function App() {
         overrides={myUiOverrides}
         shapeUtils={MyCustomShapes}
         tools={MyCustomTools}
+        isShapeHidden={(shape) => {
+          const animeDataMeta = shape.meta?.anime as
+            | AnimeDataMeta["anime"]
+            | undefined;
+          if (!animeDataMeta) {
+            return false;
+          }
+          if ($presentationMode.get()) {
+            if (animeDataMeta.type === "edit") {
+              return true;
+            }
+          } else {
+            if (animeDataMeta.type === "presentation") {
+              return true;
+            }
+          }
+          return false;
+        }}
       />
     </div>
   );
