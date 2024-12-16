@@ -30,6 +30,7 @@ import {
   runFrame,
   AnimeDataMeta,
   runCurrentFrame,
+  getAnimeMeta,
 } from "./frame";
 import {
   CAMERA_SEQUENCE_ID,
@@ -258,7 +259,7 @@ function App() {
           return;
         }
 
-        const anime = nextShape.meta?.anime;
+        const anime = getAnimeMeta(nextShape);
         if (!anime) {
           return;
         }
@@ -395,9 +396,7 @@ function App() {
         shapeUtils={MyCustomShapes}
         tools={MyCustomTools}
         isShapeHidden={(shape) => {
-          const animeDataMeta = shape.meta?.anime as
-            | AnimeDataMeta["anime"]
-            | undefined;
+          const animeDataMeta = getAnimeMeta(shape);
           if (!animeDataMeta) {
             return false;
           }

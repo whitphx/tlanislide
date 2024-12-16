@@ -4,6 +4,7 @@ import {
   EASINGS,
   JsonObject,
   TLCameraMoveOptions,
+  TLShape,
   TLShapeId,
   type Editor,
 } from "tldraw";
@@ -31,6 +32,12 @@ export interface AnimeDataMeta extends JsonObject {
     sequenceId: ShapeSequenceId;
     index: number | "initial";
   };
+}
+
+export function getAnimeMeta(
+  shape: TLShape
+): AnimeDataMeta["anime"] | undefined {
+  return shape.meta?.anime as AnimeDataMeta["anime"] | undefined;
 }
 
 function deserializeTLCameraMoveOptions(

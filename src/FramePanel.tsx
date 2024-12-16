@@ -2,7 +2,7 @@ import { track, useEditor, stopEventPropagation } from "tldraw";
 import {
   $currentFrameIndex,
   $presentationMode,
-  AnimeDataMeta,
+  getAnimeMeta,
   runInitialFrame,
 } from "./frame";
 import { $presentationFlow, runFrame } from "./frame";
@@ -19,7 +19,8 @@ interface FrameColumnProps {
   frameName: string;
   isFocused: boolean;
   onClick: () => void;
-  stepLabel: (sequenceId: SequenceId) => string;
+  onShapeSelect: (sequenceId: ShapeSequenceId) => void;
+  getStepContent: (sequenceId: SequenceId) => string | null;
 }
 function FrameColumn(props: FrameColumnProps) {
   return (
@@ -45,9 +46,10 @@ function FrameColumn(props: FrameColumnProps) {
           gridRow: 2,
         }}
       >
-        {props.stepLabel(CAMERA_SEQUENCE_ID)}
+        {props.getStepContent(CAMERA_SEQUENCE_ID)}
       </div>
       {props.shapeSequenceIds.map((sequenceId, sequenceIdx) => {
+        const stepContent = props.getStepContent(sequenceId);
         return (
           <div
             key={sequenceId}
@@ -56,7 +58,11 @@ function FrameColumn(props: FrameColumnProps) {
               gridRow: sequenceIdx + 3,
             }}
           >
-            {props.stepLabel(sequenceId)}
+            {stepContent && (
+              <button onClick={() => props.onShapeSelect(sequenceId)}>
+                {stepContent}
+              </button>
+            )}
           </div>
         );
       })}
@@ -94,10 +100,23 @@ export const FramePanel = track(() => {
           frameName="Initial state"
           shapeSequenceIds={shapeSequenceIds}
           isFocused={currentFrameIndex === "initial"}
-          stepLabel={() => "*"}
+          getStepContent={() => "*"}
           onClick={() => {
             $currentFrameIndex.set("initial");
             runInitialFrame(editor);
+          }}
+          onShapeSelect={(sequenceId) => {
+            editor.getCurrentPageShapes().forEach((shape) => {
+              const animeMeta = getAnimeMeta(shape);
+              if (
+                animeMeta &&
+                animeMeta.sequenceId === sequenceId &&
+                animeMeta.index === "initial" &&
+                animeMeta.type === "edit"
+              ) {
+                editor.select(shape.id);
+              }
+            });
           }}
         />
         {frames.map((frame, frameIdx) => (
@@ -107,13 +126,26 @@ export const FramePanel = track(() => {
             columnIndex={frameIdx + 1}
             shapeSequenceIds={shapeSequenceIds}
             isFocused={frameIdx === currentFrameIndex}
-            stepLabel={(sequenceId) => {
+            getStepContent={(sequenceId) => {
               const stepIndex = frame[sequenceId];
-              return stepIndex?.type === "at" ? `${stepIndex.index + 1}` : "-";
+              return stepIndex?.type === "at" ? `${stepIndex.index + 1}` : null;
             }}
             onClick={() => {
               $currentFrameIndex.set(frameIdx);
               runFrame(editor, frame, { skipAnime: true });
+            }}
+            onShapeSelect={(sequenceId) => {
+              editor.getCurrentPageShapes().forEach((shape) => {
+                const animeMeta = getAnimeMeta(shape);
+                if (
+                  animeMeta &&
+                  animeMeta.sequenceId === sequenceId &&
+                  animeMeta.index === frame[sequenceId]?.index &&
+                  animeMeta.type === "edit"
+                ) {
+                  editor.select(shape.id);
+                }
+              });
             }}
           />
         ))}
@@ -126,7 +158,7 @@ export const FramePanel = track(() => {
               .getSelectedShapes()
               .filter(
                 (shape) =>
-                  shape.type !== SlideShapeType && shape.meta?.anime == null
+                  shape.type !== SlideShapeType && getAnimeMeta(shape) == null
               );
             selectedShapes.forEach((shape) => {
               $presentationFlow.addShapeSequence(shape);
@@ -140,9 +172,7 @@ export const FramePanel = track(() => {
           onClick={() => {
             const selectedShapes = editor.getSelectedShapes();
             selectedShapes.forEach((shape) => {
-              const animeMeta = shape.meta?.anime as
-                | AnimeDataMeta["anime"]
-                | undefined;
+              const animeMeta = getAnimeMeta(shape);
               if (animeMeta == null) {
                 console.warn("Shape is not animated");
                 return;
