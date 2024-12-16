@@ -1,5 +1,5 @@
-import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS } from "tldraw"
-import { atom, computed } from "tldraw";
+import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS, TLStore } from "tldraw"
+import { atom, computed, uniqueId } from "tldraw";
 
 interface StepIndex {
   sequenceId: SequenceId;
@@ -69,29 +69,6 @@ export function getShapeSequenceId(str: string): ShapeSequenceId {
 export type RelativeStepIndex = { type: "at" | "after", index: number }
 export type ComputedFrame = Record<SequenceId, RelativeStepIndex>;
 
-class UniqueRandomIdGenerator {
-  private readonly _usedIds = new Set<string>();
-
-  static randomId(length: number) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }
-
-  generateId(length: number) {
-    let id = "";
-    do {
-      id = UniqueRandomIdGenerator.randomId(length);
-    } while (this._usedIds.has(id));
-    this._usedIds.add(id);
-    return id;
-  }
-}
-const idGenerator = new UniqueRandomIdGenerator();
-
 interface PresentationFlowState {
   sequences: SequenceMap;
   frames: Frame[];
@@ -150,7 +127,7 @@ export class PresentationFlow {
   }
 
   public addShapeSequence<T extends TLShape = TLShape>(initialShape: Omit<TLShapePartial<T>, "id">): ShapeSequenceId {
-    const id = idGenerator.generateId(8);
+    const id = uniqueId();
     const shapeSequenceId: ShapeSequenceId = getShapeSequenceId(id);
     const newShapeSequence: ShapeSequence = { type: "shape", initialShape, steps: [] };
     this._state.update((state) => {
