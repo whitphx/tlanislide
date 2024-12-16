@@ -306,7 +306,7 @@ function App() {
         inset: 200,
         animation: {
           duration: 1000,
-          easing: EASINGS.easeInCubic, // TODO: JSON serializable
+          easing: "easeInCubic",
         },
       },
     });
@@ -317,7 +317,7 @@ function App() {
         inset: 300,
         animation: {
           duration: 1000,
-          easing: EASINGS.easeInCubic, // TODO: JSON serializable
+          easing: "easeInCubic",
         },
       },
     });
@@ -356,7 +356,7 @@ function App() {
       animateShapeOpts: {
         animation: {
           duration: 1000,
-          easing: EASINGS.easeInCubic, // TODO: JSON serializable
+          easing: "easeInCubic",
         },
       },
     });

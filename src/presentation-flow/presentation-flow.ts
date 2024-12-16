@@ -1,4 +1,4 @@
-import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape } from "tldraw"
+import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS } from "tldraw"
 import { atom, computed } from "tldraw";
 
 interface StepIndex {
@@ -12,6 +12,13 @@ function stepIndexEquals(a: StepIndex, b: StepIndex) {
 
 type Frame = StepIndex[];  // Semantically equivalent to Set<StepIndex>, `StepIndex` is not a primitive type and doesn't work with `Set`. Also, we use array for easier manipulation.
 
+export interface JSONSerializableTLCameraMoveOptionsAnimation extends Omit<NonNullable<TLCameraMoveOptions["animation"]>, "easing"> {
+  easing?: keyof typeof EASINGS;
+}
+export interface JSONSerializableTLCameraMoveOptions extends Omit<TLCameraMoveOptions, "animation"> {
+  animation?: JSONSerializableTLCameraMoveOptionsAnimation;
+}
+
 export interface BaseStep {
   type: string;
 }
@@ -21,12 +28,12 @@ export interface CameraStep extends BaseStep {
   zoomToBoundsParams: {
     inset?: number;
     targetZoom?: number;
-  } & TLCameraMoveOptions;
+  } & JSONSerializableTLCameraMoveOptions;
 }
 export interface ShapeStep<T extends TLShape = TLShape> extends BaseStep {
   type: "shape";
   shape: Omit<TLShapePartial<T>, "id">;
-  animateShapeOpts?: TLCameraMoveOptions;
+  animateShapeOpts?: JSONSerializableTLCameraMoveOptions;
 }
 type Step<T extends TLShape = TLShape> = CameraStep | ShapeStep<T>;
 

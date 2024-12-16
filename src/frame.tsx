@@ -1,13 +1,16 @@
 import {
   atom,
   createShapeId,
+  EASINGS,
   JsonObject,
+  TLCameraMoveOptions,
   TLShapeId,
   type Editor,
 } from "tldraw";
 import {
   CAMERA_SEQUENCE_ID,
   ComputedFrame,
+  JSONSerializableTLCameraMoveOptions,
   PresentationFlow,
   SequenceId,
   ShapeSequenceId,
@@ -27,6 +30,22 @@ export interface AnimeDataMeta extends JsonObject {
     type: "presentation" | "edit";
     sequenceId: ShapeSequenceId;
     index: number | "initial";
+  };
+}
+
+function deserializeTLCameraMoveOptions(
+  options: JSONSerializableTLCameraMoveOptions
+): TLCameraMoveOptions {
+  return {
+    ...options,
+    animation: options.animation
+      ? {
+          ...options.animation,
+          easing:
+            options.animation.easing &&
+            EASINGS[options.animation.easing as keyof typeof EASINGS],
+        }
+      : undefined,
   };
 }
 
@@ -92,12 +111,13 @@ export function runFrame(
         return;
       }
 
-      editor.zoomToBounds(bounds, {
-        ...cameraStep.zoomToBoundsParams,
-        animation: skipAnime
-          ? undefined
-          : cameraStep.zoomToBoundsParams.animation,
-      });
+      const zoomToBoundsParams = deserializeTLCameraMoveOptions(
+        cameraStep.zoomToBoundsParams
+      );
+      if (skipAnime) {
+        zoomToBoundsParams.animation = undefined;
+      }
+      editor.zoomToBounds(bounds, zoomToBoundsParams);
     } else {
       const shapeSequence = $presentationFlow.state.sequences[sequenceId];
       if (shapeSequence == null) {
@@ -151,7 +171,7 @@ export function runFrame(
             },
             id: animeShapeId,
           },
-          curStep.animateShapeOpts
+          deserializeTLCameraMoveOptions(curStep.animateShapeOpts)
         );
       } else if (stepPosition.type === "after") {
         const curShape =
