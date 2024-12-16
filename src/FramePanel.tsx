@@ -7,7 +7,7 @@ import {
 } from "./frame";
 import { $presentationFlow, runFrame } from "./frame";
 import { SlideShapeType } from "./SlideShapeUtil";
-import { CAMERA_SEQUENCE_ID } from "./presentation-flow";
+import { CAMERA_SEQUENCE_ID, ShapeSequenceId } from "./presentation-flow";
 
 export const FramePanel = track(() => {
   const editor = useEditor();
@@ -15,6 +15,11 @@ export const FramePanel = track(() => {
   const frames = $presentationFlow.getFrames();
 
   const currentFrameIndex = $currentFrameIndex.get();
+
+  const shapeSequenceIds = Object.keys(
+    $presentationFlow.state.sequences
+  ).filter((sid) => sid !== CAMERA_SEQUENCE_ID) as ShapeSequenceId[];
+
   return (
     <div
       style={{
@@ -22,42 +27,104 @@ export const FramePanel = track(() => {
       }}
       onPointerDown={(e) => stopEventPropagation(e)}
     >
-      <ol>
-        <li>
-          <button
-            onClick={() => {
-              $currentFrameIndex.set("initial");
-              runInitialFrame(editor);
-            }}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${frames.length + 2}, 1fr)`,
+          gridTemplateRows: `repeat(${shapeSequenceIds.length + 2}, 1fr)`,
+        }}
+      >
+        <>
+          <div
             style={{
-              fontWeight: currentFrameIndex === "initial" ? "bold" : "normal",
+              gridColumn: 1,
+              gridRow: 1,
             }}
           >
-            Initial state
-          </button>
-        </li>
-        {frames.map((frame, i) => {
-          const isCurrent = i === currentFrameIndex;
-
-          return (
-            <li
-              key={i} // TODO: Use a unique key
+            <button
+              onClick={() => {
+                $currentFrameIndex.set("initial");
+                runInitialFrame(editor);
+              }}
+              style={{
+                fontWeight: currentFrameIndex === "initial" ? "bold" : "normal",
+              }}
             >
-              <button
-                onClick={() => {
-                  $currentFrameIndex.set(i);
-                  runFrame(editor, frame, { skipAnime: true });
-                }}
+              Initial state
+            </button>
+          </div>
+          <div
+            style={{
+              gridColumn: 1,
+              gridRow: 2,
+            }}
+          >
+            c
+          </div>
+          {shapeSequenceIds.map((sequenceId, sequenceIdx) => {
+            return (
+              <div
                 style={{
-                  fontWeight: isCurrent ? "bold" : "normal",
+                  gridColumn: 1,
+                  gridRow: sequenceIdx + 3,
                 }}
               >
-                Frame {i + 1}
-              </button>
-            </li>
+                s
+              </div>
+            );
+          })}
+        </>
+        {frames.map((frame, frameIdx) => {
+          const isCurrentFrame = frameIdx === currentFrameIndex;
+          const cameraStepExists = frame[CAMERA_SEQUENCE_ID].type === "at";
+          return (
+            <>
+              <div
+                style={{
+                  gridColumn: frameIdx + 2,
+                  gridRow: 1,
+                }}
+              >
+                <button
+                  onClick={() => {
+                    $currentFrameIndex.set(frameIdx);
+                    runFrame(editor, frame, { skipAnime: true });
+                  }}
+                  style={{
+                    fontWeight: isCurrentFrame ? "bold" : "normal",
+                  }}
+                >
+                  Frame {frameIdx + 1}
+                </button>
+              </div>
+              <div
+                style={{
+                  gridColumn: frameIdx + 2,
+                  gridRow: 2,
+                }}
+              >
+                {cameraStepExists ? "c" : "-"}
+              </div>
+              {shapeSequenceIds.map((sequenceId, sequenceIdx) => {
+                const key = `${frameIdx}-${sequenceId}`;
+                const shapeStepExists = frame[sequenceId].type === "at";
+                return (
+                  <div
+                    key={key}
+                    style={{
+                      gridColumn: frameIdx + 2,
+                      gridRow: sequenceIdx + 3,
+                    }}
+                  >
+                    {shapeStepExists ? "s" : "-"}
+                  </div>
+                );
+              })}
+            </>
           );
         })}
-      </ol>
+      </div>
+
       <div>
         <button
           onClick={() => {
