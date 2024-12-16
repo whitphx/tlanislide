@@ -31,7 +31,7 @@ import {
   runFrame,
   AnimeDataMeta,
 } from "./frame";
-import { CAMERA_SEQUENCE_ID } from "./presentation-flow";
+import { CAMERA_SEQUENCE_ID, ShapeSequenceId } from "./presentation-flow";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -187,65 +187,64 @@ function App() {
         return;
       }
 
-      Object.entries($presentationFlow.state.sequences).forEach(
-        ([sequenceId, sequence]) => {
-          if (sequence.type !== "shape") {
-            return;
-          }
+      const sequenceIds = Object.keys($presentationFlow.state.sequences).filter(
+        (sid) => sid !== CAMERA_SEQUENCE_ID
+      ) as ShapeSequenceId[];
+      sequenceIds.forEach((sequenceId) => {
+        const sequence = $presentationFlow.state.sequences[sequenceId];
 
+        const animeShapeId = createShapeId(
+          `AnimePhantom:${sequenceId}:initial`
+        );
+        const meta: AnimeDataMeta = {
+          anime: {
+            type: "edit",
+            sequenceId,
+            index: "initial",
+          },
+        };
+        const animeShape = editor.getShape(animeShapeId);
+        if (animeShape == null) {
+          editor.createShape({
+            ...sequence.initialShape,
+            id: animeShapeId,
+            meta,
+          });
+        } else {
+          editor.updateShape({
+            ...sequence.initialShape,
+            id: animeShapeId,
+            meta,
+          });
+        }
+
+        sequence.steps.forEach((step, stepIndex) => {
           const animeShapeId = createShapeId(
-            `AnimePhantom:${sequenceId}:initial`
+            `AnimePhantom:${sequenceId}:${stepIndex}`
           );
           const meta: AnimeDataMeta = {
             anime: {
               type: "edit",
               sequenceId,
-              index: "initial",
+              index: stepIndex,
             },
           };
           const animeShape = editor.getShape(animeShapeId);
           if (animeShape == null) {
             editor.createShape({
-              ...sequence.initialShape,
+              ...step.shape,
               id: animeShapeId,
               meta,
             });
           } else {
             editor.updateShape({
-              ...sequence.initialShape,
+              ...step.shape,
               id: animeShapeId,
               meta,
             });
           }
-
-          sequence.steps.forEach((step, stepIndex) => {
-            const animeShapeId = createShapeId(
-              `AnimePhantom:${sequenceId}:${stepIndex}`
-            );
-            const meta: AnimeDataMeta = {
-              anime: {
-                type: "edit",
-                sequenceId,
-                index: stepIndex,
-              },
-            };
-            const animeShape = editor.getShape(animeShapeId);
-            if (animeShape == null) {
-              editor.createShape({
-                ...step.shape,
-                id: animeShapeId,
-                meta,
-              });
-            } else {
-              editor.updateShape({
-                ...step.shape,
-                id: animeShapeId,
-                meta,
-              });
-            }
-          });
-        }
-      );
+        });
+      });
     });
 
     editor.sideEffects.registerAfterChangeHandler(
