@@ -27,7 +27,7 @@ import {
   $currentFrameIndex,
   $presentationFlow,
   $presentationMode,
-  renderInitialShapes,
+  runInitialFrame,
   runFrame,
   AnimeDataMeta,
 } from "./frame";
@@ -45,7 +45,8 @@ const myUiOverrides: TLUiOverrides = {
       onSelect() {
         const frames = $presentationFlow.getFrames();
         const currentFrameIndex = $currentFrameIndex.get();
-        const nextFrameIndex = currentFrameIndex + 1;
+        const nextFrameIndex =
+          currentFrameIndex === "initial" ? 0 : currentFrameIndex + 1;
         const nextFrame = frames[nextFrameIndex];
         if (nextFrame == null) {
           return;
@@ -64,7 +65,18 @@ const myUiOverrides: TLUiOverrides = {
       onSelect() {
         const frames = $presentationFlow.getFrames();
         const currentFrameIndex = $currentFrameIndex.get();
-        const prevFrameIndex = currentFrameIndex - 1;
+        const prevFrameIndex =
+          currentFrameIndex === "initial"
+            ? "initial"
+            : currentFrameIndex === 0
+            ? "initial"
+            : currentFrameIndex - 1;
+        if (prevFrameIndex === "initial") {
+          $currentFrameIndex.set(prevFrameIndex);
+          runInitialFrame(editor);
+          return;
+        }
+
         const prevFrame = frames[prevFrameIndex];
         if (prevFrame == null) {
           return;
@@ -349,7 +361,7 @@ function App() {
       },
     });
 
-    renderInitialShapes(editor);
+    runInitialFrame(editor);
   };
 
   return (

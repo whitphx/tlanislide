@@ -1,5 +1,10 @@
 import { track, useEditor, stopEventPropagation } from "tldraw";
-import { $currentFrameIndex, $presentationMode, AnimeDataMeta } from "./frame";
+import {
+  $currentFrameIndex,
+  $presentationMode,
+  AnimeDataMeta,
+  runInitialFrame,
+} from "./frame";
 import { $presentationFlow, runFrame } from "./frame";
 import { SlideShapeType } from "./SlideShapeUtil";
 import { CAMERA_SEQUENCE_ID } from "./presentation-flow";
@@ -18,6 +23,19 @@ export const FramePanel = track(() => {
       onPointerDown={(e) => stopEventPropagation(e)}
     >
       <ol>
+        <li>
+          <button
+            onClick={() => {
+              $currentFrameIndex.set("initial");
+              runInitialFrame(editor);
+            }}
+            style={{
+              fontWeight: currentFrameIndex === "initial" ? "bold" : "normal",
+            }}
+          >
+            Initial state
+          </button>
+        </li>
         {frames.map((frame, i) => {
           const isCurrent = i === currentFrameIndex;
 
@@ -111,7 +129,11 @@ export const FramePanel = track(() => {
             checked={$presentationMode.get()}
             onChange={(e) => {
               $presentationMode.set(e.target.checked);
-              runFrame(editor, frames[currentFrameIndex]);
+              if (currentFrameIndex === "initial") {
+                runInitialFrame(editor);
+              } else {
+                runFrame(editor, frames[currentFrameIndex]);
+              }
             }}
           />
         </label>

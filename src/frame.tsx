@@ -6,8 +6,10 @@ import {
   type Editor,
 } from "tldraw";
 import {
+  CAMERA_SEQUENCE_ID,
   ComputedFrame,
   PresentationFlow,
+  SequenceId,
   ShapeSequenceId,
 } from "./presentation-flow";
 
@@ -15,7 +17,10 @@ export const $presentationFlow = new PresentationFlow();
 
 export const $presentationMode = atom<boolean>("presentation mode", false);
 
-export const $currentFrameIndex = atom<number>("current frame index", 0);
+export const $currentFrameIndex = atom<number | "initial">(
+  "current frame index",
+  "initial"
+);
 
 export interface AnimeDataMeta extends JsonObject {
   anime: {
@@ -29,39 +34,41 @@ function createSequenceShapeId(sequenceId: ShapeSequenceId): TLShapeId {
   return createShapeId(`Sequence:${sequenceId}`);
 }
 
-export function renderInitialShapes(editor: Editor) {
-  Object.entries($presentationFlow.state.sequences).forEach(
-    ([sequenceId, sequence]) => {
-      if (sequence.type === "camera") {
-        return;
-      }
-
-      const initialShape = sequence.initialShape;
-      const animeShapeId = createSequenceShapeId(sequenceId);
-
-      const animeShape = editor.getShape(animeShapeId);
-      const meta: AnimeDataMeta = {
-        anime: {
-          type: "presentation",
-          sequenceId,
-          index: "initial",
-        },
-      };
-      if (animeShape == null) {
-        editor.createShape({
-          ...initialShape,
-          id: animeShapeId,
-          meta,
-        });
-      } else {
-        editor.updateShape({
-          ...initialShape,
-          id: animeShapeId,
-          meta,
-        });
-      }
+export function runInitialFrame(editor: Editor) {
+  const sequenceIds = Object.keys(
+    $presentationFlow.state.sequences
+  ) as SequenceId[];
+  sequenceIds.forEach((sequenceId) => {
+    if (sequenceId === CAMERA_SEQUENCE_ID) {
+      return;
     }
-  );
+    const sequence = $presentationFlow.state.sequences[sequenceId];
+
+    const initialShape = sequence.initialShape;
+    const animeShapeId = createSequenceShapeId(sequenceId);
+
+    const animeShape = editor.getShape(animeShapeId);
+    const meta: AnimeDataMeta = {
+      anime: {
+        type: "presentation",
+        sequenceId,
+        index: "initial",
+      },
+    };
+    if (animeShape == null) {
+      editor.createShape({
+        ...initialShape,
+        id: animeShapeId,
+        meta,
+      });
+    } else {
+      editor.updateShape({
+        ...initialShape,
+        id: animeShapeId,
+        meta,
+      });
+    }
+  });
 }
 
 export interface RunFrameOption {
@@ -72,14 +79,13 @@ export function runFrame(
   frame: ComputedFrame,
   options?: RunFrameOption
 ) {
-  Object.entries(frame).forEach(([sequenceId, stepPosition]) => {
-    const sequence = $presentationFlow.state.sequences[sequenceId];
-    if (sequence == null) {
-      return;
-    }
+  const sequenceIds = Object.keys(frame) as SequenceId[];
+  sequenceIds.forEach((sequenceId) => {
+    const stepPosition = frame[sequenceId];
 
-    if (sequence.type === "camera") {
-      const cameraStep = sequence.steps[stepPosition.index];
+    if (sequenceId === CAMERA_SEQUENCE_ID) {
+      const cameraSequence = $presentationFlow.state.sequences[sequenceId];
+      const cameraStep = cameraSequence.steps[stepPosition.index];
       const skipAnime = stepPosition.type === "after" || options?.skipAnime;
       const bounds = editor.getShapePageBounds(cameraStep.shapeId);
       if (!bounds) {
@@ -92,13 +98,17 @@ export function runFrame(
           ? undefined
           : cameraStep.zoomToBoundsParams.animation,
       });
-    } else if (sequence.type === "shape") {
+    } else {
+      const shapeSequence = $presentationFlow.state.sequences[sequenceId];
+      if (shapeSequence == null) {
+        return;
+      }
       if (stepPosition.type === "at") {
-        const curStep = sequence.steps[stepPosition.index];
+        const curStep = shapeSequence.steps[stepPosition.index];
         const prevShape =
           stepPosition.index > 0
-            ? sequence.steps[stepPosition.index - 1].shape
-            : sequence.initialShape;
+            ? shapeSequence.steps[stepPosition.index - 1].shape
+            : shapeSequence.initialShape;
 
         const animeShapeId = createSequenceShapeId(sequenceId);
 
@@ -146,8 +156,8 @@ export function runFrame(
       } else if (stepPosition.type === "after") {
         const curShape =
           stepPosition.index >= 0
-            ? sequence.steps[stepPosition.index].shape
-            : sequence.initialShape;
+            ? shapeSequence.steps[stepPosition.index].shape
+            : shapeSequence.initialShape;
         const animeShapeId = createSequenceShapeId(sequenceId);
         // Ensure the current shape exists
         const animeShape = editor.getShape(animeShapeId);
