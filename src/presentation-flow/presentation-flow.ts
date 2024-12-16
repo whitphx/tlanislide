@@ -1,4 +1,4 @@
-import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS, TLStore, JsonObject } from "tldraw"
+import type { TLShapeId, TLCameraMoveOptions, TLShapePartial, TLShape, EASINGS } from "tldraw"
 import { atom, computed, uniqueId } from "tldraw";
 
 interface StepIndex {
@@ -214,14 +214,6 @@ export class PresentationFlow {
         },
       };
     });
-  }
-
-  public insertStep(step: Step, index: number) {
-    // TODO
-  }
-
-  public deleteStep(index: number) {
-    // TODO
   }
 
   /**

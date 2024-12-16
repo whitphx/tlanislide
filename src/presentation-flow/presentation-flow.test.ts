@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createShapeId } from "tldraw"
-import { PresentationFlow, getShapeSequenceId, CAMERA_SEQUENCE_ID, CameraStep, ShapeStep, ShapeSequence, CameraSequence, SequenceId } from './presentation-flow'
+import { PresentationFlow, getShapeSequenceId, CAMERA_SEQUENCE_ID, CameraStep, ShapeStep, SequenceId, PresentationFlowState } from './presentation-flow'
 
 describe('PresentationFlow', () => {
   let flow: PresentationFlow
@@ -166,47 +166,41 @@ describe('PresentationFlow', () => {
   });
 
   describe('moveStepToFrame: when moving a step to a different frame with side effects', () => {
-    let cameraStep0: CameraStep
-    let cameraStep1: CameraStep
-    let cameraStep2: CameraStep
-    let shapeStep0: ShapeStep
-    let shapeStep1: ShapeStep
-    let shapeStep2: ShapeStep
     const cameraShapeId = createShapeId("camera-target");
     const shapeSeqId0 = getShapeSequenceId("0");
     const shapeSeqId1 = getShapeSequenceId("1");
 
     beforeEach(() => {
-      cameraStep0 = {
+      const cameraStep0 = {
         type: "camera",
         shapeId: cameraShapeId,
         zoomToBoundsParams: {
           inset: 0,
         },
       }
-      cameraStep1 = {
+      const cameraStep1 = {
         type: "camera",
         shapeId: cameraShapeId,
         zoomToBoundsParams: {
           inset: 100,
         },
       }
-      cameraStep2 = {
+      const cameraStep2 = {
         type: "camera",
         shapeId: cameraShapeId,
         zoomToBoundsParams: {
           inset: 200,
         },
       }
-      shapeStep0 = {
+      const shapeStep0 = {
         type: "shape",
         shape: { type: "geo", x: 0, y: 0 },
       }
-      shapeStep1 = {
+      const shapeStep1 = {
         type: "shape",
         shape: { type: "geo", x: 100, y: 0 },
       }
-      shapeStep2 = {
+      const shapeStep2 = {
         type: "shape",
         shape: { type: "geo", x: 200, y: 0 },
       }
@@ -235,7 +229,7 @@ describe('PresentationFlow', () => {
           [{ sequenceId: CAMERA_SEQUENCE_ID, stepIndex: 2 },],
           [{ sequenceId: shapeSeqId0, stepIndex: 2 }],
         ],
-      });
+      } as PresentationFlowState);
 
       expect(flow.getFrames()).toEqual([
         {

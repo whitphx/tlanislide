@@ -42,7 +42,7 @@ const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
 
 const myUiOverrides: TLUiOverrides = {
-  actions(editor, actions, helpers) {
+  actions(editor, actions) {
     actions["next-frame"] = {
       id: "next-frame",
       label: "Next Frame",
@@ -95,7 +95,7 @@ const myUiOverrides: TLUiOverrides = {
 
     return actions;
   },
-  tools(editor, tools, helpers) {
+  tools(editor, tools) {
     tools.slide = {
       id: SlideShapeTool.id,
       icon: "group",
@@ -202,7 +202,7 @@ function App() {
 
     editor.sideEffects.registerAfterChangeHandler(
       "shape",
-      (prevShape, nextShape) => {
+      (_, nextShape) => {
         if ($presentationMode.get()) {
           return;
         }

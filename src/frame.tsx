@@ -13,7 +13,6 @@ import {
   ComputedFrame,
   JSONSerializableTLCameraMoveOptions,
   PresentationFlow,
-  RelativeStepIndex,
   SequenceId,
   ShapeSequenceId,
 } from "./presentation-flow";
