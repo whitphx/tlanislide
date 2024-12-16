@@ -1,4 +1,4 @@
-import { track, useEditor, stopEventPropagation } from "tldraw";
+import { track, useEditor, stopEventPropagation, Editor } from "tldraw";
 import {
   $currentFrameIndex,
   $presentationMode,
@@ -74,6 +74,24 @@ function FrameColumn(props: FrameColumnProps) {
   );
 }
 
+function selectAnimeEditorShape(
+  editor: Editor,
+  sequenceId: ShapeSequenceId,
+  index: number | "initial"
+) {
+  editor.getCurrentPageShapes().forEach((shape) => {
+    const animeMeta = getAnimeMeta(shape);
+    if (
+      animeMeta &&
+      animeMeta.sequenceId === sequenceId &&
+      animeMeta.index === index &&
+      animeMeta.type === "edit"
+    ) {
+      editor.select(shape.id);
+    }
+  });
+}
+
 export const FramePanel = track(() => {
   const editor = useEditor();
 
@@ -139,19 +157,9 @@ export const FramePanel = track(() => {
             $currentFrameIndex.set("initial");
             runInitialFrame(editor);
           }}
-          onShapeSelect={(sequenceId) => {
-            editor.getCurrentPageShapes().forEach((shape) => {
-              const animeMeta = getAnimeMeta(shape);
-              if (
-                animeMeta &&
-                animeMeta.sequenceId === sequenceId &&
-                animeMeta.index === "initial" &&
-                animeMeta.type === "edit"
-              ) {
-                editor.select(shape.id);
-              }
-            });
-          }}
+          onShapeSelect={(sequenceId) =>
+            selectAnimeEditorShape(editor, sequenceId, "initial")
+          }
         />
         {frames.map((frame, frameIdx) => (
           <FrameColumn
@@ -190,19 +198,13 @@ export const FramePanel = track(() => {
               $currentFrameIndex.set(frameIdx);
               runFrame(editor, frame, { skipAnime: true });
             }}
-            onShapeSelect={(sequenceId) => {
-              editor.getCurrentPageShapes().forEach((shape) => {
-                const animeMeta = getAnimeMeta(shape);
-                if (
-                  animeMeta &&
-                  animeMeta.sequenceId === sequenceId &&
-                  animeMeta.index === frame[sequenceId]?.index &&
-                  animeMeta.type === "edit"
-                ) {
-                  editor.select(shape.id);
-                }
-              });
-            }}
+            onShapeSelect={(sequenceId) =>
+              selectAnimeEditorShape(
+                editor,
+                sequenceId,
+                frame[sequenceId]?.index
+              )
+            }
           />
         ))}
       </div>
