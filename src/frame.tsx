@@ -13,6 +13,7 @@ import {
   ComputedFrame,
   JSONSerializableTLCameraMoveOptions,
   PresentationFlow,
+  RelativeStepIndex,
   SequenceId,
   ShapeSequenceId,
 } from "./presentation-flow";
@@ -121,6 +122,9 @@ export function runFrame(
     const stepPosition = frame[sequenceId];
 
     if (sequenceId === CAMERA_SEQUENCE_ID) {
+      if (stepPosition.index === "initial") {
+        return;
+      }
       const cameraSequence = $presentationFlow.state.sequences[sequenceId];
       const cameraStep = cameraSequence.steps[stepPosition.index];
       const skipAnime = stepPosition.type === "after" || options?.skipAnime;
@@ -195,9 +199,9 @@ export function runFrame(
         );
       } else if (stepPosition.type === "after") {
         const curShape =
-          stepPosition.index >= 0
-            ? shapeSequence.steps[stepPosition.index].shape
-            : shapeSequence.initialShape;
+          stepPosition.index === "initial"
+            ? shapeSequence.initialShape
+            : shapeSequence.steps[stepPosition.index].shape;
         const animeShapeId = createSequenceShapeId(sequenceId);
         // Ensure the current shape exists
         const animeShape = editor.getShape(animeShapeId);
@@ -206,7 +210,7 @@ export function runFrame(
           anime: {
             type: "presentation",
             sequenceId,
-            index: stepPosition.index >= 0 ? stepPosition.index : "initial",
+            index: stepPosition.index,
           },
         };
 

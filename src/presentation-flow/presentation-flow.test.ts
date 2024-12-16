@@ -65,18 +65,18 @@ describe('PresentationFlow', () => {
       expect(flow.getFrames()).toEqual([
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
           [shapeSeqId1]: { type: "at", index: 0 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
           [shapeSeqId1]: { type: "at", index: 1 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
@@ -137,12 +137,12 @@ describe('PresentationFlow', () => {
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
           [shapeSeqId1]: { type: "at", index: 0 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
           [shapeSeqId1]: { type: "after", index: 0 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         }
       ]);
     });
@@ -153,13 +153,13 @@ describe('PresentationFlow', () => {
       expect(flow.getFrames()).toEqual([
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
           [shapeSeqId1]: { type: "at", index: 0 },
-          [shapeSeqId2]: { type: "after", index: -1 },
+          [shapeSeqId2]: { type: "after", index: "initial" },
         }
       ]);
     });
@@ -239,29 +239,29 @@ describe('PresentationFlow', () => {
 
       expect(flow.getFrames()).toEqual([
         {
-          [CAMERA_SEQUENCE_ID]: { type: "after", index: -1 },
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: "initial" },
           [shapeSeqId0]: { type: "at", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
           [shapeSeqId0]: { type: "after", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
           [shapeSeqId0]: { type: "at", index: 1 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 2 },
           [shapeSeqId0]: { type: "after", index: 1 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 2 },
           [shapeSeqId0]: { type: "at", index: 2 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
       ]);
     });
@@ -271,29 +271,29 @@ describe('PresentationFlow', () => {
 
       expect(flow.getFrames()).toEqual([
         {
-          [CAMERA_SEQUENCE_ID]: { type: "after", index: -1 },
+          [CAMERA_SEQUENCE_ID]: { type: "after", index: "initial" },
           [shapeSeqId0]: { type: "at", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
           [shapeSeqId0]: { type: "after", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 0 },
           [shapeSeqId0]: { type: "at", index: 1 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
           [shapeSeqId0]: { type: "at", index: 2 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 2 },
           [shapeSeqId0]: { type: "after", index: 2 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
       ]);
     });
@@ -304,28 +304,28 @@ describe('PresentationFlow', () => {
       expect(flow.getFrames()).toEqual([
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 0 },
-          [shapeSeqId0]: { type: "after", index: -1 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId0]: { type: "after", index: "initial" },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 1 },
           [shapeSeqId0]: { type: "at", index: 0 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 1 },
           [shapeSeqId0]: { type: "at", index: 1 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "at", index: 2 },
           [shapeSeqId0]: { type: "after", index: 1 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
         {
           [CAMERA_SEQUENCE_ID]: { type: "after", index: 2 },
           [shapeSeqId0]: { type: "at", index: 2 },
-          [shapeSeqId1]: { type: "after", index: -1 },
+          [shapeSeqId1]: { type: "after", index: "initial" },
         },
       ]);
     });

@@ -66,7 +66,7 @@ export function getShapeSequenceId(str: string): ShapeSequenceId {
   return `ShapeSeq:${str}`;
 }
 
-export type RelativeStepIndex = { type: "at" | "after", index: number }
+export type RelativeStepIndex = { type: "at", index: number } | { type: "after", index: number | "initial" }
 export type ComputedFrame = Record<SequenceId, RelativeStepIndex>;
 
 export interface PresentationFlowState {
@@ -103,9 +103,9 @@ export class PresentationFlow {
   @computed getFrames(): ComputedFrame[] {
     const sequenceIds = Object.keys(this.state.sequences) as SequenceId[];
     const latestIndexes = sequenceIds.reduce((acc, sequenceId) => {
-      acc[sequenceId] = -1;
+      acc[sequenceId] = "initial";
       return acc;
-    }, {} as Record<SequenceId, number>);
+    }, {} as Record<SequenceId, number | "initial">);
 
     const computedFrames: ComputedFrame[] = [];
     this.state.frames.forEach((frame) => {

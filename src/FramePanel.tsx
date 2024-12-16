@@ -16,11 +16,14 @@ import {
 interface FrameColumnProps {
   columnIndex: number;
   shapeSequenceIds: ShapeSequenceId[];
+  stepContents: Record<
+    SequenceId,
+    { text: string; isSelected: boolean } | null
+  >;
   frameName: string;
   isFocused: boolean;
   onFocus: () => void;
   onShapeSelect: (sequenceId: ShapeSequenceId) => void;
-  getStepContent: (sequenceId: SequenceId) => string | null;
 }
 function FrameColumn(props: FrameColumnProps) {
   return (
@@ -46,10 +49,10 @@ function FrameColumn(props: FrameColumnProps) {
           gridRow: 2,
         }}
       >
-        {props.getStepContent(CAMERA_SEQUENCE_ID)}
+        {props.stepContents[CAMERA_SEQUENCE_ID]?.text}
       </div>
       {props.shapeSequenceIds.map((sequenceId, sequenceIdx) => {
-        const stepContent = props.getStepContent(sequenceId);
+        const stepContent = props.stepContents[sequenceId];
         return (
           <div
             key={sequenceId}
@@ -60,7 +63,8 @@ function FrameColumn(props: FrameColumnProps) {
           >
             {stepContent && (
               <button onClick={() => props.onShapeSelect(sequenceId)}>
-                {stepContent}
+                {stepContent.text}
+                {stepContent.isSelected ? " *" : ""}
               </button>
             )}
           </div>
@@ -74,12 +78,34 @@ export const FramePanel = track(() => {
   const editor = useEditor();
 
   const frames = $presentationFlow.getFrames();
-
   const currentFrameIndex = $currentFrameIndex.get();
 
   const shapeSequenceIds = Object.keys(
     $presentationFlow.state.sequences
   ).filter((sid) => sid !== CAMERA_SEQUENCE_ID) as ShapeSequenceId[];
+
+  const selectedSteps = editor
+    .getSelectedShapes()
+    .map((shape) => {
+      const animeMeta = getAnimeMeta(shape);
+      if (animeMeta == null || animeMeta.type !== "edit") {
+        return null;
+      }
+      return {
+        sequenceId: animeMeta.sequenceId,
+        index: animeMeta.index,
+      };
+    })
+    .filter(
+      (
+        step
+      ): step is { sequenceId: ShapeSequenceId; index: number | "initial" } =>
+        step != null
+    );
+  const isSelected = (sequenceId: SequenceId, index: number | "initial") =>
+    selectedSteps.some(
+      (step) => step.sequenceId === sequenceId && step.index === index
+    );
 
   return (
     <div
@@ -100,7 +126,15 @@ export const FramePanel = track(() => {
           frameName="Initial state"
           shapeSequenceIds={shapeSequenceIds}
           isFocused={currentFrameIndex === "initial"}
-          getStepContent={() => "*"}
+          stepContents={{
+            [CAMERA_SEQUENCE_ID]: null,
+            ...Object.fromEntries(
+              shapeSequenceIds.map((sequenceId) => [
+                sequenceId,
+                { text: "s", isSelected: isSelected(sequenceId, "initial") },
+              ])
+            ),
+          }}
           onFocus={() => {
             $currentFrameIndex.set("initial");
             runInitialFrame(editor);
@@ -126,9 +160,31 @@ export const FramePanel = track(() => {
             columnIndex={frameIdx + 1}
             shapeSequenceIds={shapeSequenceIds}
             isFocused={frameIdx === currentFrameIndex}
-            getStepContent={(sequenceId) => {
-              const stepIndex = frame[sequenceId];
-              return stepIndex?.type === "at" ? `${stepIndex.index + 1}` : null;
+            stepContents={{
+              [CAMERA_SEQUENCE_ID]:
+                frame[CAMERA_SEQUENCE_ID].type === "at"
+                  ? {
+                      text: "C",
+                      isSelected: isSelected(
+                        CAMERA_SEQUENCE_ID,
+                        frame[CAMERA_SEQUENCE_ID].index
+                      ),
+                    }
+                  : null,
+              ...Object.fromEntries(
+                shapeSequenceIds.map((sequenceId) => [
+                  sequenceId,
+                  frame[sequenceId]?.type === "at"
+                    ? {
+                        text: `${frame[sequenceId].index + 1}`,
+                        isSelected: isSelected(
+                          sequenceId,
+                          frame[sequenceId].index
+                        ),
+                      }
+                    : null,
+                ])
+              ),
             }}
             onFocus={() => {
               $currentFrameIndex.set(frameIdx);
