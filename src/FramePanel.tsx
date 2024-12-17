@@ -3,6 +3,7 @@ import {
   $currentFrameIndex,
   $presentationMode,
   getAnimeMeta,
+  runCurrentFrame,
   runInitialFrame,
 } from "./frame";
 import { $presentationFlow, runFrame } from "./frame";
@@ -278,11 +279,7 @@ export const FramePanel = track(() => {
             checked={$presentationMode.get()}
             onChange={(e) => {
               $presentationMode.set(e.target.checked);
-              if (currentFrameIndex === "initial") {
-                runInitialFrame(editor);
-              } else {
-                runFrame(editor, frames[currentFrameIndex]);
-              }
+              runCurrentFrame(editor, { skipAnime: true });
             }}
           />
         </label>
