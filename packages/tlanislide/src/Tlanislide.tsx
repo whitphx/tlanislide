@@ -37,75 +37,86 @@ import {
   PresentationFlowState,
   ShapeSequenceId,
 } from "./presentation-flow";
+import { useEffect } from "react";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
 
-const myUiOverrides: TLUiOverrides = {
-  actions(editor, actions) {
-    actions["next-frame"] = {
-      id: "next-frame",
-      label: "Next Frame",
-      kbd: "right",
-      onSelect() {
-        const frames = $presentationFlow.getFrames();
-        const currentFrameIndex = $currentFrameIndex.get();
-        const nextFrameIndex =
-          currentFrameIndex === "initial" ? 0 : currentFrameIndex + 1;
-        const nextFrame = frames[nextFrameIndex];
-        if (nextFrame == null) {
-          return;
-        }
+interface CreateUiOverridesOptions {
+  enableKeyControls: boolean;
+}
+function createUiOverrides(options: CreateUiOverridesOptions): TLUiOverrides {
+  const { enableKeyControls } = options;
+  return {
+    actions(editor, actions) {
+      if (!enableKeyControls) {
+        return actions;
+      }
 
-        $currentFrameIndex.set(nextFrameIndex);
-        editor.stopCameraAnimation();
-        runFrame(editor, nextFrame);
-      },
-    };
+      actions["next-frame"] = {
+        id: "next-frame",
+        label: "Next Frame",
+        kbd: "right",
+        onSelect() {
+          const frames = $presentationFlow.getFrames();
+          const currentFrameIndex = $currentFrameIndex.get();
+          const nextFrameIndex =
+            currentFrameIndex === "initial" ? 0 : currentFrameIndex + 1;
+          const nextFrame = frames[nextFrameIndex];
+          if (nextFrame == null) {
+            return;
+          }
 
-    actions["prev-frame"] = {
-      id: "prev-frame",
-      label: "Previous Frame",
-      kbd: "left",
-      onSelect() {
-        const frames = $presentationFlow.getFrames();
-        const currentFrameIndex = $currentFrameIndex.get();
-        const prevFrameIndex =
-          currentFrameIndex === "initial"
-            ? "initial"
-            : currentFrameIndex === 0
-            ? "initial"
-            : currentFrameIndex - 1;
-        if (prevFrameIndex === "initial") {
+          $currentFrameIndex.set(nextFrameIndex);
+          editor.stopCameraAnimation();
+          runFrame(editor, nextFrame);
+        },
+      };
+
+      actions["prev-frame"] = {
+        id: "prev-frame",
+        label: "Previous Frame",
+        kbd: "left",
+        onSelect() {
+          const frames = $presentationFlow.getFrames();
+          const currentFrameIndex = $currentFrameIndex.get();
+          const prevFrameIndex =
+            currentFrameIndex === "initial"
+              ? "initial"
+              : currentFrameIndex === 0
+                ? "initial"
+                : currentFrameIndex - 1;
+          if (prevFrameIndex === "initial") {
+            $currentFrameIndex.set(prevFrameIndex);
+            runInitialFrame(editor);
+            return;
+          }
+
+          const prevFrame = frames[prevFrameIndex];
+          if (prevFrame == null) {
+            return;
+          }
+
           $currentFrameIndex.set(prevFrameIndex);
-          runInitialFrame(editor);
-          return;
-        }
+          editor.stopCameraAnimation();
+          runFrame(editor, prevFrame, { skipAnime: true });
+        },
+      };
 
-        const prevFrame = frames[prevFrameIndex];
-        if (prevFrame == null) {
-          return;
-        }
-
-        $currentFrameIndex.set(prevFrameIndex);
-        editor.stopCameraAnimation();
-        runFrame(editor, prevFrame, { skipAnime: true });
-      },
-    };
-
-    return actions;
-  },
-  tools(editor, tools) {
-    tools.slide = {
-      id: SlideShapeTool.id,
-      icon: "group",
-      label: "Slide",
-      kbd: "s",
-      onSelect: () => editor.setCurrentTool(SlideShapeTool.id),
-    };
-    return tools;
-  },
-};
+      return actions;
+    },
+    tools(editor, tools) {
+      tools.slide = {
+        id: SlideShapeTool.id,
+        icon: "group",
+        label: "Slide",
+        kbd: "s",
+        onSelect: () => editor.setCurrentTool(SlideShapeTool.id),
+      };
+      return tools;
+    },
+  };
+}
 
 const components: TLComponents = {
   HelperButtons: FramePanel,
@@ -133,7 +144,11 @@ const components: TLComponents = {
   },
 };
 
-function Tlanislide() {
+interface TlanislideProps {
+  onMount?: (editor: Editor) => void;
+  clicks?: number;
+}
+function Tlanislide(props: TlanislideProps) {
   const handleMount = (editor: Editor) => {
     react("Render anime phantom shapes", () => {
       if ($presentationMode.get()) {
@@ -200,34 +215,31 @@ function Tlanislide() {
       });
     });
 
-    editor.sideEffects.registerAfterChangeHandler(
-      "shape",
-      (_, nextShape) => {
-        if ($presentationMode.get()) {
-          return;
-        }
-
-        const anime = getAnimeMeta(nextShape);
-        if (!anime) {
-          return;
-        }
-
-        const { type, sequenceId, index } = anime as AnimeDataMeta["anime"];
-        if (type !== "edit") {
-          return;
-        }
-
-        const updatedShape: TLShapePartial = Object.assign({}, nextShape);
-        delete updatedShape.meta;
-        delete updatedShape.opacity;
-
-        if (index === "initial") {
-          $presentationFlow.updateShape(sequenceId, "initial", updatedShape);
-        } else {
-          $presentationFlow.updateShape(sequenceId, index, updatedShape);
-        }
+    editor.sideEffects.registerAfterChangeHandler("shape", (_, nextShape) => {
+      if ($presentationMode.get()) {
+        return;
       }
-    );
+
+      const anime = getAnimeMeta(nextShape);
+      if (!anime) {
+        return;
+      }
+
+      const { type, sequenceId, index } = anime as AnimeDataMeta["anime"];
+      if (type !== "edit") {
+        return;
+      }
+
+      const updatedShape: TLShapePartial = Object.assign({}, nextShape);
+      delete updatedShape.meta;
+      delete updatedShape.opacity;
+
+      if (index === "initial") {
+        $presentationFlow.updateShape(sequenceId, "initial", updatedShape);
+      } else {
+        $presentationFlow.updateShape(sequenceId, index, updatedShape);
+      }
+    });
 
     editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
       if (shape.type === SlideShapeType) {
@@ -384,33 +396,42 @@ function Tlanislide() {
     // });
 
     runCurrentFrame(editor, { skipAnime: true });
+
+    props.onMount?.(editor);
   };
 
+  useEffect(() => {
+    if (props.clicks == null) {
+      return;
+    }
+    $currentFrameIndex.set(props.clicks <= 0 ? "initial" : props.clicks - 1);
+  }, [props.clicks]);
+
   return (
-      <Tldraw
-        persistenceKey="tlanislide-dev"
-        onMount={handleMount}
-        components={components}
-        overrides={myUiOverrides}
-        shapeUtils={MyCustomShapes}
-        tools={MyCustomTools}
-        isShapeHidden={(shape) => {
-          const animeDataMeta = getAnimeMeta(shape);
-          if (!animeDataMeta) {
-            return false;
-          }
-          if ($presentationMode.get()) {
-            if (animeDataMeta.type === "edit") {
-              return true;
-            }
-          } else {
-            if (animeDataMeta.type === "presentation") {
-              return true;
-            }
-          }
+    <Tldraw
+      persistenceKey="tlanislide-dev"
+      onMount={handleMount}
+      components={components}
+      overrides={createUiOverrides({ enableKeyControls: props.clicks == null })}
+      shapeUtils={MyCustomShapes}
+      tools={MyCustomTools}
+      isShapeHidden={(shape) => {
+        const animeDataMeta = getAnimeMeta(shape);
+        if (!animeDataMeta) {
           return false;
-        }}
-      />
+        }
+        if ($presentationMode.get()) {
+          if (animeDataMeta.type === "edit") {
+            return true;
+          }
+        } else {
+          if (animeDataMeta.type === "presentation") {
+            return true;
+          }
+        }
+        return false;
+      }}
+    />
   );
 }
 
