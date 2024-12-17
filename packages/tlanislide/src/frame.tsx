@@ -70,6 +70,9 @@ export function runCurrentFrame(editor: Editor, options?: RunFrameOption) {
     runInitialFrame(editor);
   } else {
     const frame = $presentationFlow.getFrames()[currentFrameIndex];
+    if (frame == null) {
+      return;
+    }
     runFrame(editor, frame, options);
   }
 }
