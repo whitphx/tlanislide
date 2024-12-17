@@ -224,6 +224,7 @@ export function runFrame(
           });
         } else {
           editor.updateShape({
+            ...animeShape,
             ...curShape,
             id: animeShapeId,
             meta,

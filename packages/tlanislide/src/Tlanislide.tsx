@@ -16,6 +16,7 @@ import type {
   Editor,
   TLShapePartial,
   JsonObject,
+  OptionalKeys,
 } from "tldraw";
 import "tldraw/tldraw.css";
 
@@ -235,9 +236,9 @@ function Tlanislide(props: TlanislideProps) {
         return;
       }
 
-      const updatedShape: TLShapePartial = Object.assign({}, nextShape);
+      const updatedShape: OptionalKeys<TLShapePartial, "id"> = Object.assign({}, nextShape);
+      delete updatedShape.id;
       delete updatedShape.meta;
-      delete updatedShape.opacity;
 
       if (index === "initial") {
         $presentationFlow.updateShape(sequenceId, "initial", updatedShape);
