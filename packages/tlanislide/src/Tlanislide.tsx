@@ -230,6 +230,11 @@ function Tlanislide(props: TlanislideProps) {
         return;
       }
 
+      if (!(sequenceId in $presentationFlow.state.sequences)) {
+        console.warn("Sequence not found", sequenceId, "for shape", nextShape);
+        return;
+      }
+
       const updatedShape: TLShapePartial = Object.assign({}, nextShape);
       delete updatedShape.meta;
       delete updatedShape.opacity;
