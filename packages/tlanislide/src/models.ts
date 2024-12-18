@@ -5,7 +5,7 @@ export const $presentationMode = atom<boolean>("presentation mode", false);
 
 export const $currentFrameIndex = atom<number>("current frame index", 0);
 
-interface KeyframeData extends JsonObject { }  // TODO
+export interface KeyframeData extends JsonObject { }  // TODO
 
 export function attachKeyframe(editor: Editor, shapeId: TLShapeId) {
   const keyframe = createKeyframe<KeyframeData>(shapeId, {});

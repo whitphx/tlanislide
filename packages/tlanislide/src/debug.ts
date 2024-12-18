@@ -1,6 +1,5 @@
 import { Editor, createShapeId } from "tldraw";
-import { addFrameRelation, addSimultaneousFrameRelation, addTrackRelation, attachKeyframe, getGlobalFrames } from "./models"
-import { addLocalRelation } from "./keyframe";
+import { addFrameRelation, addSimultaneousFrameRelation, addTrackRelation, attachKeyframe } from "./models"
 
 export function setup(editor: Editor) {
   const rectId0 = createShapeId("rect0");
