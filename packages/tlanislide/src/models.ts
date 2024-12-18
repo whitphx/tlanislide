@@ -1,12 +1,14 @@
-import { type Editor, type TLShape, type TLShapeId, atom, createShapeId, uniqueId } from "tldraw";
-import { addGlobalEqual, addGlobalLess, addLocalRelation, createKeyframe, getGlobalOrder, getLocalPredecessors, Keyframe } from "./keyframe";
+import { type Editor, type JsonObject, type TLShape, type TLShapeId, atom, createShapeId, uniqueId } from "tldraw";
+import { addGlobalEqual, addGlobalLess, addLocalRelation, createKeyframe, getGlobalOrder, Keyframe } from "./keyframe";
 
 export const $presentationMode = atom<boolean>("presentation mode", false);
 
 export const $currentFrameIndex = atom<number>("current frame index", 0);
 
+interface KeyframeData extends JsonObject { }  // TODO
+
 export function attachKeyframe(editor: Editor, shapeId: TLShapeId) {
-  const keyframe = createKeyframe(shapeId);
+  const keyframe = createKeyframe<KeyframeData>(shapeId, {});
 
   const shape = editor.getShape(shapeId);
   if (shape == null) {
@@ -16,7 +18,7 @@ export function attachKeyframe(editor: Editor, shapeId: TLShapeId) {
     id: shapeId,
     type: shape.type,
     meta: {
-      keyframe,
+      keyframe
     },
   })
 }
@@ -25,9 +27,13 @@ export function getKeyframe(shape: TLShape): Keyframe | undefined {
   return shape.meta.keyframe as Keyframe;
 }
 
-export function getGlobalFrames(editor: Editor): Keyframe[][] {
+export function getAllKeyframes(editor: Editor): Keyframe[] {
   const shapes = editor.getCurrentPageShapes();
-  const keyframes = shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
+  return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
+}
+
+export function getGlobalFrames(editor: Editor): Keyframe[][] {
+  const keyframes = getAllKeyframes(editor);
   return getGlobalOrder(keyframes);
 }
 
@@ -71,12 +77,10 @@ export function addFrameRelation(editor: Editor, earlierShapeId: TLShapeId, late
 }
 
 export function runFrame(editor: Editor, globalFrame: Keyframe[]) {
-  const allShapes = editor.getCurrentPageShapes();
-  const keyframes = allShapes.map(getKeyframe).filter((keyframe) => keyframe != null);
+  const keyframes = getAllKeyframes(editor);
 
   globalFrame.forEach((keyframe) => {
-    const predecessorKeyframeIds = getLocalPredecessors(keyframes, keyframe.id);  // TODO: 1つに制約する
-    const predecessorKeyframeId = predecessorKeyframeIds[0];
+    const predecessorKeyframeId = keyframe.localBefore;
     if (predecessorKeyframeId == null) {
       return;
     }

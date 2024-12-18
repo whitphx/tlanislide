@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Keyframe, getGlobalOrder, createKeyframe, getLocalPredecessors, getLocalSuccessors, addKeyframe, addGlobalEqual, addGlobalLess, moveKeyframe, addLocalRelation, removeKeyframe } from "./keyframe"
+import { Keyframe, getGlobalOrder, createKeyframe, getLocalPredecessors, getLocalSuccessors, addKeyframe, addGlobalEqual, addGlobalLess, moveKeyframe, addLocalRelation, removeKeyframe, isHead, isTail } from "./keyframe"
 
 describe('Keyframe basic tests', () => {
   it('empty', () => {
@@ -16,8 +16,8 @@ describe('Keyframe basic tests', () => {
 
   it('add/remove keyframe', () => {
     let ks: Keyframe[] = [];
-    ks = addKeyframe(ks, "k1");
-    ks = addKeyframe(ks, "k2");
+    ks = addKeyframe(ks, "k1", {});
+    ks = addKeyframe(ks, "k2", {});
     expect(ks.map(k => k.id)).toEqual(["k1", "k2"]);
     ks = removeKeyframe(ks, "k1");
     expect(ks.map(k => k.id)).toEqual(["k2"]);
@@ -96,5 +96,94 @@ describe('moveKeyframe tests', () => {
     // 最終的にk1,k2,k3になる可能性大(主Keyframeがpos1に収まる)
     ks = moveKeyframe(ks, "k2", 2);
     expect(ks.map(k => k.id)).toEqual(["k1", "k2", "k3"]);
+  });
+});
+
+
+describe('Keyframe modified tests', () => {
+  interface MyData extends JsonObject {
+    foo: string;
+  }
+  it('single keyframe head and tail', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "k1", { foo: "bar" });
+    const k1 = ks.find(x => x.id === "k1")!;
+    // localBefore=null => head
+    expect(isHead(k1)).toBe(true);
+    // no successor => tail
+    expect(isTail(ks, k1)).toBe(true);
+  });
+
+  it('chain of three keyframes', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "k1", { foo: "1" });
+    ks = addKeyframe(ks, "k2", { foo: "2" });
+    ks = addKeyframe(ks, "k3", { foo: "3" });
+    // define local order k1 < k2, k2 < k3
+    // means k2.localBefore = k1.id, k3.localBefore = k2.id
+    ks = addLocalRelation(ks, "k1", "k2");
+    ks = addLocalRelation(ks, "k2", "k3");
+    const k1 = ks.find(x => x.id === "k1")!;
+    const k2 = ks.find(x => x.id === "k2")!;
+    const k3 = ks.find(x => x.id === "k3")!;
+
+    // k1: localBefore=null => head
+    expect(isHead(k1)).toBe(true);
+    // k2: localBefore=k1 => not head
+    expect(isHead(k2)).toBe(false);
+    // k3: localBefore=k2 => not head
+    expect(isHead(k3)).toBe(false);
+
+    // tail check
+    // k1 is referenced by k2.localBefore => not tail
+    expect(isTail(ks, k1)).toBe(false);
+    // k2 is referenced by k3 => not tail
+    expect(isTail(ks, k2)).toBe(false);
+    // k3 is not referenced by anyone => tail
+    expect(isTail(ks, k3)).toBe(true);
+  });
+
+  it('branching successors', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "a", { foo: "A" });
+    ks = addKeyframe(ks, "b", { foo: "B" });
+    ks = addKeyframe(ks, "c", { foo: "C" });
+    // a < b (b.localBefore = a)
+    // a < c (c.localBefore = a)
+    ks = addLocalRelation(ks, "a", "b");
+    ks = addLocalRelation(ks, "a", "c");
+
+    const a = ks.find(x => x.id === "a")!;
+    const b = ks.find(x => x.id === "b")!;
+    const c = ks.find(x => x.id === "c")!;
+
+    // a: localBefore=null => head
+    expect(isHead(a)).toBe(true);
+    // b,c have localBefore=a => not head
+    expect(isHead(b)).toBe(false);
+    expect(isHead(c)).toBe(false);
+
+    // tail check: b or c?
+    // b and c are not referenced by anyone => both tail
+    expect(isTail(ks, b)).toBe(true);
+    expect(isTail(ks, c)).toBe(true);
+
+    // a is referenced by b and c => not tail
+    expect(isTail(ks, a)).toBe(false);
+  });
+
+  it('moveKeyframe still works with localBefore', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "k1", { foo: "1" });
+    ks = addKeyframe(ks, "k2", { foo: "2" });
+    ks = addKeyframe(ks, "k3", { foo: "3" });
+    // k1 < k3
+    ks = addLocalRelation(ks, "k1", "k3");
+    // move k3 to front
+    ks = moveKeyframe(ks, "k3", 0);
+    // This would cause violation since k1<k3 but k3 is front
+    // Heuristic tries to fix by moving k1 ahead of k3
+    // final order: k1,k3,k2 probably
+    expect(ks.map(k => k.id)).toEqual(["k1", "k3", "k2"]);
   });
 });

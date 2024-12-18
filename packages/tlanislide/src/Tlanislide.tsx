@@ -22,8 +22,10 @@ import {
   $presentationMode,
   getKeyframe,
   runFrame,
+  getAllKeyframes,
 } from "./models";
 import { setup } from "./debug";
+import { isTail } from "./keyframe";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -157,9 +159,9 @@ function Tlanislide(props: TlanislideProps) {
       return false;
     }
 
-    const frames = getGlobalFrames(editor); // TODO: Cache
+    const globalFrames = getGlobalFrames(editor); // TODO: Cache
     const currentFrameIndex = $currentFrameIndex.get();
-    const currentFrame = frames[currentFrameIndex];
+    const currentFrame = globalFrames[currentFrameIndex];
     if (currentFrame == null) {
       return false;
     }
@@ -167,7 +169,25 @@ function Tlanislide(props: TlanislideProps) {
     const isCurrent = currentFrame
       .map((keyframe) => keyframe.id)
       .includes(keyframe.id);
-    return !isCurrent;
+    if (isCurrent) {
+      // Current frame should always be visible
+      return false;
+    }
+
+    // The last frame of a finished animation should always be visible
+    const frameGlobalIndex = globalFrames.findIndex((frame) =>
+      frame.map((keyframe) => keyframe.id).includes(keyframe.id)
+    );
+    const isPast = frameGlobalIndex < currentFrameIndex;
+    if (!isPast) {
+      return true;
+    }
+    const keyframes = getAllKeyframes(editor); // Cache
+    if (isTail(keyframes, keyframe)) {
+      return false;
+    }
+
+    return true;
   };
 
   return (
