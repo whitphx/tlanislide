@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { Keyframe, getGlobalOrder, createKeyframe, getLocalPredecessors, getLocalSuccessors, addKeyframe, addGlobalEqual, addGlobalLess, moveKeyframe, addLocalRelation, removeKeyframe, isHead, isTail } from "./keyframe"
+import { JsonObject } from 'tldraw'
+import { Keyframe, getGlobalOrder, createKeyframe, getLocalPredecessor, getLocalSuccessors, addKeyframe, addGlobalEqual, addGlobalLess, moveKeyframe, addLocalRelation, removeKeyframe, isHead, isTail, getAllLocalSequencesWithGlobalOrder } from "./keyframe"
 
 describe('Keyframe basic tests', () => {
   it('empty', () => {
@@ -10,8 +11,8 @@ describe('Keyframe basic tests', () => {
   it('single keyframe', () => {
     let ks: Keyframe[] = [createKeyframe("k1")];
     expect(getGlobalOrder(ks)).toEqual([[ks[0]]]);
-    expect(getLocalPredecessors(ks, "k1")).toEqual([]);
-    expect(getLocalSuccessors(ks, "k1")).toEqual([]);
+    expect(getLocalPredecessor(ks, "k1")).toEqual(undefined);
+    expect(getLocalSuccessors(ks, "k1").map(k => k.id)).toEqual([]);
   });
 
   it('add/remove keyframe', () => {
@@ -49,8 +50,8 @@ describe('Keyframe basic tests', () => {
     ks = addGlobalLess(ks, "k1", "k2");
     ks = addGlobalLess(ks, "k2", "k3");
     ks = addLocalRelation(ks, "k1", "k3");
-    expect(getLocalSuccessors(ks, "k1")).toEqual(["k3"]);
-    expect(getLocalPredecessors(ks, "k3")).toEqual(["k1"]);
+    expect(getLocalSuccessors(ks, "k1").map(k => k.id)).toEqual(["k3"]);
+    expect(getLocalPredecessor(ks, "k3").id).toEqual("k1");
   });
 });
 
@@ -186,4 +187,85 @@ describe('Keyframe modified tests', () => {
     // final order: k1,k3,k2 probably
     expect(ks.map(k => k.id)).toEqual(["k1", "k3", "k2"]);
   });
+});
+
+interface MyData extends JsonObject {
+  val: number;
+}
+
+describe('All local sequences with global order tests', () => {
+  it('no local relations (all isolated), same globalIndex for eq class', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "k1", { val: 1 });
+    ks = addKeyframe(ks, "k2", { val: 2 });
+    ks = addKeyframe(ks, "k3", { val: 3 });
+    // 全て独立 => 全体順序上で3つの等価クラス ([k1],[k2],[k3])
+    // globalIndex: k1=0, k2=1, k3=2
+    const res = getAllLocalSequencesWithGlobalOrder(ks);
+    expect(res.length).toBe(3);
+    const seqs = res.map(r => ({ ids: r.sequence.map(x => x.kf.id), indices: r.sequence.map(x => x.globalIndex) }));
+    // k1 -> index 0
+    // k2 -> index 1
+    // k3 -> index 2
+    expect(seqs).toContainEqual({ ids: ["k1"], indices: [0] });
+    expect(seqs).toContainEqual({ ids: ["k2"], indices: [1] });
+    expect(seqs).toContainEqual({ ids: ["k3"], indices: [2] });
+  });
+
+  it('simple chain with eq classes', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "k1", { val: 1 });
+    ks = addKeyframe(ks, "k2", { val: 2 });
+    ks = addKeyframe(ks, "k3", { val: 3 });
+    // k1<k2<k3
+    ks = addLocalRelation(ks, "k1", "k2");
+    ks = addLocalRelation(ks, "k2", "k3");
+    // 全体順序は [ [k1], [k2], [k3] ]
+    // globalIndex: k1=0, k2=1, k3=2
+    const res = getAllLocalSequencesWithGlobalOrder(ks);
+    expect(res.length).toBe(1);
+    const seq = res[0].sequence;
+    expect(seq.map(x => x.kf.id)).toEqual(["k1", "k2", "k3"]);
+    expect(seq.map(x => x.globalIndex)).toEqual([0, 1, 2]);
+  });
+
+  it('eq classes with multiple keyframes', () => {
+    let ks: Keyframe<MyData>[] = [];
+    ks = addKeyframe(ks, "k1", { val: 1 });
+    ks = addKeyframe(ks, "k2", { val: 2 });
+    ks = addKeyframe(ks, "k3", { val: 3 });
+    ks = addKeyframe(ks, "k4", { val: 4 });
+    ks = addKeyframe(ks, "k5", { val: 5 });
+    // k1=k2, k3=k4, (k1,k2)<(k3,k4)<k5
+    ks = addGlobalEqual(ks, "k1", "k2");
+    ks = addGlobalEqual(ks, "k3", "k4");
+    ks = addGlobalLess(ks, "k1", "k3");
+    ks = addGlobalLess(ks, "k3", "k5");
+    // global order:
+    // eq class #0: [k1,k2], eq class #1:[k3,k4], eq class #2:[k5]
+    // local: k1<k3, k2<k4, k5 alone
+    ks = addLocalRelation(ks, "k1", "k3");
+    ks = addLocalRelation(ks, "k2", "k4");
+
+    const res = getAllLocalSequencesWithGlobalOrder(ks);
+    // sequences: k1->k3, k2->k4, k5 alone
+    const seqIdsArr = res.map(r => r.sequence.map(x => x.kf.id));
+    expect(seqIdsArr).toContainEqual(["k1", "k3"]);
+    expect(seqIdsArr).toContainEqual(["k2", "k4"]);
+    expect(seqIdsArr).toContainEqual(["k5"]);
+
+    // Check globalIndex:
+    // k1,k2 in eq class #0 => globalIndex=0 for both k1,k2
+    // k3,k4 in eq class #1 => globalIndex=1 for both k3,k4
+    // k5 in eq class #2 => globalIndex=2
+    const k1_k3_seq = res.find(r => r.sequence.map(x => x.kf.id).join(",") === "k1,k3")!;
+    expect(k1_k3_seq.sequence.map(x => x.globalIndex)).toEqual([0, 1]);
+
+    const k2_k4_seq = res.find(r => r.sequence.map(x => x.kf.id).join(",") === "k2,k4")!;
+    expect(k2_k4_seq.sequence.map(x => x.globalIndex)).toEqual([0, 1]); // k2 and k4 share the eq class indices as per their classes
+
+    const k5_seq = res.find(r => r.sequence.map(x => x.kf.id).join(",") === "k5")!;
+    expect(k5_seq.sequence.map(x => x.globalIndex)).toEqual([2]);
+  });
+
 });

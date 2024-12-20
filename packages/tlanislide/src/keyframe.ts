@@ -44,7 +44,7 @@ function ufUnion<T extends JsonObject>(ks: Keyframe<T>[], a: Keyframe<T>, b: Key
   const b2 = newKs.find(k => k.id === b.id)!;
   const rootA = ufFind(newKs, a2);
   const rootB = ufFind(newKs, b2);
-  if (rootA.id === rootB.id) return newKs; // Already same set
+  if (rootA.id === rootB.id) return newKs;
 
   const newRootA = newKs.find(k => k.id === rootA.id)!;
   const newRootB = newKs.find(k => k.id === rootB.id)!;
@@ -73,7 +73,7 @@ export function addGlobalLess<T extends JsonObject>(ks: Keyframe<T>[], idA: stri
   const rootB = ufFind(newKs, b);
 
   if (rootA.id === rootB.id) {
-    // 同一eqクラスで<は矛盾
+    // 同一等価クラス内で<は矛盾
     return newKs;
   }
 
@@ -88,30 +88,27 @@ export function addGlobalEqual<T extends JsonObject>(ks: Keyframe<T>[], idA: str
   return ufUnion(ks, a, b);
 }
 
-/** 局所順序操作: a < b を定義する場合、b.localBefore = a.id */
+/** 局所順序: a < b を定義 => b.localBefore = a.id */
 export function addLocalRelation<T extends JsonObject>(ks: Keyframe<T>[], idA: string, idB: string): Keyframe<T>[] {
   const newKs = ks.map(k => ({ ...k }));
-  const a = newKs.find(k => k.id === idA)!;
   const b = newKs.find(k => k.id === idB)!;
-  b.localBefore = a.id; // bの前任をaに設定
+  b.localBefore = idA;
   return newKs;
 }
 
-/** 局所順序での前要素取得（直接の前任のみ） */
-export function getLocalPredecessors<T extends JsonObject>(ks: Keyframe<T>[], idA: string): string[] {
+// /** 前任取得 */
+export function getLocalPredecessor<T extends JsonObject>(ks: Keyframe<T>[], idA: string): Keyframe<T> | undefined {
   const kf = ks.find(x => x.id === idA)!;
-  return kf.localBefore ? [kf.localBefore] : [];
+  if (!kf.localBefore) return undefined;
+  return ks.find(x => x.id === kf.localBefore);
 }
 
-/** 局所順序での後要素取得:
-* localBeforeからは直接後任は分からないので、すべてのKeyframeをチェックし、
-* localBeforeがidAのものを集める。
-*/
-export function getLocalSuccessors<T extends JsonObject>(ks: Keyframe<T>[], idA: string): string[] {
-  return ks.filter(x => x.localBefore === idA).map(x => x.id);
+/** 後任取得 */
+export function getLocalSuccessors<T extends JsonObject>(ks: Keyframe<T>[], idA: string): Keyframe<T>[] {
+  return ks.filter(x => x.localBefore === idA);
 }
 
-/** 全体順序取得 **/
+/** 全体順序取得: 2次元配列 (等価クラス単位) */
 export function getGlobalOrder<T extends JsonObject>(ks: Keyframe<T>[]): Keyframe<T>[][] {
   const clone = ks.map(k => ({ ...k }));
   const rootMap: Map<string, Keyframe<T>[]> = new Map();
@@ -239,4 +236,53 @@ export function isHead<T extends JsonObject>(kf: Keyframe<T>): boolean {
 export function isTail<T extends JsonObject>(ks: Keyframe<T>[], kf: Keyframe<T>): boolean {
   // kfをlocalBeforeに持つKeyframeが無ければ末尾
   return !ks.some(x => x.localBefore === kf.id);
+}
+
+
+/** 全ての局所順序列を取得し、各KeyframeにglobalIndexを割り当てる関数
+ * globalIndexは等価クラス単位のレベルインデックス
+ */
+export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(ks: Keyframe<T>[]): { sequence: { kf: Keyframe<T>, globalIndex: number }[] }[] {
+  const order2d = getGlobalOrder(ks);
+  // eqクラスごとにglobalIndex割当
+  const indexMap = new Map<string, number>();
+  for (let i = 0; i < order2d.length; i++) {
+    for (let kf of order2d[i]) {
+      indexMap.set(kf.id, i);
+    }
+  }
+
+  // heads
+  const heads = ks.filter(k => k.localBefore === null);
+  const results: { sequence: { kf: Keyframe<T>, globalIndex: number }[] }[] = [];
+
+  function dfs(current: Keyframe<T>, path: Keyframe<T>[]) {
+    const successors = getLocalSuccessors(ks, current.id);
+    if (successors.length === 0) {
+      const sequence = path.map(kf => ({ kf, globalIndex: indexMap.get(kf.id)! }));
+      results.push({ sequence });
+    } else {
+      for (let succ of successors) {
+        dfs(succ, [...path, succ]);
+      }
+    }
+  }
+
+  for (let head of heads) {
+    dfs(head, [head]);
+  }
+
+  // 孤立要素(前後なし)
+  for (let kf of ks) {
+    const noPre = (kf.localBefore === null);
+    const noSucc = ks.every(x => x.localBefore !== kf.id);
+    if (noPre && noSucc) {
+      const already = results.some(r => r.sequence.length === 1 && r.sequence[0].kf.id === kf.id);
+      if (!already) {
+        results.push({ sequence: [{ kf, globalIndex: indexMap.get(kf.id)! }] });
+      }
+    }
+  }
+
+  return results;
 }
