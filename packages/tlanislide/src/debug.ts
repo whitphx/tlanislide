@@ -26,7 +26,7 @@ export function setup(editor: Editor) {
     },
   });
   attachKeyframe(editor, rectId0);
-  attachKeyframe(editor, rectId1);
+  attachKeyframe(editor, rectId1, { duration: 1000 });
   addTrackRelation(editor, rectId0, rectId1);
 
   const arrowId0 = createShapeId("arrow0");

@@ -1,4 +1,4 @@
-import { JsonObject } from "tldraw"
+import type { JsonObject } from "tldraw"
 
 /**
  * Keyframeインターフェース:
@@ -161,7 +161,7 @@ export function removeKeyframe<T extends JsonObject>(ks: Keyframe<T>[], targetId
 * 局所順序整合を保つため、最小限の修正を加える。
 */
 export function moveKeyframe<T extends JsonObject>(ks: Keyframe<T>[], targetId: string, newIndex: number): Keyframe<T>[] {
-  let newKs = ks.map(k => ({ ...k }));
+  const newKs = ks.map(k => ({ ...k }));
   const order2d = getGlobalOrder(newKs);
   const linearOrder = order2d.flat();
   const targetKF = linearOrder.find(k => k.id === targetId);

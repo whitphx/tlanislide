@@ -1,14 +1,65 @@
-import { type Editor, type JsonObject, type TLShape, type TLShapeId, atom, createShapeId, uniqueId } from "tldraw";
+import { EASINGS, atom, createShapeId, uniqueId } from "tldraw";
+import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import { addGlobalEqual, addGlobalLess, addLocalRelation, createKeyframe, getGlobalOrder, Keyframe } from "./keyframe";
 
 export const $presentationMode = atom<boolean>("presentation mode", false);
 
 export const $currentFrameIndex = atom<number>("current frame index", 0);
 
-export interface KeyframeData extends JsonObject { }  // TODO
+export interface KeyframeData extends JsonObject {
+  duration?: number;
+  easing?: keyof typeof EASINGS;
+}
 
-export function attachKeyframe(editor: Editor, shapeId: TLShapeId) {
-  const keyframe = createKeyframe<KeyframeData>(shapeId, {});
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Keyframe -> JsonObject
+export function keyframeToJsonObject<T extends JsonObject>(kf: Keyframe<T>): JsonObject {
+  const { id, ufParentId, ufRank, globalAfterEqClasses, localBefore, data } = kf;
+  const obj = { id, ufParentId, ufRank, globalAfterEqClasses, localBefore, data } satisfies JsonObject;
+  return obj;
+}
+
+// unknown -> Keyframe<JsonObject>
+function isKeyframe(obj: unknown): obj is Keyframe<JsonObject> {
+  if (
+    typeof obj === 'object' && obj !== null &&
+    !Array.isArray(obj)
+  ) {
+    const o = obj as { [key: string]: unknown };
+    return (
+      typeof o.id === 'string' &&
+      typeof o.ufParentId === 'string' &&
+      typeof o.ufRank === 'number' &&
+      Array.isArray(o.globalAfterEqClasses) && o.globalAfterEqClasses.every(v => typeof v === 'string') &&
+      (o.localBefore === null || typeof o.localBefore === 'string') &&
+      typeof o.data === 'object' && o.data !== null && !Array.isArray(o.data)
+    );
+  }
+  return false;
+}
+
+// JsonObject -> Keyframe<T>
+export function jsonObjectToKeyframe<T extends JsonObject>(
+  obj: unknown,
+  validateData?: (data: JsonObject) => data is T
+): Keyframe<T> {
+  if (isKeyframe(obj)) {
+    // objはKeyframe<JsonObject> まで絞り込まれた
+    const data = obj.data;
+    if (validateData && !validateData(data)) {
+      throw new Error("`data` does not match the expected shape.");
+    }
+    // validateDataがない場合はT=JsonObjectとして返す
+    return obj as Keyframe<T>;
+  }
+  throw new Error("Given input is not a valid Keyframe.");
+}
+
+export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData: KeyframeData = {}) {
+  const keyframe = createKeyframe<KeyframeData>(shapeId, keyframeData);
 
   const shape = editor.getShape(shapeId);
   if (shape == null) {
@@ -18,13 +69,13 @@ export function attachKeyframe(editor: Editor, shapeId: TLShapeId) {
     id: shapeId,
     type: shape.type,
     meta: {
-      keyframe
+      keyframe: keyframeToJsonObject(keyframe),
     },
   })
 }
 
 export function getKeyframe(shape: TLShape): Keyframe | undefined {
-  return shape.meta.keyframe as Keyframe;
+  return isJsonObject(shape.meta.keyframe) ? jsonObjectToKeyframe(shape.meta.keyframe) : undefined;
 }
 
 export function getAllKeyframes(editor: Editor): Keyframe[] {
@@ -54,7 +105,7 @@ function manipulateKeyframes(editor: Editor, manipulator: (keyframes: Keyframe[]
       ...shape,
       meta: {
         ...shape.meta,
-        keyframe: newKeyframe,
+        keyframe: keyframeToJsonObject(newKeyframe),
       },
     }
   });
@@ -76,7 +127,7 @@ export function addFrameRelation(editor: Editor, earlierShapeId: TLShapeId, late
   manipulateKeyframes(editor, (keyframes) => addGlobalLess(keyframes, earlierShapeId, laterShapeId));
 }
 
-export function runFrame(editor: Editor, globalFrame: Keyframe[]) {
+export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) {
   const keyframes = getAllKeyframes(editor);
 
   globalFrame.forEach((keyframe) => {
@@ -104,7 +155,8 @@ export function runFrame(editor: Editor, globalFrame: Keyframe[]) {
       }
     })
 
-    const duration = 1000;  // TODO: Make configurable
+    const { duration = 0, easing = "easeInCubic" } = keyframe.data;
+    const immediate = duration === 0;
 
     // Create and manipulate a temporary shape for animation
     const animeShapeId = createShapeId(uniqueId());
@@ -119,8 +171,10 @@ export function runFrame(editor: Editor, globalFrame: Keyframe[]) {
       id: animeShapeId,
       meta: undefined,
     }, {
+      immediate,
       animation: {
         duration,
+        easing: EASINGS[easing],
       }
     });
     setTimeout(() => {

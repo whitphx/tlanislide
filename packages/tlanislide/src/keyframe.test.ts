@@ -9,7 +9,7 @@ describe('Keyframe basic tests', () => {
   });
 
   it('single keyframe', () => {
-    let ks: Keyframe[] = [createKeyframe("k1")];
+    const ks: Keyframe[] = [createKeyframe("k1", {})];
     expect(getGlobalOrder(ks)).toEqual([[ks[0]]]);
     expect(getLocalPredecessor(ks, "k1")).toEqual(undefined);
     expect(getLocalSuccessors(ks, "k1").map(k => k.id)).toEqual([]);
@@ -25,7 +25,7 @@ describe('Keyframe basic tests', () => {
   });
 
   it('global equal', () => {
-    let ks = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3")];
+    let ks = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {})];
     ks = addGlobalEqual(ks, "k1", "k2");
     const order = getGlobalOrder(ks);
     // 等価クラス {k1,k2} と {k3}
@@ -35,7 +35,7 @@ describe('Keyframe basic tests', () => {
   });
 
   it('global less with eq', () => {
-    let ks = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3")];
+    let ks = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {})];
     ks = addGlobalEqual(ks, "k1", "k2");
     ks = addGlobalLess(ks, "k1", "k3");
     const order = getGlobalOrder(ks);
@@ -46,24 +46,24 @@ describe('Keyframe basic tests', () => {
   });
 
   it('local relation', () => {
-    let ks = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3")];
+    let ks = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {})];
     ks = addGlobalLess(ks, "k1", "k2");
     ks = addGlobalLess(ks, "k2", "k3");
     ks = addLocalRelation(ks, "k1", "k3");
     expect(getLocalSuccessors(ks, "k1").map(k => k.id)).toEqual(["k3"]);
-    expect(getLocalPredecessor(ks, "k3").id).toEqual("k1");
+    expect(getLocalPredecessor(ks, "k3")!.id).toEqual("k1");
   });
 });
 
 describe('moveKeyframe tests', () => {
   it('move no constraints', () => {
-    let ks: Keyframe[] = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3")];
+    let ks: Keyframe[] = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {})];
     ks = moveKeyframe(ks, "k3", 0);
     expect(ks.map(k => k.id)).toEqual(["k3", "k1", "k2"]);
   });
 
   it('move with local constraint', () => {
-    let ks: Keyframe[] = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3")];
+    let ks: Keyframe[] = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {})];
     ks = addLocalRelation(ks, "k1", "k3"); // k1<k3
     // move k3 to front
     ks = moveKeyframe(ks, "k3", 0);
@@ -72,7 +72,7 @@ describe('moveKeyframe tests', () => {
   });
 
   it('complex local constraints move', () => {
-    let ks = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3"), createKeyframe("k4")];
+    let ks = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {}), createKeyframe("k4", {})];
     ks = addLocalRelation(ks, "k1", "k2");
     ks = addLocalRelation(ks, "k2", "k3");
     ks = addLocalRelation(ks, "k1", "k4");
@@ -88,7 +88,7 @@ describe('moveKeyframe tests', () => {
   });
 
   it('difficult constraint', () => {
-    let ks = [createKeyframe("k1"), createKeyframe("k2"), createKeyframe("k3")];
+    let ks = [createKeyframe("k1", {}), createKeyframe("k2", {}), createKeyframe("k3", {})];
     ks = addLocalRelation(ks, "k2", "k3"); // k2<k3
     // move k2 to index2
     // naive: k1,k3,k2 => violates k2<k3
