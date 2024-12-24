@@ -146,24 +146,29 @@ function Tlanislide(props: TlanislideProps) {
 
   const determineShapeHidden = (shape: TLShape, editor: Editor): boolean => {
     const presentationMode = $presentationMode.get();
-    if (!presentationMode) {
-      return false;
+    const editMode = !presentationMode;
+    const HIDDEN = true;
+    const SHOW = false;
+    if (editMode) {
+      return SHOW;
     }
 
     if (shape.meta?.hiddenDuringAnimation) {
-      return true;
+      return HIDDEN;
     }
 
     const keyframe = getKeyframe(shape);
     if (keyframe == null) {
-      return false;
+      // No animation keyframe is attached to this shape, so it should always be visible
+      return SHOW;
     }
 
     const globalFrames = getGlobalFrames(editor); // TODO: Cache
     const currentFrameIndex = $currentFrameIndex.get();
     const currentFrame = globalFrames[currentFrameIndex];
     if (currentFrame == null) {
-      return false;
+      // Fallback: This should never happen, but if it does, show the shape
+      return SHOW;
     }
 
     const isCurrent = currentFrame
@@ -171,23 +176,24 @@ function Tlanislide(props: TlanislideProps) {
       .includes(keyframe.id);
     if (isCurrent) {
       // Current frame should always be visible
-      return false;
+      return SHOW;
     }
 
     // The last frame of a finished animation should always be visible
-    const frameGlobalIndex = globalFrames.findIndex((frame) =>
-      frame.map((keyframe) => keyframe.id).includes(keyframe.id)
-    );
-    const isPast = frameGlobalIndex < currentFrameIndex;
-    if (!isPast) {
-      return true;
+    const isFuture = keyframe.globalIndex > currentFrameIndex;
+    if (isFuture) {
+      return HIDDEN;
     }
-    const keyframes = getAllKeyframes(editor); // Cache
-    if (isTail(keyframes, keyframe)) {
-      return false;
+    const keyframes = getAllKeyframes(editor); // TODO: Cache
+    const isLatestPrevInTrack = !keyframes.some(
+      (kf) =>
+        kf.localBefore === keyframe.id && kf.globalIndex <= currentFrameIndex
+    );
+    if (isLatestPrevInTrack) {
+      return SHOW;
     }
 
-    return true;
+    return HIDDEN;
   };
 
   return (
