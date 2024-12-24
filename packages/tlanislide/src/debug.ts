@@ -1,5 +1,5 @@
 import { Editor, createShapeId } from "tldraw";
-import { addFrameRelation, addSimultaneousFrameRelation, addTrackRelation, attachKeyframe } from "./models"
+import { KeyframeData, keyframeToJsonObject } from "./models"
 
 export function setup(editor: Editor) {
   const rectId0 = createShapeId("rect0");
@@ -11,6 +11,14 @@ export function setup(editor: Editor) {
     props: {
       w: 100,
       h: 50,
+    },
+    meta: {
+      keyframe: keyframeToJsonObject({
+        id: rectId0,
+        globalIndex: 0,
+        localBefore: null,
+        data: {},
+      })
     },
   });
 
@@ -24,10 +32,17 @@ export function setup(editor: Editor) {
       w: 100,
       h: 100,
     },
+    meta: {
+      keyframe: keyframeToJsonObject<KeyframeData>({
+        id: rectId1,
+        globalIndex: 1,
+        localBefore: rectId0,
+        data: {
+          duration: 1000,
+        },
+      })
+    }
   });
-  attachKeyframe(editor, rectId0);
-  attachKeyframe(editor, rectId1, { duration: 1000 });
-  addTrackRelation(editor, rectId0, rectId1);
 
   const arrowId0 = createShapeId("arrow0");
   editor.createShape({
@@ -45,6 +60,14 @@ export function setup(editor: Editor) {
         y: 100,
       },
     },
+    meta: {
+      keyframe: keyframeToJsonObject({
+        id: arrowId0,
+        globalIndex: 1,
+        localBefore: null,
+        data: {},
+      })
+    }
   });
 
   const arrowId1 = createShapeId("arrow1");
@@ -63,10 +86,17 @@ export function setup(editor: Editor) {
         y: 200,
       },
     },
+    meta: {
+      keyframe: keyframeToJsonObject<KeyframeData>({
+        id: arrowId1,
+        globalIndex: 2,
+        localBefore: arrowId0,
+        data: {
+          duration: 1000,
+        },
+      })
+    }
   });
-
-  attachKeyframe(editor, arrowId0);
-  attachKeyframe(editor, arrowId1);
 
   const arrowId2 = createShapeId("arrow2");
   editor.createShape({
@@ -84,14 +114,15 @@ export function setup(editor: Editor) {
         y: 100,
       },
     },
+    meta: {
+      keyframe: keyframeToJsonObject({
+        id: arrowId2,
+        globalIndex: 3,
+        localBefore: arrowId1,
+        data: {},
+      })
+    }
   });
-  attachKeyframe(editor, arrowId2);
-
-  addTrackRelation(editor, arrowId1, arrowId2);
-
-  // addSimultaneousFrameRelation(editor, rectId0, arrowId1);
-  addFrameRelation(editor, rectId0, arrowId1);
-  addSimultaneousFrameRelation(editor, rectId1, arrowId2);
 
   const arrowId3 = createShapeId("arrow3");
   editor.createShape({
@@ -109,6 +140,15 @@ export function setup(editor: Editor) {
         y: 200,
       },
     },
+    meta: {
+      keyframe: keyframeToJsonObject<KeyframeData>({
+        id: arrowId3,
+        globalIndex: 4,
+        localBefore: arrowId2,
+        data: {
+          duration: 1000,
+        },
+      })
+    }
   });
-  attachKeyframe(editor, arrowId3);
 }
