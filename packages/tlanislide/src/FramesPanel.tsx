@@ -13,15 +13,19 @@ import {
   getKeyframe,
   attachKeyframe,
   KeyframeData,
-  addTrackRelation,
+  getAllKeyframes,
+  keyframeToJsonObject,
 } from "./models";
-import { createKeyframe } from "./keyframe";
+import { Keyframe } from "./keyframe";
+import { KeyframeTimeline } from "./KeyframeTimeline";
 
 export const FramesPanel = track(() => {
   const currentFrameIndex = $currentFrameIndex.get();
 
   const editor = useEditor();
   const frames = getGlobalFrames(editor);
+
+  const allKeyframes = getAllKeyframes(editor);
 
   const selectedShapes = editor.getSelectedShapes();
   const keyframeShapes = selectedShapes.filter(
@@ -82,11 +86,12 @@ export const FramesPanel = track(() => {
                 }
 
                 const newShapeId = createShapeId(uniqueId());
-
-                const newKeyframe = createKeyframe<KeyframeData>(
-                  newShapeId,
-                  {}
-                );
+                const newKeyframe: Keyframe<KeyframeData> = {
+                  id: newShapeId,
+                  globalIndex: keyframe.globalIndex + 1,
+                  localBefore: keyframe.id,
+                  data: {},
+                };
 
                 editor.createShape({
                   ...shape,
@@ -94,10 +99,9 @@ export const FramesPanel = track(() => {
                   x: shape.x + 100,
                   y: shape.y + 100,
                   meta: {
-                    keyframe: newKeyframe,
+                    keyframe: keyframeToJsonObject(newKeyframe),
                   },
                 });
-                addTrackRelation(editor, shape.id, newShapeId);
               });
             }}
           >
@@ -116,6 +120,31 @@ export const FramesPanel = track(() => {
           </button>
         )}
       </div>
+
+      <KeyframeTimeline
+        ks={allKeyframes}
+        onKeyframesChange={(newKeyframes) => {
+          const allShapes = editor.getCurrentPageShapes();
+
+          const updateShapePartials = newKeyframes.map((newKeyframe) => {
+            const shape = allShapes.find(
+              (shape) => getKeyframe(shape)?.id === newKeyframe.id
+            );
+            if (shape == null) {
+              return null;
+            }
+
+            return {
+              ...shape,
+              meta: {
+                ...shape.meta,
+                keyframe: keyframeToJsonObject(newKeyframe),
+              },
+            };
+          });
+          editor.updateShapes(updateShapePartials);
+        }}
+      />
     </div>
   );
 });
