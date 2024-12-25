@@ -23,9 +23,10 @@ import {
   getKeyframe,
   runFrame,
   getAllKeyframes,
+  detatchKeyframe,
 } from "./models";
 import { setup } from "./debug";
-import { isTail } from "./keyframe";
+import { deleteKeyframe, isTail } from "./keyframe";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -131,6 +132,10 @@ interface TlanislideProps {
 function Tlanislide(props: TlanislideProps) {
   const handleMount = (editor: Editor) => {
     setup(editor);
+
+    editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
+      detatchKeyframe(editor, shape.id);
+    });
 
     if (props.onMount) {
       props.onMount(editor);

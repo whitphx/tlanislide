@@ -3,7 +3,7 @@ import type { JsonObject } from "tldraw"
 /** Keyframe構造体 */
 export interface Keyframe<T extends JsonObject> {
   id: string;
-  globalIndex: number;       // 同時クラス (同順位)
+  globalIndex: number;       // 同時クラス (同順位)。歯抜けが生じうる。
   localBefore: string | null;  // 局所順序: b.localBefore=a => a < b
   data: T;
 }
@@ -93,6 +93,18 @@ export function getGlobalOrder<T extends JsonObject>(
   }
 
   return result;
+}
+
+function reassignGlobalIndexInplace<T extends JsonObject>(globalOrder: Keyframe<T>[][]) {
+  let globalIndex = 0
+  globalOrder.forEach((group) => {
+    if (group.length === 0) return;
+    group.forEach((kf) => {
+      kf.globalIndex = globalIndex;
+    });
+    globalIndex++;
+  });
+  return globalOrder;
 }
 
 export function moveKeyframe<T extends JsonObject>(
@@ -201,19 +213,10 @@ export function moveKeyframe<T extends JsonObject>(
     newGlobalOrder = newGlobalOrder.concat(globalOrder.slice(oldIndex + 1));
   }
 
-  // Reassign globalIndex
-  let globalIndex = 0
-  newGlobalOrder.forEach((group) => {
-    if (group.length === 0) return;
-    group.forEach((kf) => {
-      kf.globalIndex = globalIndex;
-    });
-    globalIndex++;
-  });
+  reassignGlobalIndexInplace(newGlobalOrder);
 
   return newGlobalOrder.flat();
 }
-
 
 /**
  * すべての局所順序ごとに、含まれるKeyframeを列挙し、
@@ -237,6 +240,8 @@ export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
   // 1. getGlobalOrder で最終的な整合性を確かめておく（サイクル検出など）
   //    サイクルがある場合、ここで例外になる可能性
   const order2d = getGlobalOrder(ks); // 2次元 [ [kA, kB], [kC], ... ]
+  reassignGlobalIndexInplace(order2d);
+
   // 1.1 flattenして keyframeId -> Keyframe のマップを作る
   const flattened = order2d.flat();
   const mapById = new Map<string, Keyframe<T>>();

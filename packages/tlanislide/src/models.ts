@@ -79,6 +79,45 @@ export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData:
   })
 }
 
+export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
+  const shape = editor.getShape(shapeId);
+  if (shape == null) {
+    return;
+  }
+  const keyframe = getKeyframe(shape);
+  if (keyframe == null) {
+    return;
+  }
+
+  const shapes = editor.getCurrentPageShapes();  // TODO: Cache
+  const successorShapes = shapes.filter((shape) => {
+    const kf = getKeyframe(shape);
+    return kf != null && kf.localBefore === keyframe.id;
+  });
+  // NOTE: SuccessorsのglobalIndexは振り直されないので、歯抜けが生じうるが、getGlobalOrder（トポロジカルソート）では問題ない。
+  successorShapes.forEach((succShape) => {
+    editor.updateShape({
+      id: succShape.id,
+      type: succShape.type,
+      meta: {
+        ...succShape.meta,
+        keyframe: keyframeToJsonObject({
+          ...jsonObjectToKeyframe(succShape.meta.keyframe),
+          localBefore: keyframe.localBefore,
+        }),
+      },
+    })
+  });
+
+  editor.updateShape({
+    id: shapeId,
+    type: shape.type,
+    meta: {
+      keyframe: undefined,
+    },
+  })
+}
+
 export function getKeyframe(shape: TLShape): Keyframe<KeyframeData> | undefined {
   return isJsonObject(shape.meta.keyframe) ? jsonObjectToKeyframe(shape.meta.keyframe) : undefined;
 }
