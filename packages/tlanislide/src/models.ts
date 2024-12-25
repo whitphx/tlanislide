@@ -57,9 +57,11 @@ export function jsonObjectToKeyframe<T extends JsonObject>(
 }
 
 export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData: KeyframeData = {}) {
+  const maxGlobalIndex = Math.max(...getAllKeyframes(editor).map((kf) => kf.globalIndex))
+
   const keyframe: Keyframe<KeyframeData> = {
     id: shapeId,
-    globalIndex: 0,  // TODO
+    globalIndex: maxGlobalIndex + 1,
     localBefore: null,
     data: keyframeData,
   }
