@@ -26,7 +26,6 @@ import {
   detatchKeyframe,
 } from "./models";
 import { setup } from "./debug";
-import { deleteKeyframe, isTail } from "./keyframe";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];

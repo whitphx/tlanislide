@@ -89,7 +89,7 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
     return;
   }
 
-  const shapes = editor.getCurrentPageShapes();  // TODO: Cache
+  const shapes = editor.getCurrentPageShapes();
   const successorShapes = shapes.filter((shape) => {
     const kf = getKeyframe(shape);
     return kf != null && kf.localBefore === keyframe.id;
@@ -123,7 +123,7 @@ export function getKeyframe(shape: TLShape): Keyframe<KeyframeData> | undefined 
 }
 
 export function getAllKeyframes(editor: Editor): Keyframe<KeyframeData>[] {
-  const shapes = editor.getCurrentPageShapes();  // TODO: Cache
+  const shapes = editor.getCurrentPageShapes();
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
@@ -134,7 +134,7 @@ export function getGlobalFrames(editor: Editor): Keyframe<KeyframeData>[][] {
 }
 
 export function getShapeFromKeyframeId(editor: Editor, keyframeId: string): TLShape | undefined {
-  const shapes = editor.getCurrentPageShapes();  // TODO: Cache
+  const shapes = editor.getCurrentPageShapes();
   return shapes.find((shape) => {
     const keyframe = getKeyframe(shape);
     return keyframe != null && keyframe.id === keyframeId;
