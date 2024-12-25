@@ -71,28 +71,6 @@ export const FramesPanel = track(() => {
       }}
       onPointerDown={(e) => stopEventPropagation(e)}
     >
-      <ol>
-        {frames.map((frame, i) => {
-          const isCurrent = i === currentFrameIndex;
-          return (
-            <li key={i}>
-              {isCurrent ? (
-                "*"
-              ) : (
-                <button
-                  onClick={() => {
-                    $currentFrameIndex.set(i);
-                    runFrame(editor, frame);
-                  }}
-                >
-                  [ ]
-                </button>
-              )}
-              {JSON.stringify(frame)}
-            </li>
-          );
-        })}
-      </ol>
       <div>
         <label>
           Presentation Mode
@@ -167,7 +145,35 @@ export const FramesPanel = track(() => {
       <KeyframeTimeline
         ks={allKeyframes}
         onKeyframesChange={handleKeyframesChange}
+        currentFrameIndex={currentFrameIndex}
+        onFrameSelect={(i) => {
+          $currentFrameIndex.set(i);
+          runFrame(editor, frames[i]);
+        }}
       />
+
+      <ol>
+        {frames.map((frame, i) => {
+          const isCurrent = i === currentFrameIndex;
+          return (
+            <li key={i}>
+              {isCurrent ? (
+                "*"
+              ) : (
+                <button
+                  onClick={() => {
+                    $currentFrameIndex.set(i);
+                    runFrame(editor, frame);
+                  }}
+                >
+                  [ ]
+                </button>
+              )}
+              {JSON.stringify(frame)}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 });

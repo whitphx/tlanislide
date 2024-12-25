@@ -13,7 +13,6 @@ import {
   getAllLocalSequencesWithGlobalOrder,
   moveKeyframe,
 } from "./keyframe";
-import { $currentFrameIndex } from "./models";
 import type { JsonObject } from "tldraw";
 
 interface KeyframeUIData {
@@ -24,11 +23,6 @@ interface KeyframeUIData {
 
 interface Track {
   id: string;
-}
-
-interface KeyframeTimelineProps<T extends JsonObject> {
-  ks: Keyframe<T>[];
-  onKeyframesChange: (newKs: Keyframe<T>[]) => void;
 }
 
 function generateUIData<T extends JsonObject>(
@@ -112,14 +106,20 @@ function DroppableCell({
   );
 }
 
+interface KeyframeTimelineProps<T extends JsonObject> {
+  ks: Keyframe<T>[];
+  onKeyframesChange: (newKs: Keyframe<T>[]) => void;
+  currentFrameIndex: number;
+  onFrameSelect: (frameIndex: number) => void;
+}
 export function KeyframeTimeline<T extends JsonObject>({
   ks,
   onKeyframesChange,
+  currentFrameIndex,
+  onFrameSelect,
 }: KeyframeTimelineProps<T>) {
   const { keyframes, tracks, maxGlobalIndex } = generateUIData(ks);
   const frameNumbers = Array.from({ length: maxGlobalIndex + 1 }, (_, i) => i);
-
-  const currentFrameIndex = $currentFrameIndex.get();
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { over, active } = event;
@@ -159,7 +159,7 @@ export function KeyframeTimeline<T extends JsonObject>({
         <div style={{ display: "flex" }}>
           <div style={{ width: "80px" }}>Frames</div>
           {frameNumbers.map((i) => (
-            <div
+            <button
               key={i}
               style={{
                 width: "50px",
@@ -167,9 +167,10 @@ export function KeyframeTimeline<T extends JsonObject>({
                 borderRight: "1px solid #999",
                 fontWeight: i === currentFrameIndex ? "bold" : "normal",
               }}
+              onClick={() => onFrameSelect(i)}
             >
               {i + 1}
-            </div>
+            </button>
           ))}
         </div>
 
