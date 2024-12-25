@@ -218,6 +218,34 @@ export function moveKeyframe<T extends JsonObject>(
   return newGlobalOrder.flat();
 }
 
+export function insertKeyframeLocalAfter<T extends JsonObject>(
+  ks: Keyframe<T>[],
+  newKeyframe: Keyframe<T> & { localBefore: string },
+): Keyframe<T>[] {
+  const globalOrder = getGlobalOrder(ks);
+
+  const newGlobalOrder: Keyframe<T>[][] = [];
+  let localBeforeKf: Keyframe<T> | undefined = undefined;
+  for (const group of globalOrder) {
+    group.forEach(kf => {
+      // SuccessorのlocalBeforeを差し替える
+      if (localBeforeKf && kf.localBefore === localBeforeKf.id) {
+        kf.localBefore = newKeyframe.id;
+      }
+    });
+
+    newGlobalOrder.push(group);
+
+    const localBeforeKfInThisGroup = group.find(kf => kf.id === newKeyframe.localBefore);
+    if (localBeforeKfInThisGroup) {
+      localBeforeKf = localBeforeKfInThisGroup;
+      newGlobalOrder.push([newKeyframe]);
+    }
+  }
+  reassignGlobalIndexInplace(newGlobalOrder);
+  return newGlobalOrder.flat();
+}
+
 /**
  * すべての局所順序ごとに、含まれるKeyframeを列挙し、
  * さらに全体順序の情報 (globalIndex) を付与して返す関数。
