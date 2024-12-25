@@ -1,4 +1,4 @@
-import { EASINGS, atom, createShapeId, uniqueId } from "tldraw";
+import { EASINGS, atom, createShapeId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import { getGlobalOrder, Keyframe } from "./keyframe";
 
@@ -84,7 +84,7 @@ export function getKeyframe(shape: TLShape): Keyframe<KeyframeData> | undefined 
 }
 
 export function getAllKeyframes(editor: Editor): Keyframe<KeyframeData>[] {
-  const shapes = editor.getCurrentPageShapes();
+  const shapes = editor.getCurrentPageShapes();  // TODO: Cache
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
@@ -94,10 +94,16 @@ export function getGlobalFrames(editor: Editor): Keyframe<KeyframeData>[][] {
   return globalOrder;
 }
 
+export function getShapeFromKeyframeId(editor: Editor, keyframeId: string): TLShape | undefined {
+  const shapes = editor.getCurrentPageShapes();  // TODO: Cache
+  return shapes.find((shape) => {
+    const keyframe = getKeyframe(shape);
+    return keyframe != null && keyframe.id === keyframeId;
+  });
+}
+
 export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) {
   const keyframes = getAllKeyframes(editor);
-
-  editor.selectNone()
 
   globalFrame.forEach((keyframe) => {
     const predecessorKeyframeId = keyframe.localBefore;
@@ -109,9 +115,14 @@ export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) 
       return;
     }
 
-    const shape = editor.getShape(keyframe.id as TLShapeId);
-    const predecessorShape = editor.getShape(predecessorKeyframe.id as TLShapeId);
-    if (shape == null || predecessorShape == null) {
+    editor.selectNone();
+
+    const shape = getShapeFromKeyframeId(editor, keyframe.id);
+    if (shape == null) {
+      return;
+    }
+    const predecessorShape = getShapeFromKeyframeId(editor, predecessorKeyframe.id);
+    if (predecessorShape == null) {
       return;
     }
 
