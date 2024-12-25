@@ -13,13 +13,10 @@ import {
   getAllLocalSequencesWithGlobalOrder,
   moveKeyframe,
 } from "./keyframe";
-import { JsonObject } from "tldraw";
+import { $currentFrameIndex } from "./models";
+import type { JsonObject } from "tldraw";
 
-interface MyData extends JsonObject {
-  // Keyframeごとのデータ（必要なら他属性）
-}
-
-interface KeyframeData {
+interface KeyframeUIData {
   id: string;
   trackId: string;
   globalIndex: number;
@@ -29,27 +26,33 @@ interface Track {
   id: string;
 }
 
-interface KeyframeTimelineProps {
-  ks: Keyframe<MyData>[];
-  onKeyframesChange: (newKs: Keyframe<MyData>[]) => void;
+interface KeyframeTimelineProps<T extends JsonObject> {
+  ks: Keyframe<T>[];
+  onKeyframesChange: (newKs: Keyframe<T>[]) => void;
 }
 
-function generateUIData(ks: Keyframe<MyData>[]): {
-  keyframes: KeyframeData[];
+function generateUIData<T extends JsonObject>(
+  ks: Keyframe<T>[]
+): {
+  keyframes: KeyframeUIData[];
   tracks: Track[];
   maxGlobalIndex: number;
 } {
   const seqs = getAllLocalSequencesWithGlobalOrder(ks);
-  const tracks: Track[] = seqs.map((_, i) => ({ id: `track_${i}` }));
-  let maxGlobalIndex = 0;
-  const keyframes: KeyframeData[] = [];
+  const tracks: Track[] = seqs.map((seq) => ({
+    id: `track_${seq.id}`,
+  }));
+  tracks.sort((a, b) => a.id.localeCompare(b.id)); // TODO: Better sorting criteria?
 
-  seqs.forEach((seq, seqIndex) => {
+  let maxGlobalIndex = 0;
+  const keyframes: KeyframeUIData[] = [];
+
+  seqs.forEach((seq) => {
     seq.sequence.forEach(({ kf, globalIndex }) => {
       if (globalIndex > maxGlobalIndex) maxGlobalIndex = globalIndex;
       keyframes.push({
         id: kf.id,
-        trackId: `track_${seqIndex}`,
+        trackId: `track_${seq.id}`,
         globalIndex: globalIndex,
       });
     });
@@ -58,7 +61,7 @@ function generateUIData(ks: Keyframe<MyData>[]): {
   return { keyframes, tracks, maxGlobalIndex };
 }
 
-function DraggableKeyframeUI({ kf }: { kf: KeyframeData }) {
+function DraggableKeyframeUI({ kf }: { kf: KeyframeUIData }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: kf.id,
     data: kf,
@@ -109,12 +112,14 @@ function DroppableCell({
   );
 }
 
-export function KeyframeTimeline({
+export function KeyframeTimeline<T extends JsonObject>({
   ks,
   onKeyframesChange,
-}: KeyframeTimelineProps) {
+}: KeyframeTimelineProps<T>) {
   const { keyframes, tracks, maxGlobalIndex } = generateUIData(ks);
   const frameNumbers = Array.from({ length: maxGlobalIndex + 1 }, (_, i) => i);
+
+  const currentFrameIndex = $currentFrameIndex.get();
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { over, active } = event;
@@ -127,7 +132,7 @@ export function KeyframeTimeline({
         // 以前の実装を思い出すと、moveKeyframeは (ks: Keyframe<T>[], targetId: string, newIndex: number) -> Keyframe<T>[] のような形だったはず
         const newKs = moveKeyframe(
           ks,
-          activeId as KeyframeData["id"],
+          activeId as KeyframeUIData["id"],
           overGlobalIndex
         );
         onKeyframesChange(newKs);
@@ -160,6 +165,7 @@ export function KeyframeTimeline({
                 width: "50px",
                 textAlign: "center",
                 borderRight: "1px solid #999",
+                fontWeight: i === currentFrameIndex ? "bold" : "normal",
               }}
             >
               {i + 1}

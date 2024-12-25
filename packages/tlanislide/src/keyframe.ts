@@ -25,14 +25,14 @@ export function getGlobalOrder<T extends JsonObject>(
   //    (2) a.globalIndex < b.globalIndex => a < b
   const graph = new Map<string, string[]>();
   const indeg = new Map<string, number>();
-  for (let kf of copy) {
+  for (const kf of copy) {
     graph.set(kf.id, []);
     indeg.set(kf.id, 0);
   }
 
   // localBefore => a< b
   // => b.localBefore=a => a->b
-  for (let b of copy) {
+  for (const b of copy) {
     if (b.localBefore) {
       const aId = b.localBefore;
       graph.get(aId)!.push(b.id);
@@ -52,14 +52,14 @@ export function getGlobalOrder<T extends JsonObject>(
 
   // 3. トポロジカルソート
   const queue: string[] = [];
-  for (let [id, deg] of indeg) {
+  for (const [id, deg] of indeg) {
     if (deg === 0) queue.push(id);
   }
   const sorted: string[] = [];
   while (queue.length) {
     const u = queue.shift()!;
     sorted.push(u);
-    for (let v of graph.get(u)!) {
+    for (const v of graph.get(u)!) {
       const d = indeg.get(v)! - 1;
       indeg.set(v, d);
       if (d === 0) {
@@ -73,14 +73,14 @@ export function getGlobalOrder<T extends JsonObject>(
 
   // 4. globalIndex ごとにまとめ
   const mapById = new Map<string, Keyframe<T>>();
-  for (let c of copy) mapById.set(c.id, c);
+  for (const c of copy) mapById.set(c.id, c);
 
   const visited = new Set<string>();
   const result: Keyframe<T>[][] = [];
   let currentGroup: Keyframe<T>[] = [];
   let currentIndex = -1;
 
-  for (let id of sorted) {
+  for (const id of sorted) {
     if (visited.has(id)) continue;
     visited.add(id);
     const kf = mapById.get(id)!;
@@ -229,25 +229,27 @@ export function moveKeyframe<T extends JsonObject>(
  *   - sequenceは局所順序の並び (頭→末尾)
  *   - 各要素で Keyframe と そのKeyframeの globalIndex を返す
  */
+interface SequenceItem<T extends JsonObject> { kf: Keyframe<T>; globalIndex: number };
+type NonEmptyArray<T> = [T, ...T[]];
 export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
   ks: Keyframe<T>[]
-): { sequence: { kf: Keyframe<T>; globalIndex: number }[] }[] {
+): { id: string; sequence: NonEmptyArray<SequenceItem<T>> }[] {
   // 1. getGlobalOrder で最終的な整合性を確かめておく（サイクル検出など）
   //    サイクルがある場合、ここで例外になる可能性
   const order2d = getGlobalOrder(ks); // 2次元 [ [kA, kB], [kC], ... ]
   // 1.1 flattenして keyframeId -> Keyframe のマップを作る
   const flattened = order2d.flat();
   const mapById = new Map<string, Keyframe<T>>();
-  for (let kf of flattened) {
+  for (const kf of flattened) {
     mapById.set(kf.id, kf);
   }
 
   // 2. ローカル後続をたどるため、子リスト childMap を作る: parentId -> Keyframe[] ( = parent.localBefore == parentId ? )
   const childMap = new Map<string, Keyframe<T>[]>();
-  for (let kf of flattened) {
+  for (const kf of flattened) {
     childMap.set(kf.id, []);
   }
-  for (let kf of flattened) {
+  for (const kf of flattened) {
     if (kf.localBefore) {
       const parentId = kf.localBefore;
       if (childMap.has(parentId)) {
@@ -263,12 +265,12 @@ export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
   const heads = flattened.filter(k => k.localBefore === null);
 
   const visited = new Set<string>();
-  const results: { sequence: { kf: Keyframe<T>; globalIndex: number }[] }[] = [];
+  const results: { id: string; sequence: NonEmptyArray<SequenceItem<T>> }[] = [];
 
   /**
    * DFSでローカルシーケンスを辿る
    */
-  function dfs(current: Keyframe<T>, path: Keyframe<T>[]) {
+  function dfs(current: Keyframe<T>, path: NonEmptyArray<Keyframe<T>>) {
     visited.add(current.id);
     const children = childMap.get(current.id)!; // 後続
     if (children.length === 0) {
@@ -276,11 +278,11 @@ export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
       const sequence = path.map(kf => ({
         kf,
         globalIndex: kf.globalIndex
-      }));
-      results.push({ sequence });
+      })) as NonEmptyArray<SequenceItem<T>>;
+      results.push({ sequence, id: sequence[0].kf.id });
     } else {
       // 分岐
-      for (let c of children) {
+      for (const c of children) {
         if (!visited.has(c.id)) {
           dfs(c, [...path, c]);
         } else {
@@ -291,12 +293,12 @@ export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
   }
 
   // 4. 頭から DFS してローカルシーケンス列を作る
-  for (let head of heads) {
+  for (const head of heads) {
     dfs(head, [head]);
   }
 
   // 5. 頭がないが訪問されていないKeyframeがある場合、孤立列として追加
-  for (let kf of flattened) {
+  for (const kf of flattened) {
     if (!visited.has(kf.id)) {
       // localBefore=nullじゃない、かつ childMap上でもどこにもつながっていない？
       // => 単独シーケンス
@@ -304,7 +306,8 @@ export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
         sequence: [{
           kf,
           globalIndex: kf.globalIndex
-        }]
+        }],
+        id: kf.id
       });
       visited.add(kf.id);
     }

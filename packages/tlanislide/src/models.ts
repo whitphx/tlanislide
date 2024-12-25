@@ -95,6 +95,8 @@ export function getGlobalFrames(editor: Editor): Keyframe<KeyframeData>[][] {
 export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) {
   const keyframes = getAllKeyframes(editor);
 
+  editor.selectNone()
+
   globalFrame.forEach((keyframe) => {
     const predecessorKeyframeId = keyframe.localBefore;
     if (predecessorKeyframeId == null) {

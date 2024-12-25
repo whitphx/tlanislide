@@ -85,6 +85,8 @@ export const FramesPanel = track(() => {
                   return;
                 }
 
+                // TODO: 現在のsuccessorのlocalBeforeをnewShapeIdに繋ぎかえる
+
                 const newShapeId = createShapeId(uniqueId());
                 const newKeyframe: Keyframe<KeyframeData> = {
                   id: newShapeId,
