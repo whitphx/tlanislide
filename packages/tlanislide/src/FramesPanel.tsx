@@ -64,6 +64,14 @@ export const FramesPanel = track(() => {
     editor.updateShapes(updateShapePartials);
   };
 
+  const handleKeyframeSelect = (keyframeId: string) => {
+    const allShapes = editor.getCurrentPageShapes();
+    const targetShapes = allShapes.filter(
+      (shape) => getKeyframe(shape)?.id === keyframeId
+    );
+    editor.select(...targetShapes);
+  };
+
   return (
     <div
       style={{
@@ -150,30 +158,11 @@ export const FramesPanel = track(() => {
           $currentFrameIndex.set(i);
           runFrame(editor, frames[i]);
         }}
+        selectedKeyframeIds={selectedKeyframeShapes.map(
+          (kf) => getKeyframe(kf)!.id
+        )}
+        onKeyframeSelect={handleKeyframeSelect}
       />
-
-      <ol>
-        {frames.map((frame, i) => {
-          const isCurrent = i === currentFrameIndex;
-          return (
-            <li key={i}>
-              {isCurrent ? (
-                "*"
-              ) : (
-                <button
-                  onClick={() => {
-                    $currentFrameIndex.set(i);
-                    runFrame(editor, frame);
-                  }}
-                >
-                  [ ]
-                </button>
-              )}
-              {JSON.stringify(frame)}
-            </li>
-          );
-        })}
-      </ol>
     </div>
   );
 });
