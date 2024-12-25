@@ -31,7 +31,7 @@ import {
   detatchKeyframe,
 } from "./models";
 import { setup } from "./debug";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -238,32 +238,37 @@ function Tlanislide(props: TlanislideProps) {
     onMount,
   } = props;
 
-  const [editor, setEditor] = useState<Editor | null>(null);
-
+  const editorRef = useRef<Editor | null>(null);
   const handleMount = useCallback(
     (editor: Editor) => {
-      setEditor(editor);
+      editorRef.current = editor;
       onMount?.(editor);
     },
     [onMount]
   );
 
   useEffect(() => {
-    if (editor && currentFrameIndexProp != null) {
-      if ($currentFrameIndex.get() === currentFrameIndexProp) {
-        return;
-      }
-
-      const globalFrames = getGlobalFrames(editor);
-      const newFrame = globalFrames[currentFrameIndexProp];
-      if (newFrame == null) {
-        return;
-      }
-
-      $currentFrameIndex.set(currentFrameIndexProp);
-      runFrame(editor, newFrame);
+    if (currentFrameIndexProp == null) {
+      return;
     }
-  }, [editor, currentFrameIndexProp]);
+    if ($currentFrameIndex.get() === currentFrameIndexProp) {
+      return;
+    }
+
+    const editor = editorRef.current;
+    if (editor == null) {
+      return;
+    }
+
+    const globalFrames = getGlobalFrames(editor);
+    const newFrame = globalFrames[currentFrameIndexProp];
+    if (newFrame == null) {
+      return;
+    }
+
+    $currentFrameIndex.set(currentFrameIndexProp);
+    runFrame(editor, newFrame);
+  }, [currentFrameIndexProp]);
 
   return (
     <MemoizedInner
