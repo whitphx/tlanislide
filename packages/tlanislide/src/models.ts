@@ -109,54 +109,58 @@ export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) 
       return;
     }
 
-    const shape = editor.getShape(keyframe.id as TLShapeId);  // TODO: ShapeIdとKeyframe.idを別にする？
+    const shape = editor.getShape(keyframe.id as TLShapeId);
     const predecessorShape = editor.getShape(predecessorKeyframe.id as TLShapeId);
     if (shape == null || predecessorShape == null) {
       return;
     }
 
-    editor.updateShape({
-      id: shape.id,
-      type: shape.id,
-      meta: {
-        ...shape.meta,
-        hiddenDuringAnimation: true,
-      }
-    })
-
-    const { duration = 0, easing = "easeInCubic" } = keyframe.data;
-    const immediate = duration === 0;
-
-    // Create and manipulate a temporary shape for animation
-    const animeShapeId = createShapeId(uniqueId());
-    editor.createShape({
-      ...predecessorShape,
-      id: animeShapeId,
-      type: shape.type,
-      meta: undefined,
-    });
-    editor.animateShape({
-      ...shape,
-      id: animeShapeId,
-      meta: undefined,
-    }, {
-      immediate,
-      animation: {
-        duration,
-        easing: EASINGS[easing],
-      }
-    });
-    setTimeout(() => {
-      editor.deleteShape(animeShapeId);
-
+    editor.run(() => {
       editor.updateShape({
         id: shape.id,
         type: shape.id,
         meta: {
           ...shape.meta,
-          hiddenDuringAnimation: false,
+          hiddenDuringAnimation: true,
         }
       })
-    }, duration);
+
+      const { duration = 0, easing = "easeInCubic" } = keyframe.data;
+      const immediate = duration === 0;
+
+      // Create and manipulate a temporary shape for animation
+      const animeShapeId = createShapeId();
+      editor.createShape({
+        ...predecessorShape,
+        id: animeShapeId,
+        type: shape.type,
+        meta: undefined,
+      });
+      editor.animateShape({
+        ...shape,
+        id: animeShapeId,
+        meta: undefined,
+      }, {
+        immediate,
+        animation: {
+          duration,
+          easing: EASINGS[easing],
+        }
+      });
+      setTimeout(() => {
+        editor.run(() => {
+          editor.deleteShape(animeShapeId);
+
+          editor.updateShape({
+            id: shape.id,
+            type: shape.id,
+            meta: {
+              ...shape.meta,
+              hiddenDuringAnimation: false,
+            }
+          })
+        }, { history: "ignore", ignoreShapeLock: true });
+      }, duration);
+    }, { history: "ignore", ignoreShapeLock: true })
   });
 }
