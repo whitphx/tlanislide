@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   Keyframe,
   getGlobalOrder,
@@ -113,7 +113,7 @@ describe("keyframe.ts tests", () => {
 
     it("moving forward with no local conflict => success", () => {
       // k1=0, k2=1 => user move k1 => newIndex=2 => forward
-      let ks = [
+      const ks = [
         mk("k1", 0, null, { info: "k1" }),
         mk("k2", 1, null, { info: "k2" })
       ];
@@ -128,7 +128,7 @@ describe("keyframe.ts tests", () => {
     it("moving backward with local chain => oldIndex>newIndex", () => {
       // k1=0, k2=1, local => k2.localBefore="k1" => conflict?
       // user move k2=>0 => backward => we push frames => final => k1=0,k2=1
-      let ks = [
+      const ks = [
         mk("k1", 0, null, { info: "k1" }),
         mk("k2", 1, "k1", { info: "k2" })
       ];
@@ -142,7 +142,7 @@ describe("keyframe.ts tests", () => {
     it("child found in frames => push child => forward", () => {
       // k1->k2 => k2.localBefore="k1"
       // k3->k2 =>? Not directly but let's just see if child is found
-      let ks = [
+      const ks = [
         mk("k1", 0, null, { info: "k1" }),
         mk("k2", 1, "k1", { info: "k2" }),
         mk("k3", 2, null, { info: "k3" })
@@ -158,14 +158,14 @@ describe("keyframe.ts tests", () => {
     it("big chain => partial push => no cycle", () => {
       // k1->k2->k3->k4 => localBefore => k2.k1, k3.k2, k4.k3
       // globalIndex => k1=0, k2=1, k3=2, k4=3
-      let ks = [
+      const ks = [
         mk("k1", 0, null, { info: "k1" }),
         mk("k2", 1, "k1", { info: "k2" }),
         mk("k3", 2, "k2", { info: "k3" }),
         mk("k4", 3, "k3", { info: "k4" })
       ];
       // move k1 => newIndex=2 => forward => we push k2,k3 possibly => final => no conflict
-      let res = moveKeyframe(ks, "k1", 2);
+      const res = moveKeyframe(ks, "k1", 2);
       expect(() => getGlobalOrder(res)).not.toThrow();
       // check local => k2>k1 => k3>k2 => k4>k3
       const k2 = res.find(x => x.id === "k2")!;
@@ -280,13 +280,12 @@ describe("keyframe.ts tests", () => {
   ])("Param: $desc", ({ chain, forward }) => {
     it("should move target and not break local order", () => {
       // 例: chain=[k1->k2, k2->k3], forward=true => k1=0,k2=1,k3=2 => move k1 =>2 => ...
-      const ks: Keyframe<MyData>[] = [];
       // build from chain
       // "k1->k2" => k2.localBefore="k1"
       // we assume chain is linear => set indexes 0,1,2,...
       const ids = new Set<string>();
       const edges: Array<[string, string]> = [];
-      chain.forEach((link, i) => {
+      chain.forEach((link) => {
         // e.g "k1->k2"
         const [head, tail] = link.split("->");
         ids.add(head); ids.add(tail);
@@ -295,7 +294,7 @@ describe("keyframe.ts tests", () => {
       // assign indexes in insertion order
       let idx = 0;
       const mapData = new Map<string, number>();
-      for (let id of ids) {
+      for (const id of ids) {
         mapData.set(id, idx++);
       }
       // build Keyframe
