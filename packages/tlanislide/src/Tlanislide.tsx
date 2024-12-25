@@ -11,7 +11,6 @@ import {
 } from "tldraw";
 import type { TLUiOverrides, TLComponents, Editor, TLShape } from "tldraw";
 import "tldraw/tldraw.css";
-import { useEffect } from "react";
 
 import { SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
@@ -125,28 +124,40 @@ const components: TLComponents = {
 };
 
 interface TlanislideProps {
-  onMount?: (editor: Editor) => void;
-  clicks?: number;
+  presentationMode?: boolean;
+  enableKeyControls?: boolean;
+  onMount?: (opts: { setCurrentFrameIndex: (index: number) => void }) => void;
 }
 function Tlanislide(props: TlanislideProps) {
+  const {
+    presentationMode: initPresentationMode = false,
+    enableKeyControls = true,
+  } = props;
+
   const handleMount = (editor: Editor) => {
     setup(editor);
+
+    $presentationMode.set(initPresentationMode);
 
     editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
       detatchKeyframe(editor, shape.id);
     });
 
     if (props.onMount) {
-      props.onMount(editor);
+      const setCurrentFrameIndex = (newFrameIndex: number) => {
+        const globalFrames = getGlobalFrames(editor);
+
+        const nextFrame = globalFrames[newFrameIndex];
+        if (nextFrame == null) {
+          return;
+        }
+
+        $currentFrameIndex.set(newFrameIndex);
+        runFrame(editor, nextFrame);
+      };
+      props.onMount({ setCurrentFrameIndex });
     }
   };
-
-  useEffect(() => {
-    if (props.clicks == null) {
-      return;
-    }
-    // $currentFrameIndex.set(props.clicks <= 0 ? "initial" : props.clicks - 1);
-  }, [props.clicks]);
 
   const determineShapeHidden = (shape: TLShape, editor: Editor): boolean => {
     const presentationMode = $presentationMode.get();
@@ -204,7 +215,7 @@ function Tlanislide(props: TlanislideProps) {
     <Tldraw
       onMount={handleMount}
       components={components}
-      overrides={createUiOverrides({ enableKeyControls: props.clicks == null })}
+      overrides={createUiOverrides({ enableKeyControls })}
       shapeUtils={MyCustomShapes}
       tools={MyCustomTools}
       isShapeHidden={determineShapeHidden}
