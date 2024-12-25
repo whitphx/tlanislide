@@ -9,7 +9,13 @@ import {
   DefaultKeyboardShortcutsDialogContent,
   computed,
 } from "tldraw";
-import type { TLUiOverrides, TLComponents, Editor, TLShape } from "tldraw";
+import type {
+  TLUiOverrides,
+  TLComponents,
+  Editor,
+  TLShape,
+  TldrawProps,
+} from "tldraw";
 import "tldraw/tldraw.css";
 
 import { SlideShapeUtil } from "./SlideShapeUtil";
@@ -25,6 +31,7 @@ import {
   detatchKeyframe,
 } from "./models";
 import { setup } from "./debug";
+import React, { useCallback, useEffect, useState } from "react";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -123,17 +130,13 @@ const components: TLComponents = {
   },
 };
 
-interface TlanislideProps {
-  presentationMode?: boolean;
-  enableKeyControls?: boolean;
-  onMount?: (opts: { setCurrentFrameIndex: (index: number) => void }) => void;
+interface InnerProps {
+  onMount: TldrawProps["onMount"];
+  initPresentationMode: boolean;
+  enableKeyControls: boolean;
 }
-function Tlanislide(props: TlanislideProps) {
-  const {
-    presentationMode: initPresentationMode = false,
-    enableKeyControls = true,
-  } = props;
-
+function Inner(props: InnerProps) {
+  const { enableKeyControls, initPresentationMode, onMount } = props;
   const handleMount = (editor: Editor) => {
     setup(editor);
 
@@ -143,20 +146,13 @@ function Tlanislide(props: TlanislideProps) {
       detatchKeyframe(editor, shape.id);
     });
 
-    if (props.onMount) {
-      const setCurrentFrameIndex = (newFrameIndex: number) => {
-        const globalFrames = getGlobalFrames(editor);
-
-        const nextFrame = globalFrames[newFrameIndex];
-        if (nextFrame == null) {
-          return;
-        }
-
-        $currentFrameIndex.set(newFrameIndex);
-        runFrame(editor, nextFrame);
-      };
-      props.onMount({ setCurrentFrameIndex });
+    if (onMount) {
+      onMount(editor);
     }
+
+    return () => {
+      editor.dispose();
+    };
   };
 
   const determineShapeHidden = (shape: TLShape, editor: Editor): boolean => {
@@ -215,10 +211,65 @@ function Tlanislide(props: TlanislideProps) {
     <Tldraw
       onMount={handleMount}
       components={components}
-      overrides={createUiOverrides({ enableKeyControls })}
+      overrides={createUiOverrides({
+        enableKeyControls,
+      })}
       shapeUtils={MyCustomShapes}
       tools={MyCustomTools}
       isShapeHidden={determineShapeHidden}
+    />
+  );
+}
+
+// IMPORTANT: Memoization is necessary to prevent re-rendering of the entire Tldraw component tree and recreating the editor instance when the most outer `Tlanislide` component's props change, which typically happens when the current frame index changes in the parent component.
+const MemoizedInner = React.memo(Inner);
+
+interface TlanislideProps {
+  presentationMode?: boolean;
+  enableKeyControls?: boolean;
+  currentFrameIndex?: number;
+  onMount?: TldrawProps["onMount"];
+}
+function Tlanislide(props: TlanislideProps) {
+  const {
+    presentationMode: initPresentationMode = false,
+    enableKeyControls = true,
+    currentFrameIndex: currentFrameIndexProp,
+    onMount,
+  } = props;
+
+  const [editor, setEditor] = useState<Editor | null>(null);
+
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      setEditor(editor);
+      onMount?.(editor);
+    },
+    [onMount]
+  );
+
+  useEffect(() => {
+    if (editor && currentFrameIndexProp != null) {
+      if ($currentFrameIndex.get() === currentFrameIndexProp) {
+        return;
+      }
+
+      const globalFrames = getGlobalFrames(editor);
+      const newFrame = globalFrames[currentFrameIndexProp];
+      if (newFrame == null) {
+        return;
+      }
+
+      $currentFrameIndex.set(currentFrameIndexProp);
+      runFrame(editor, newFrame);
+    }
+  }, [editor, currentFrameIndexProp]);
+
+  return (
+    <MemoizedInner
+      onMount={handleMount}
+      initPresentationMode={initPresentationMode}
+      enableKeyControls={enableKeyControls}
     />
   );
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="absolute inset-0">
     <div class="inverse-transform" ref="wrapperEl">
-      <Tlanislide @mount="handleMount" :enableKeyControls="enableKeyControls" :presentationMode="true" />
+      <Tlanislide @mount="handleMount" :currentFrameIndex="$clicks" :enableKeyControls="enableKeyControls" :presentationMode="true" />
     </div>
   </div>
 </template>
@@ -24,22 +24,12 @@ const wrapperEl = ref<HTMLElement>();
 const scale = useCssVar("--slide-scale", wrapperEl);
 const { $scale, $clicks } = useSlideContext();
 
-const handleMount = ({ setCurrentFrameIndex }) => {
+const handleMount = () => {
   // always provide scale to component as CSS variable, even in print mode
   watch(
     $scale,
     (newScale) => {
       scale.value = String(newScale);
-    },
-    { immediate: true }
-  );
-
-  watch(
-    $clicks,
-    (clicks) => {
-      if (clicks) {
-        setCurrentFrameIndex(clicks);
-      }
     },
     { immediate: true }
   );
