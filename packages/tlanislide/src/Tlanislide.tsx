@@ -8,6 +8,7 @@ import {
   DefaultKeyboardShortcutsDialog,
   DefaultKeyboardShortcutsDialogContent,
   computed,
+  atom,
 } from "tldraw";
 import type {
   TLUiOverrides,
@@ -36,73 +37,73 @@ import React, { useCallback, useEffect, useRef } from "react";
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
 
-interface CreateUiOverridesOptions {
-  enableKeyControls: boolean;
-}
-function createUiOverrides(options: CreateUiOverridesOptions): TLUiOverrides {
-  const { enableKeyControls } = options;
-  return {
-    actions(editor, actions) {
-      if (!enableKeyControls) {
-        return actions;
-      }
+const $keyControlsEnabled = atom("key controls are enabled", true);
 
-      const $globalFrames = computed("global frames", () =>
-        getGlobalFrames(editor)
-      );
+const uiOverrides: TLUiOverrides = {
+  actions(editor, actions) {
+    const $globalFrames = computed("global frames", () =>
+      getGlobalFrames(editor)
+    );
 
-      actions["next-frame"] = {
-        id: "next-frame",
-        label: "Next Frame",
-        kbd: "right",
-        onSelect() {
-          const globalFrames = $globalFrames.get();
-          const currentFrameIndex = $currentFrameIndex.get();
+    actions["next-frame"] = {
+      id: "next-frame",
+      label: "Next Frame",
+      kbd: "right",
+      onSelect() {
+        if (!$keyControlsEnabled.get()) {
+          return;
+        }
 
-          const nextFrameIndex = currentFrameIndex + 1;
-          const nextFrame = globalFrames[nextFrameIndex];
-          if (nextFrame == null) {
-            return;
-          }
+        const globalFrames = $globalFrames.get();
+        const currentFrameIndex = $currentFrameIndex.get();
 
-          $currentFrameIndex.set(nextFrameIndex);
-          runFrame(editor, nextFrame);
-        },
-      };
+        const nextFrameIndex = currentFrameIndex + 1;
+        const nextFrame = globalFrames[nextFrameIndex];
+        if (nextFrame == null) {
+          return;
+        }
 
-      actions["prev-frame"] = {
-        id: "prev-frame",
-        label: "Previous Frame",
-        kbd: "left",
-        onSelect() {
-          const globalFrames = $globalFrames.get();
-          const currentFrameIndex = $currentFrameIndex.get();
+        $currentFrameIndex.set(nextFrameIndex);
+        runFrame(editor, nextFrame);
+      },
+    };
 
-          const prevFrameIndex = currentFrameIndex - 1;
-          const prevFrame = globalFrames[prevFrameIndex];
-          if (prevFrame == null) {
-            return;
-          }
+    actions["prev-frame"] = {
+      id: "prev-frame",
+      label: "Previous Frame",
+      kbd: "left",
+      onSelect() {
+        if (!$keyControlsEnabled.get()) {
+          return;
+        }
 
-          $currentFrameIndex.set(prevFrameIndex);
-          runFrame(editor, prevFrame);
-        },
-      };
+        const globalFrames = $globalFrames.get();
+        const currentFrameIndex = $currentFrameIndex.get();
 
-      return actions;
-    },
-    tools(editor, tools) {
-      tools.slide = {
-        id: SlideShapeTool.id,
-        icon: "group",
-        label: "Slide",
-        kbd: "s",
-        onSelect: () => editor.setCurrentTool(SlideShapeTool.id),
-      };
-      return tools;
-    },
-  };
-}
+        const prevFrameIndex = currentFrameIndex - 1;
+        const prevFrame = globalFrames[prevFrameIndex];
+        if (prevFrame == null) {
+          return;
+        }
+
+        $currentFrameIndex.set(prevFrameIndex);
+        runFrame(editor, prevFrame);
+      },
+    };
+
+    return actions;
+  },
+  tools(editor, tools) {
+    tools.slide = {
+      id: SlideShapeTool.id,
+      icon: "group",
+      label: "Slide",
+      kbd: "s",
+      onSelect: () => editor.setCurrentTool(SlideShapeTool.id),
+    };
+    return tools;
+  },
+};
 
 const components: TLComponents = {
   HelperButtons: FramesPanel,
@@ -132,23 +133,16 @@ const components: TLComponents = {
 
 interface InnerProps {
   onMount: TldrawProps["onMount"];
-  initPresentationMode: boolean;
-  enableKeyControls: boolean;
 }
 function Inner(props: InnerProps) {
-  const { enableKeyControls, initPresentationMode, onMount } = props;
   const handleMount = (editor: Editor) => {
     setup(editor);
-
-    $presentationMode.set(initPresentationMode);
 
     editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
       detatchKeyframe(editor, shape.id);
     });
 
-    if (onMount) {
-      onMount(editor);
-    }
+    props.onMount?.(editor);
 
     return () => {
       editor.dispose();
@@ -211,9 +205,7 @@ function Inner(props: InnerProps) {
     <Tldraw
       onMount={handleMount}
       components={components}
-      overrides={createUiOverrides({
-        enableKeyControls,
-      })}
+      overrides={uiOverrides}
       shapeUtils={MyCustomShapes}
       tools={MyCustomTools}
       isShapeHidden={determineShapeHidden}
@@ -225,18 +217,23 @@ function Inner(props: InnerProps) {
 const MemoizedInner = React.memo(Inner);
 
 interface TlanislideProps {
-  presentationMode?: boolean;
-  enableKeyControls?: boolean;
   currentFrameIndex?: number;
+  presentationMode?: boolean;
   onMount?: TldrawProps["onMount"];
 }
 function Tlanislide(props: TlanislideProps) {
   const {
-    presentationMode: initPresentationMode = false,
-    enableKeyControls = true,
     currentFrameIndex: currentFrameIndexProp,
+    presentationMode = false,
     onMount,
   } = props;
+
+  useEffect(() => {
+    $presentationMode.set(presentationMode);
+  }, [presentationMode]);
+  useEffect(() => {
+    $keyControlsEnabled.set(currentFrameIndexProp == null);
+  }, [currentFrameIndexProp]);
 
   const editorRef = useRef<Editor | null>(null);
   const handleMount = useCallback(
@@ -270,13 +267,7 @@ function Tlanislide(props: TlanislideProps) {
     runFrame(editor, newFrame);
   }, [currentFrameIndexProp]);
 
-  return (
-    <MemoizedInner
-      onMount={handleMount}
-      initPresentationMode={initPresentationMode}
-      enableKeyControls={enableKeyControls}
-    />
-  );
+  return <MemoizedInner onMount={handleMount} />;
 }
 
 export default Tlanislide;

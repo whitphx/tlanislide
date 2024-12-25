@@ -1,7 +1,7 @@
 <template>
   <div class="absolute inset-0">
     <div class="inverse-transform" ref="wrapperEl">
-      <Tlanislide @mount="handleMount" :currentFrameIndex="$clicks" :enableKeyControls="enableKeyControls" :presentationMode="true" />
+      <Tlanislide @mount="handleMount" :currentFrameIndex="$clicks" :presentationMode="true" />
     </div>
   </div>
 </template>
@@ -39,11 +39,9 @@ setVeauryOptions({
   react: {
     createRoot
   }
-})
+});
 
-const enableKeyControls = false;
-
-const Tlanislide = applyPureReactInVue(TlanislideReact)
+const Tlanislide = applyPureReactInVue(TlanislideReact);
 </script>
 
 <style scoped>
