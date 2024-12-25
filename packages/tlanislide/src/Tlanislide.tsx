@@ -50,11 +50,11 @@ function createUiOverrides(options: CreateUiOverridesOptions): TLUiOverrides {
         label: "Next Frame",
         kbd: "right",
         onSelect() {
-          const frames = $globalFrames.get();
+          const globalFrames = $globalFrames.get();
           const currentFrameIndex = $currentFrameIndex.get();
 
           const nextFrameIndex = currentFrameIndex + 1;
-          const nextFrame = frames[nextFrameIndex];
+          const nextFrame = globalFrames[nextFrameIndex];
           if (nextFrame == null) {
             return;
           }
@@ -69,11 +69,11 @@ function createUiOverrides(options: CreateUiOverridesOptions): TLUiOverrides {
         label: "Previous Frame",
         kbd: "left",
         onSelect() {
-          const frames = $globalFrames.get();
+          const globalFrames = $globalFrames.get();
           const currentFrameIndex = $currentFrameIndex.get();
 
           const prevFrameIndex = currentFrameIndex - 1;
-          const prevFrame = frames[prevFrameIndex];
+          const prevFrame = globalFrames[prevFrameIndex];
           if (prevFrame == null) {
             return;
           }
