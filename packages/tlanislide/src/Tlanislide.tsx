@@ -106,7 +106,7 @@ const uiOverrides: TLUiOverrides = {
 };
 
 const components: TLComponents = {
-  HelperButtons: FramesPanel,
+  TopPanel: FramesPanel,
   Toolbar: (props) => {
     const tools = useTools();
     const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);

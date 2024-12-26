@@ -411,15 +411,6 @@ export function KeyframeTimeline<T extends JsonObject>({
         maxGlobalIndex={maxGlobalIndex}
       >
         <div className={styles.timelineContainer}>
-          <div>
-            {/* Header column */}
-            <div className={styles.headerCell}>Frames</div>
-            {tracks.map((track) => (
-              <div key={track.id} className={styles.column}>
-                {track.id}
-              </div>
-            ))}
-          </div>
           <div className={styles.headerLessColumn}>
             <DroppableArea
               type="after"
