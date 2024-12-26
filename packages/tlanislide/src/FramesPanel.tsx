@@ -18,6 +18,7 @@ import {
 } from "./models";
 import { insertKeyframeLocalAfter, Keyframe } from "./keyframe";
 import { KeyframeTimeline } from "./KeyframeTimeline";
+import styles from "./FramesPanel.module.scss";
 
 export const FramesPanel = track(() => {
   const currentFrameIndex = $currentFrameIndex.get();
@@ -74,6 +75,8 @@ export const FramesPanel = track(() => {
 
   return (
     <div
+      className={styles.panelContainer}
+      // NOTE: pointerEvents: "all" and stopEventPropagation are needed to make this UI clickable on the tldraw app.
       style={{
         pointerEvents: "all",
       }}

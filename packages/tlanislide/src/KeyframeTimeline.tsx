@@ -18,6 +18,7 @@ import {
   moveKeyframe,
 } from "./keyframe";
 import type { JsonObject } from "tldraw";
+import styles from "./KeyframeTimeline.module.scss";
 
 interface KeyframeUIData {
   id: string;
@@ -244,17 +245,7 @@ interface KeyframeIconProps {
 function KeyframeIcon(props: KeyframeIconProps) {
   return (
     <div
-      style={{
-        // Circle shape
-        display: "inline-block",
-        width: "20px",
-        height: "20px",
-        borderRadius: "50%",
-        textAlign: "center",
-        border: props.isSelected ? "2px solid #88f" : undefined,
-        background: "#eee",
-        boxSizing: "content-box",
-      }}
+      className={`${styles.keyframeIcon} ${props.isSelected ? styles.selected : ""}`}
       onClick={props.onClick}
     >
       {props.localIndex + 1}
@@ -262,16 +253,16 @@ function KeyframeIcon(props: KeyframeIconProps) {
   );
 }
 
-function DroppableCell({
+function DroppableArea({
   type,
   globalIndex,
   children,
-  style,
+  className,
 }: {
   type: "at" | "after";
   globalIndex: number;
   children?: React.ReactNode;
-  style?: React.CSSProperties;
+  className?: string;
 }) {
   const droppableId = `${type}-${globalIndex}`;
   const { setNodeRef, isOver } = useDroppable({
@@ -284,18 +275,12 @@ function DroppableCell({
   return (
     <div
       ref={setNodeRef}
-      style={{
-        ...style,
-        background: isOver ? "#eee" : undefined,
-      }}
+      className={`${styles.droppableCell} ${isOver ? styles.over : ""} ${className ?? ""}`}
     >
       {children}
     </div>
   );
 }
-
-const HEADER_ROW_HEIGHT = 20;
-const ROW_HEIGHT = 30;
 
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
@@ -425,67 +410,46 @@ export function KeyframeTimeline<T extends JsonObject>({
         draggingState={draggingState}
         maxGlobalIndex={maxGlobalIndex}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-          }}
-        >
+        <div className={styles.timelineContainer}>
           <div>
             {/* Header column */}
-            <div style={{ height: HEADER_ROW_HEIGHT }}>Frames</div>
+            <div className={styles.headerCell}>Frames</div>
             {tracks.map((track) => (
-              <div key={track.id} style={{ height: ROW_HEIGHT }}>
+              <div key={track.id} className={styles.column}>
                 {track.id}
               </div>
             ))}
           </div>
-          <div style={{ paddingTop: HEADER_ROW_HEIGHT }}>
-            <DroppableCell
+          <div className={styles.headerLessColumn}>
+            <DroppableArea
               type="after"
               globalIndex={-1}
-              style={{ width: 20, height: "100%" }}
+              className={styles.inbetweenDroppableCell}
             />
           </div>
           {globalFrames.map((globalFrame, frameIdx) => {
             return (
               <React.Fragment key={globalFrame[0].id}>
-                <div>
-                  <div style={{ height: HEADER_ROW_HEIGHT }}>
+                <div className={styles.column}>
+                  <div className={styles.headerCell}>
                     <button
-                      style={{
-                        width: "100%",
-                        fontWeight:
-                          frameIdx === currentFrameIndex ? "bold" : "normal",
-                      }}
+                      className={`${styles.frameButton} ${frameIdx === currentFrameIndex ? styles.selected : ""}`}
                       onClick={() => onFrameSelect(frameIdx)}
                     >
                       {frameIdx + 1}
                     </button>
                   </div>
-                  <DroppableCell
+                  <DroppableArea
                     type="at"
                     globalIndex={frameIdx}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                    }}
+                    className={styles.droppableColumn}
                   >
                     {tracks.map((track) => {
                       const trackKfs = globalFrame.filter(
                         (kf) => kf.trackId === track.id
                       );
                       return (
-                        <div
-                          key={track.id}
-                          style={{
-                            height: ROW_HEIGHT,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
+                        <div key={track.id} className={styles.keyframeCell}>
                           {trackKfs.map((kf) => {
                             const isSelected = selectedKeyframeIds.includes(
                               kf.id
@@ -510,13 +474,13 @@ export function KeyframeTimeline<T extends JsonObject>({
                         </div>
                       );
                     })}
-                  </DroppableCell>
+                  </DroppableArea>
                 </div>
-                <div style={{ paddingTop: HEADER_ROW_HEIGHT }}>
-                  <DroppableCell
+                <div className={styles.headerLessColumn}>
+                  <DroppableArea
                     type="after"
                     globalIndex={frameIdx}
-                    style={{ width: 20, height: "100%" }}
+                    className={styles.inbetweenDroppableCell}
                   />
                 </div>
               </React.Fragment>

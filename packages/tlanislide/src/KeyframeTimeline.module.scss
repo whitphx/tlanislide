@@ -1,0 +1,94 @@
+$header-row-height: 40px;
+$row-height: 30px;
+
+.timelineContainer {
+  display: flex;
+  flex-direction: row;
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    min-width: 40px;
+  }
+
+  .headerLessColumn {
+    padding-top: $header-row-height
+  }
+
+  .headerCell {
+    height: $header-row-height;
+  }
+
+  .keyframeCell {
+    height: $row-height;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.frameButton {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: transparent;
+  color: currentColor;
+  cursor: pointer;
+  pointer-events: all;
+  font-weight: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  text-rendering: optimizeLegibility;
+  font-size: 12px;
+  gap: 0px;
+  color: var(--color-text-1);
+
+  &:hover {
+    background: var(--color-muted-2);
+  }
+
+  &.selected {
+    font-weight: bold;
+  }
+}
+
+.droppableCell {
+  &.over {
+    background: var(--color-muted-2);
+  }
+}
+
+.inbetweenDroppableCell {
+  width: 16px;
+  height: 100%;
+}
+
+.droppableColumn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.keyframeIcon {
+  color: var(--color-text-1);
+  background: var(--color-background);
+  box-shadow: var(--shadow-1);
+  /* Circle shape */
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  text-align: center;
+  box-sizing: content-box;
+  border: 2px solid transparent;
+
+  &.selected {
+    border-color: var(--color-selected);
+  }
+}
