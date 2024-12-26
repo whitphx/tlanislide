@@ -1,15 +1,15 @@
-import React from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   useDraggable,
   useDroppable,
   useSensors,
-  DragEndEvent,
   useSensor,
   PointerSensor,
   MouseSensor,
   TouchSensor,
   KeyboardSensor,
+  DndContextProps,
 } from "@dnd-kit/core";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import {
@@ -22,74 +22,211 @@ import type { JsonObject } from "tldraw";
 interface KeyframeUIData {
   id: string;
   trackId: string;
-  globalIndex: number;
+  localIndex: number;
 }
 
 interface Track {
   id: string;
 }
 
-function generateUIData<T extends JsonObject>(
-  ks: Keyframe<T>[]
-): {
-  keyframes: KeyframeUIData[];
-  tracks: Track[];
+interface KeyframeDraggingState {
+  trackId: string;
+  localIndex: number;
+  delta: number;
+}
+type DraggableKeyframeDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][localIndex] = HTMLElement | null
+type DraggableKeyframeDOMDeltas = Record<string, Record<number, number>>; // obj[trackId][localIndex] = delta
+interface DraggableKeyframeDOMContext {
+  registerDOM: (
+    trackId: string,
+    localIndex: number,
+    node: HTMLElement | null
+  ) => void;
+  draggableElementDeltas: DraggableKeyframeDOMDeltas | null;
+}
+const draggableKeyframeDOMContext =
+  React.createContext<DraggableKeyframeDOMContext | null>(null);
+
+function DraggableKeyframeDeltaProvider({
+  children,
+  draggingState,
+  maxGlobalIndex,
+}: {
+  children: React.ReactNode;
+  draggingState: KeyframeDraggingState | null;
   maxGlobalIndex: number;
-} {
-  const seqs = getAllLocalSequencesWithGlobalOrder(ks);
-  const tracks: Track[] = seqs.map((seq) => ({
-    id: `track_${seq.id}`,
-  }));
-  tracks.sort((a, b) => a.id.localeCompare(b.id)); // TODO: Better sorting criteria?
+}) {
+  const draggableDOMsRef = useRef<DraggableKeyframeDOMs>({});
+  const registerDOM = useCallback<DraggableKeyframeDOMContext["registerDOM"]>(
+    (trackId, localIndex, node) => {
+      const draggableDOMs = draggableDOMsRef.current;
+      if (!draggableDOMs[trackId]) {
+        draggableDOMs[trackId] = Array(maxGlobalIndex + 1).fill(null);
+      } else if (draggableDOMs[trackId].length < maxGlobalIndex + 1) {
+        draggableDOMs[trackId] = [
+          ...draggableDOMs[trackId],
+          ...Array(maxGlobalIndex + 1 - draggableDOMs[trackId].length).fill(
+            null
+          ),
+        ];
+      }
+      draggableDOMs[trackId][localIndex] = node;
+      draggableDOMsRef.current = draggableDOMs;
+    },
+    [maxGlobalIndex]
+  );
 
-  let maxGlobalIndex = 0;
-  const keyframes: KeyframeUIData[] = [];
+  const draggableElementDeltas = useMemo(() => {
+    const draggableDOMs = draggableDOMsRef.current;
 
-  seqs.forEach((seq) => {
-    seq.sequence.forEach(({ kf, globalIndex }) => {
-      if (globalIndex > maxGlobalIndex) maxGlobalIndex = globalIndex;
-      keyframes.push({
-        id: kf.id,
-        trackId: `track_${seq.id}`,
-        globalIndex: globalIndex,
-      });
-    });
-  });
+    if (draggingState == null) {
+      return null;
+    }
+    const { trackId, localIndex, delta } = draggingState;
 
-  return { keyframes, tracks, maxGlobalIndex };
+    const domsInTrack = draggableDOMs[trackId];
+    if (domsInTrack == null) {
+      return null;
+    }
+
+    const selfDOM = domsInTrack[localIndex];
+    if (selfDOM == null) {
+      return null;
+    }
+
+    function getRect(dom: HTMLElement): {
+      width: number;
+      right: number;
+      left: number;
+    } {
+      // Use `selfDOM.offsetLeft` to get the position ignoring the `translate()` CSS property,
+      // which is needed to calculate the correct position combined with `delta`.
+      // In contrast, use `selfDOM.getBoundingClientRect().width` to get the actual width including the `translate()` property's effect.
+      const width = dom.getBoundingClientRect().width;
+      return {
+        width,
+        left: dom.offsetLeft,
+        right: dom.offsetLeft + width,
+      };
+    }
+
+    const selfRect = getRect(selfDOM);
+
+    if (delta > 0) {
+      const draggableElementDeltas: Record<number, number> = {};
+      //
+      let right = selfRect.right + delta;
+      for (let i = localIndex + 1; i < domsInTrack.length; i++) {
+        const dom = domsInTrack[i];
+        if (dom == null) continue;
+        const domRect = getRect(dom);
+        if (domRect.left < right) {
+          const delta = right - domRect.left;
+          draggableElementDeltas[i] = delta;
+          right = right + domRect.width;
+        } else {
+          break;
+        }
+      }
+      return { [trackId]: draggableElementDeltas };
+    } else if (delta < 0) {
+      // Dragging left
+      const draggableElementDeltas: Record<number, number> = {};
+      let left = selfRect.left + delta;
+      for (let i = localIndex - 1; i >= 0; i--) {
+        const dom = domsInTrack[i];
+        if (dom == null) continue;
+        const domRect = getRect(dom);
+        if (left < domRect.right) {
+          const delta = left - domRect.right;
+          draggableElementDeltas[i] = delta;
+          left = left - domRect.width;
+        } else {
+          break;
+        }
+      }
+      return { [trackId]: draggableElementDeltas };
+    }
+    return null;
+  }, [draggingState]);
+
+  return (
+    <draggableKeyframeDOMContext.Provider
+      value={{
+        registerDOM,
+        draggableElementDeltas,
+      }}
+    >
+      {children}
+    </draggableKeyframeDOMContext.Provider>
+  );
+}
+
+/**
+ * When the user drags a keyframe,
+ * the keyframe should move together with other keyframes in the same track
+ * to demonstrate the `moveKeyframe()`'s effect.
+ * This hook provides the delta value to move each keyframe draggable element.
+ */
+interface UseDraggableKeyframeDeltaReturn {
+  registerDOM: DraggableKeyframeDOMContext["registerDOM"];
+  delta: number | null;
+}
+function useDraggableKeyframeDelta(
+  trackId: string,
+  localIndex: number
+): UseDraggableKeyframeDeltaReturn {
+  const context = React.useContext(draggableKeyframeDOMContext);
+  if (context == null) {
+    throw new Error(
+      "useDraggableKeyframeDelta must be used within a DraggableKeyframeDeltaProvider"
+    );
+  }
+
+  return {
+    registerDOM: context.registerDOM,
+    delta: context.draggableElementDeltas?.[trackId]?.[localIndex] ?? null,
+  };
 }
 
 function DraggableKeyframeUI({
   kf,
+  trackId,
+  localIndex,
   children,
-  onClick,
-  isSelected,
 }: {
   kf: KeyframeUIData;
+  trackId: string;
+  localIndex: number;
   children: React.ReactNode;
-  onClick: () => void;
-  isSelected: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: kf.id,
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging, active } =
+    useDraggable({
+      id: kf.id,
+      data: {
+        trackId,
+        localIndex,
+      },
+    });
+  const { registerDOM, delta } = useDraggableKeyframeDelta(trackId, localIndex);
+  const isDraggingSomething = active != null;
   const style: React.CSSProperties = {
-    transform: transform
-      ? `translate(${transform.x}px, ${transform.y}px)`
-      : undefined,
-    cursor: "grab",
-    // Circle shape
-    display: "inline-block",
-    width: "20px",
-    height: "20px",
-    borderRadius: "50%",
-    textAlign: "center",
-    background: isSelected ? "#faa" : "#ddd",
+    transform:
+      delta != null
+        ? `translate(${delta}px, 0)`
+        : transform
+          ? `translate(${transform.x}px, ${transform.y}px)`
+          : undefined,
+    transition: isDraggingSomething ? undefined : "transform 0.3s",
+    cursor: isDragging ? "grabbing" : "grab",
   };
+
   return (
     <div
-      ref={setNodeRef}
-      onClick={onClick}
+      ref={(node) => {
+        setNodeRef(node);
+        registerDOM(trackId, localIndex, node);
+      }}
       {...attributes}
       {...listeners}
       style={style}
@@ -99,21 +236,50 @@ function DraggableKeyframeUI({
   );
 }
 
+interface KeyframeIconProps {
+  localIndex: number;
+  isSelected: boolean;
+  onClick: () => void;
+}
+function KeyframeIcon(props: KeyframeIconProps) {
+  return (
+    <div
+      style={{
+        // Circle shape
+        display: "inline-block",
+        width: "20px",
+        height: "20px",
+        borderRadius: "50%",
+        textAlign: "center",
+        border: props.isSelected ? "2px solid #88f" : undefined,
+        background: "#eee",
+        boxSizing: "content-box",
+      }}
+      onClick={props.onClick}
+    >
+      {props.localIndex + 1}
+    </div>
+  );
+}
+
 function DroppableCell({
-  trackId,
+  type,
   globalIndex,
   children,
   style,
 }: {
-  trackId: string;
+  type: "at" | "after";
   globalIndex: number;
   children?: React.ReactNode;
   style?: React.CSSProperties;
 }) {
-  const droppableId = `${trackId}-frame-${globalIndex}`;
+  const droppableId = `${type}-${globalIndex}`;
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
-    data: { globalIndex },
+    data: {
+      type,
+      globalIndex,
+    },
   });
   return (
     <div
@@ -127,6 +293,11 @@ function DroppableCell({
     </div>
   );
 }
+
+const HEADER_ROW_HEIGHT = 20;
+const ROW_HEIGHT = 30;
+
+const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps<T extends JsonObject> {
   ks: Keyframe<T>[];
@@ -144,28 +315,90 @@ export function KeyframeTimeline<T extends JsonObject>({
   selectedKeyframeIds,
   onKeyframeSelect,
 }: KeyframeTimelineProps<T>) {
-  const { keyframes, tracks, maxGlobalIndex } = generateUIData(ks);
-  const frameNumbers = Array.from({ length: maxGlobalIndex + 1 }, (_, i) => i);
+  // const globalOrder = getGlobalOrder(ks);
+  const { globalFrames, tracks, maxGlobalIndex } = useMemo(() => {
+    const seqs = getAllLocalSequencesWithGlobalOrder(ks);
+    const tracks: Track[] = seqs.map((seq) => ({
+      id: `track_${seq.id}`,
+    }));
+    tracks.sort((a, b) => a.id.localeCompare(b.id)); // TODO: Better sorting criteria?
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { over, active } = event;
-    if (over == null) {
-      // Not dropped on any droppable
-      return;
-    }
+    let maxGlobalIndex = 0;
+    const globalFrames: KeyframeUIData[][] = [];
 
-    const overGlobalIndex = over.data.current?.globalIndex;
-    if (typeof overGlobalIndex === "number") {
-      const activeId = active.id;
-      // moveKeyframeでKeyframeを全体順序で移動
-      const newKs = moveKeyframe(
-        ks,
-        activeId as KeyframeUIData["id"],
-        overGlobalIndex
-      );
-      onKeyframesChange(newKs);
+    seqs.forEach((seq) => {
+      let localIndex = 0;
+      seq.sequence.forEach(({ kf, globalIndex }) => {
+        if (globalIndex > maxGlobalIndex) {
+          maxGlobalIndex = globalIndex;
+          if (globalFrames.length < maxGlobalIndex + 1) {
+            for (let i = globalFrames.length; i < maxGlobalIndex + 1; i++) {
+              globalFrames[i] = [];
+            }
+          }
+        }
+        globalFrames[globalIndex] = globalFrames[globalIndex] ?? [];
+        globalFrames[globalIndex].push({
+          id: kf.id,
+          trackId: `track_${seq.id}`,
+          localIndex,
+        });
+        localIndex++;
+      });
+    });
+
+    return { globalFrames, tracks, maxGlobalIndex };
+  }, [ks]);
+
+  const [draggingState, setDraggingState] =
+    useState<KeyframeDraggingState | null>(null);
+
+  const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
+    (event) => {
+      setDraggingState(null);
+
+      const { over, active } = event;
+      if (over == null) {
+        // Not dropped on any droppable
+        return;
+      }
+
+      const overType = over.data.current?.type;
+      const overGlobalIndex = over.data.current?.globalIndex;
+      if (
+        typeof overGlobalIndex === "number" &&
+        typeof overType === "string" &&
+        (overType === "at" || overType === "after")
+      ) {
+        const activeId = active.id;
+        // moveKeyframeでKeyframeを全体順序で移動
+
+        const newKs = moveKeyframe(
+          ks,
+          activeId as KeyframeUIData["id"],
+          overGlobalIndex,
+          overType
+        );
+        onKeyframesChange(newKs);
+      }
+    },
+    [ks, onKeyframesChange]
+  );
+
+  const handleDragMove = useCallback<
+    NonNullable<DndContextProps["onDragMove"]>
+  >((event) => {
+    const { active, delta } = event;
+    const trackId = active.data.current?.trackId;
+    const localIndex = active.data.current?.localIndex;
+    if (typeof trackId === "string" && typeof localIndex === "number") {
+      setDraggingState({
+        trackId,
+        localIndex,
+        delta: delta.x,
+      });
     }
-  };
+  }, []);
 
   // To capture click events on draggable elements.
   // Ref: https://github.com/clauderic/dnd-kit/issues/591
@@ -183,102 +416,114 @@ export function KeyframeTimeline<T extends JsonObject>({
 
   return (
     <DndContext
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       sensors={sensors}
-      modifiers={[restrictToHorizontalAxis]}
+      modifiers={DND_CONTEXT_MODIFIERS}
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto", // Track title column's width
-          gridAutoColumns: "minmax(50px, auto-fill)", // Frame column's width
-          gridTemplateRows: "auto", // Title row's height
-          gridAutoRows: "50px", // Track row's height
-        }}
+      <DraggableKeyframeDeltaProvider
+        draggingState={draggingState}
+        maxGlobalIndex={maxGlobalIndex}
       >
-        {/* Frames行 */}
         <div
           style={{
-            gridRow: 1,
-            gridColumn: 1,
+            display: "flex",
+            flexDirection: "row",
           }}
         >
-          Frames
-        </div>
-        {frameNumbers.map((frameIdx) => (
-          <div
-            key={frameIdx}
-            style={{
-              gridRow: 1,
-              gridColumn: frameIdx + 2,
-            }}
-          >
-            <button
-              style={{
-                width: "100%",
-                fontWeight: frameIdx === currentFrameIndex ? "bold" : "normal",
-              }}
-              onClick={() => onFrameSelect(frameIdx)}
-            >
-              {frameIdx + 1}
-            </button>
-          </div>
-        ))}
-
-        {/* Tracks行 */}
-        {tracks.map((track, trackIdx) => {
-          const trackKfs = keyframes.filter((kf) => kf.trackId === track.id);
-          let frameCount = 0;
-          return (
-            <React.Fragment key={track.id}>
-              <div
-                style={{
-                  gridRow: trackIdx + 2,
-                  gridColumn: 1,
-                }}
-              >
-                {/* Track title column */}
+          <div>
+            {/* Header column */}
+            <div style={{ height: HEADER_ROW_HEIGHT }}>Frames</div>
+            {tracks.map((track) => (
+              <div key={track.id} style={{ height: ROW_HEIGHT }}>
                 {track.id}
               </div>
-              {frameNumbers.map((frameIdx) => {
-                const kfsAtFrame = trackKfs.filter(
-                  (k) => k.globalIndex === frameIdx
-                );
-                if (kfsAtFrame.length > 0) {
-                  frameCount++;
-                }
-                return (
+            ))}
+          </div>
+          <div style={{ paddingTop: HEADER_ROW_HEIGHT }}>
+            <DroppableCell
+              type="after"
+              globalIndex={-1}
+              style={{ width: 20, height: "100%" }}
+            />
+          </div>
+          {globalFrames.map((globalFrame, frameIdx) => {
+            return (
+              <React.Fragment key={globalFrame[0].id}>
+                <div>
+                  <div style={{ height: HEADER_ROW_HEIGHT }}>
+                    <button
+                      style={{
+                        width: "100%",
+                        fontWeight:
+                          frameIdx === currentFrameIndex ? "bold" : "normal",
+                      }}
+                      onClick={() => onFrameSelect(frameIdx)}
+                    >
+                      {frameIdx + 1}
+                    </button>
+                  </div>
                   <DroppableCell
-                    key={frameIdx}
-                    trackId={track.id}
+                    type="at"
                     globalIndex={frameIdx}
                     style={{
-                      gridRow: trackIdx + 2,
-                      gridColumn: frameIdx + 2,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
                     }}
                   >
-                    {kfsAtFrame.map((kf) => {
-                      const isSelected = selectedKeyframeIds.includes(kf.id);
+                    {tracks.map((track) => {
+                      const trackKfs = globalFrame.filter(
+                        (kf) => kf.trackId === track.id
+                      );
                       return (
-                        <DraggableKeyframeUI
-                          key={kf.id}
-                          kf={kf}
-                          onClick={() => {
-                            onKeyframeSelect(kf.id);
+                        <div
+                          key={track.id}
+                          style={{
+                            height: ROW_HEIGHT,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
-                          isSelected={isSelected}
                         >
-                          {frameCount}
-                        </DraggableKeyframeUI>
+                          {trackKfs.map((kf) => {
+                            const isSelected = selectedKeyframeIds.includes(
+                              kf.id
+                            );
+                            return (
+                              <DraggableKeyframeUI
+                                key={kf.id}
+                                kf={kf}
+                                trackId={track.id}
+                                localIndex={kf.localIndex}
+                              >
+                                <KeyframeIcon
+                                  localIndex={kf.localIndex}
+                                  isSelected={isSelected}
+                                  onClick={() => {
+                                    onKeyframeSelect(kf.id);
+                                  }}
+                                />
+                              </DraggableKeyframeUI>
+                            );
+                          })}
+                        </div>
                       );
                     })}
                   </DroppableCell>
-                );
-              })}
-            </React.Fragment>
-          );
-        })}
-      </div>
+                </div>
+                <div style={{ paddingTop: HEADER_ROW_HEIGHT }}>
+                  <DroppableCell
+                    type="after"
+                    globalIndex={frameIdx}
+                    style={{ width: 20, height: "100%" }}
+                  />
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </DraggableKeyframeDeltaProvider>
     </DndContext>
   );
 }

@@ -110,7 +110,8 @@ function reassignGlobalIndexInplace<T extends JsonObject>(globalOrder: Keyframe<
 export function moveKeyframe<T extends JsonObject>(
   ks: Keyframe<T>[],
   targetId: string,
-  newIndex: number
+  newIndex: number,
+  type: "at" | "after" = "at",
 ): Keyframe<T>[] {
   if (ks.length <= 1) return ks;
 
@@ -118,11 +119,11 @@ export function moveKeyframe<T extends JsonObject>(
   if (!orgTarget) return ks;
   const target = { ...orgTarget };// immutable copy
 
-  if (target.globalIndex === newIndex) return ks;
+  if (type === "at" && target.globalIndex === newIndex) return ks;
 
   const oldIndex = target.globalIndex;
 
-  const isForward = (oldIndex < newIndex);
+  const isForward = (oldIndex <= newIndex);
 
   const globalOrder = getGlobalOrder(ks);
   let newGlobalOrder: Keyframe<T>[][] = [];
@@ -170,7 +171,11 @@ export function moveKeyframe<T extends JsonObject>(
       newGlobalOrder.push(newGlobalFrame);
     }
 
-    newGlobalOrder[newGlobalOrder.length - 1].push(target);
+    if (type === "at") {
+      newGlobalOrder[newGlobalOrder.length - 1].push(target);
+    } else if (type === "after") {
+      newGlobalOrder.push([target]);
+    }
 
     affectedKfs.forEach(kf => {
       newGlobalOrder.push([kf]);
@@ -183,12 +188,13 @@ export function moveKeyframe<T extends JsonObject>(
       parentMap.set(kf.id, kf.localBefore);
     }
 
-    newGlobalOrder = globalOrder.slice(0, newIndex);
+    const targetIndex = type === "at" ? newIndex : newIndex + 1
+    newGlobalOrder = globalOrder.slice(0, targetIndex);
 
     let affectionSearchCurrId: string | null = target.id;
     const affectedKfs: Keyframe<T>[] = [];
-    const reversedAffectedGlobalFrames: Keyframe<T>[][] = [];
-    for (let i = oldIndex - 1; i >= newIndex; i--) {
+    const affectedGlobalFrames: Keyframe<T>[][] = [];
+    for (let i = oldIndex - 1; i >= targetIndex; i--) {
       const newGlobalFrame: Keyframe<T>[] = [];
       globalOrder[i].forEach(kf => {
         if (affectionSearchCurrId != null && kf.id === parentMap.get(affectionSearchCurrId)) {
@@ -198,15 +204,19 @@ export function moveKeyframe<T extends JsonObject>(
           newGlobalFrame.push(kf);
         }
       });
-      reversedAffectedGlobalFrames.unshift(newGlobalFrame);
+      affectedGlobalFrames.unshift(newGlobalFrame);
     }
 
     affectedKfs.forEach(kf => {
       newGlobalOrder.push([kf]);
     });
 
-    reversedAffectedGlobalFrames[0].push(target);
-    newGlobalOrder = newGlobalOrder.concat(reversedAffectedGlobalFrames);
+    if (type === "at") {
+      affectedGlobalFrames[0].push(target);
+    } else if (type === "after") {
+      affectedGlobalFrames.unshift([target]);
+    }
+    newGlobalOrder = newGlobalOrder.concat(affectedGlobalFrames);
 
     newGlobalOrder.push(globalOrder[oldIndex].filter(kf => kf.id !== target.id));
 
