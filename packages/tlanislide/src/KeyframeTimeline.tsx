@@ -17,13 +17,26 @@ import {
   getAllLocalSequencesWithGlobalOrder,
   moveKeyframe,
 } from "./keyframe";
+import {
+  EASINGS,
+  TldrawUiPopover,
+  TldrawUiPopoverTrigger,
+  TldrawUiPopoverContent,
+} from "tldraw";
 import type { JsonObject } from "tldraw";
 import styles from "./KeyframeTimeline.module.scss";
+import { KeyframeData } from "./models";
+
+const EASINGS_OPTIONS = Object.keys(EASINGS);
+function isEasingOption(value: string): value is keyof typeof EASINGS {
+  return EASINGS_OPTIONS.includes(value);
+}
 
 interface KeyframeUIData {
   id: string;
   trackId: string;
   localIndex: number;
+  keyframe: Keyframe<JsonObject>;
 }
 
 interface Track {
@@ -48,15 +61,58 @@ interface DraggableKeyframeDOMContext {
 const draggableKeyframeDOMContext =
   React.createContext<DraggableKeyframeDOMContext | null>(null);
 
-function DraggableKeyframeDeltaProvider({
+function KeyframeMoveTogetherDndContext({
   children,
-  draggingState,
   maxGlobalIndex,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  onDragCancel,
+  ...dndContextProps
 }: {
   children: React.ReactNode;
-  draggingState: KeyframeDraggingState | null;
   maxGlobalIndex: number;
-}) {
+} & DndContextProps) {
+  const [draggingState, setDraggingState] =
+    useState<KeyframeDraggingState | null>(null);
+
+  const handleDragMove = useCallback<
+    NonNullable<DndContextProps["onDragMove"]>
+  >(
+    (event) => {
+      const { active, delta } = event;
+      const trackId = active.data.current?.trackId;
+      const localIndex = active.data.current?.localIndex;
+      if (typeof trackId === "string" && typeof localIndex === "number") {
+        setDraggingState({
+          trackId,
+          localIndex,
+          delta: delta.x,
+        });
+      }
+
+      onDragMove?.(event);
+    },
+    [onDragMove]
+  );
+
+  const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
+    (event) => {
+      setDraggingState(null);
+      onDragEnd?.(event);
+    },
+    [onDragEnd]
+  );
+  const handleDragCancel = useCallback<
+    NonNullable<DndContextProps["onDragCancel"]>
+  >(
+    (event) => {
+      setDraggingState(null);
+      onDragCancel?.(event);
+    },
+    [onDragCancel]
+  );
+
   const draggableDOMsRef = useRef<DraggableKeyframeDOMs>({});
   const registerDOM = useCallback<DraggableKeyframeDOMContext["registerDOM"]>(
     (trackId, localIndex, node) => {
@@ -77,50 +133,56 @@ function DraggableKeyframeDeltaProvider({
     [maxGlobalIndex]
   );
 
-  const draggableElementDeltas = useMemo(() => {
+  const draggableDOMOrgRectsRef = useRef<Record<string, (DOMRect | null)[]>>(
+    {}
+  );
+  const initializeDOMRects = useCallback(() => {
     const draggableDOMs = draggableDOMsRef.current;
+    const draggableDOMOrgRects: Record<string, (DOMRect | null)[]> = {};
+    for (const trackId in draggableDOMs) {
+      draggableDOMOrgRects[trackId] = draggableDOMs[trackId].map((dom) => {
+        if (dom == null) {
+          return null;
+        }
+        return dom.getBoundingClientRect();
+      });
+    }
+    draggableDOMOrgRectsRef.current = draggableDOMOrgRects;
+  }, []);
+  const handleDragStart = useCallback<
+    NonNullable<DndContextProps["onDragStart"]>
+  >(
+    (...args) => {
+      initializeDOMRects();
+      onDragStart?.(...args);
+    },
+    [initializeDOMRects, onDragStart]
+  );
 
+  const draggableElementDeltas = useMemo(() => {
     if (draggingState == null) {
       return null;
     }
     const { trackId, localIndex, delta } = draggingState;
 
-    const domsInTrack = draggableDOMs[trackId];
-    if (domsInTrack == null) {
+    const draggableDOMOrgRects = draggableDOMOrgRectsRef.current;
+    const rectsInTrack = draggableDOMOrgRects[trackId];
+    if (rectsInTrack == null) {
       return null;
     }
 
-    const selfDOM = domsInTrack[localIndex];
-    if (selfDOM == null) {
+    const selfRect = rectsInTrack[localIndex];
+    if (selfRect == null) {
       return null;
     }
-
-    function getRect(dom: HTMLElement): {
-      width: number;
-      right: number;
-      left: number;
-    } {
-      // Use `selfDOM.offsetLeft` to get the position ignoring the `translate()` CSS property,
-      // which is needed to calculate the correct position combined with `delta`.
-      // In contrast, use `selfDOM.getBoundingClientRect().width` to get the actual width including the `translate()` property's effect.
-      const width = dom.getBoundingClientRect().width;
-      return {
-        width,
-        left: dom.offsetLeft,
-        right: dom.offsetLeft + width,
-      };
-    }
-
-    const selfRect = getRect(selfDOM);
 
     if (delta > 0) {
       const draggableElementDeltas: Record<number, number> = {};
-      //
+      // Dragging right
       let right = selfRect.right + delta;
-      for (let i = localIndex + 1; i < domsInTrack.length; i++) {
-        const dom = domsInTrack[i];
-        if (dom == null) continue;
-        const domRect = getRect(dom);
+      for (let i = localIndex + 1; i < rectsInTrack.length; i++) {
+        const domRect = rectsInTrack[i];
+        if (domRect == null) continue;
         if (domRect.left < right) {
           const delta = right - domRect.left;
           draggableElementDeltas[i] = delta;
@@ -135,9 +197,8 @@ function DraggableKeyframeDeltaProvider({
       const draggableElementDeltas: Record<number, number> = {};
       let left = selfRect.left + delta;
       for (let i = localIndex - 1; i >= 0; i--) {
-        const dom = domsInTrack[i];
-        if (dom == null) continue;
-        const domRect = getRect(dom);
+        const domRect = rectsInTrack[i];
+        if (domRect == null) continue;
         if (left < domRect.right) {
           const delta = left - domRect.right;
           draggableElementDeltas[i] = delta;
@@ -148,6 +209,7 @@ function DraggableKeyframeDeltaProvider({
       }
       return { [trackId]: draggableElementDeltas };
     }
+
     return null;
   }, [draggingState]);
 
@@ -158,7 +220,15 @@ function DraggableKeyframeDeltaProvider({
         draggableElementDeltas,
       }}
     >
-      {children}
+      <DndContext
+        {...dndContextProps}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        {children}
+      </DndContext>
     </draggableKeyframeDOMContext.Provider>
   );
 }
@@ -237,6 +307,86 @@ function DraggableKeyframeUI({
   );
 }
 
+interface KeyframeEditPopoverProps {
+  keyframe: Keyframe<KeyframeData>;
+  onUpdate: (newKf: Keyframe<KeyframeData>) => void;
+  children: React.ReactNode;
+}
+function KeyframeEditPopover({
+  keyframe,
+  onUpdate,
+  children,
+}: KeyframeEditPopoverProps) {
+  return (
+    <TldrawUiPopover id={`keyframe-config-${keyframe.id}`}>
+      <TldrawUiPopoverTrigger>{children}</TldrawUiPopoverTrigger>
+      <TldrawUiPopoverContent side="bottom" sideOffset={6}>
+        <div className={styles.popoverContent}>
+          <div>
+            <label>
+              Duration
+              <input
+                type="number"
+                value={keyframe.data.duration ?? 0}
+                onChange={(e) => {
+                  onUpdate({
+                    ...keyframe,
+                    data: {
+                      ...keyframe.data,
+                      duration: parseInt(e.target.value),
+                    },
+                  });
+                }}
+              />
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(10000, keyframe.data.duration ?? 0)}
+              value={keyframe.data.duration ?? 0}
+              onChange={(e) => {
+                onUpdate({
+                  ...keyframe,
+                  data: {
+                    ...keyframe.data,
+                    duration: parseInt(e.target.value),
+                  },
+                });
+              }}
+            />
+          </div>
+          <div>
+            <label>
+              Easing
+              <select
+                value={keyframe.data.easing ?? ""}
+                onChange={(e) => {
+                  if (isEasingOption(e.target.value)) {
+                    onUpdate({
+                      ...keyframe,
+                      data: {
+                        ...keyframe.data,
+                        easing: e.target.value,
+                      },
+                    });
+                  }
+                }}
+              >
+                <option value=""></option>
+                {EASINGS_OPTIONS.map((easing) => (
+                  <option key={easing} value={easing}>
+                    {easing}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+      </TldrawUiPopoverContent>
+    </TldrawUiPopover>
+  );
+}
+
 interface KeyframeIconProps {
   localIndex: number;
   isSelected: boolean;
@@ -284,22 +434,22 @@ function DroppableArea({
 
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
-interface KeyframeTimelineProps<T extends JsonObject> {
-  ks: Keyframe<T>[];
-  onKeyframesChange: (newKs: Keyframe<T>[]) => void;
+interface KeyframeTimelineProps {
+  ks: Keyframe<KeyframeData>[];
+  onKeyframesChange: (newKs: Keyframe<KeyframeData>[]) => void;
   currentFrameIndex: number;
   onFrameSelect: (frameIndex: number) => void;
-  selectedKeyframeIds: Keyframe<T>["id"][];
+  selectedKeyframeIds: Keyframe<KeyframeData>["id"][];
   onKeyframeSelect: (keyframeId: string) => void;
 }
-export function KeyframeTimeline<T extends JsonObject>({
+export function KeyframeTimeline({
   ks,
   onKeyframesChange,
   currentFrameIndex,
   onFrameSelect,
   selectedKeyframeIds,
   onKeyframeSelect,
-}: KeyframeTimelineProps<T>) {
+}: KeyframeTimelineProps) {
   // const globalOrder = getGlobalOrder(ks);
   const { globalFrames, tracks, maxGlobalIndex } = useMemo(() => {
     const seqs = getAllLocalSequencesWithGlobalOrder(ks);
@@ -327,6 +477,7 @@ export function KeyframeTimeline<T extends JsonObject>({
           id: kf.id,
           trackId: `track_${seq.id}`,
           localIndex,
+          keyframe: kf,
         });
         localIndex++;
       });
@@ -335,13 +486,8 @@ export function KeyframeTimeline<T extends JsonObject>({
     return { globalFrames, tracks, maxGlobalIndex };
   }, [ks]);
 
-  const [draggingState, setDraggingState] =
-    useState<KeyframeDraggingState | null>(null);
-
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
-      setDraggingState(null);
-
       const { over, active } = event;
       if (over == null) {
         // Not dropped on any droppable
@@ -370,21 +516,6 @@ export function KeyframeTimeline<T extends JsonObject>({
     [ks, onKeyframesChange]
   );
 
-  const handleDragMove = useCallback<
-    NonNullable<DndContextProps["onDragMove"]>
-  >((event) => {
-    const { active, delta } = event;
-    const trackId = active.data.current?.trackId;
-    const localIndex = active.data.current?.localIndex;
-    if (typeof trackId === "string" && typeof localIndex === "number") {
-      setDraggingState({
-        trackId,
-        localIndex,
-        delta: delta.x,
-      });
-    }
-  }, []);
-
   // To capture click events on draggable elements.
   // Ref: https://github.com/clauderic/dnd-kit/issues/591
   const sensors = useSensors(
@@ -400,85 +531,93 @@ export function KeyframeTimeline<T extends JsonObject>({
   );
 
   return (
-    <DndContext
-      onDragMove={handleDragMove}
+    <KeyframeMoveTogetherDndContext
+      maxGlobalIndex={maxGlobalIndex}
       onDragEnd={handleDragEnd}
       sensors={sensors}
       modifiers={DND_CONTEXT_MODIFIERS}
     >
-      <DraggableKeyframeDeltaProvider
-        draggingState={draggingState}
-        maxGlobalIndex={maxGlobalIndex}
-      >
-        <div className={styles.timelineContainer}>
-          <div className={styles.headerLessColumn}>
-            <DroppableArea
-              type="after"
-              globalIndex={-1}
-              className={styles.inbetweenDroppableCell}
-            />
-          </div>
-          {globalFrames.map((globalFrame, frameIdx) => {
-            return (
-              <React.Fragment key={globalFrame[0].id}>
-                <div className={styles.column}>
-                  <div className={styles.headerCell}>
-                    <button
-                      className={`${styles.frameButton} ${frameIdx === currentFrameIndex ? styles.selected : ""}`}
-                      onClick={() => onFrameSelect(frameIdx)}
-                    >
-                      {frameIdx + 1}
-                    </button>
-                  </div>
-                  <DroppableArea
-                    type="at"
-                    globalIndex={frameIdx}
-                    className={styles.droppableColumn}
-                  >
-                    {tracks.map((track) => {
-                      const trackKfs = globalFrame.filter(
-                        (kf) => kf.trackId === track.id
-                      );
-                      return (
-                        <div key={track.id} className={styles.keyframeCell}>
-                          {trackKfs.map((kf) => {
-                            const isSelected = selectedKeyframeIds.includes(
-                              kf.id
-                            );
-                            return (
-                              <DraggableKeyframeUI
-                                key={kf.id}
-                                kf={kf}
-                                trackId={track.id}
-                                localIndex={kf.localIndex}
-                              >
-                                <KeyframeIcon
-                                  localIndex={kf.localIndex}
-                                  isSelected={isSelected}
-                                  onClick={() => {
-                                    onKeyframeSelect(kf.id);
-                                  }}
-                                />
-                              </DraggableKeyframeUI>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </DroppableArea>
-                </div>
-                <div className={styles.headerLessColumn}>
-                  <DroppableArea
-                    type="after"
-                    globalIndex={frameIdx}
-                    className={styles.inbetweenDroppableCell}
-                  />
-                </div>
-              </React.Fragment>
-            );
-          })}
+      <div className={styles.timelineContainer}>
+        <div className={styles.headerLessColumn}>
+          <DroppableArea
+            type="after"
+            globalIndex={-1}
+            className={styles.inbetweenDroppableCell}
+          />
         </div>
-      </DraggableKeyframeDeltaProvider>
-    </DndContext>
+        {globalFrames.map((globalFrame, frameIdx) => {
+          return (
+            <React.Fragment key={globalFrame[0].id}>
+              <div className={styles.column}>
+                <div className={styles.headerCell}>
+                  <button
+                    className={`${styles.frameButton} ${frameIdx === currentFrameIndex ? styles.selected : ""}`}
+                    onClick={() => onFrameSelect(frameIdx)}
+                  >
+                    {frameIdx + 1}
+                  </button>
+                </div>
+                <DroppableArea
+                  type="at"
+                  globalIndex={frameIdx}
+                  className={styles.droppableColumn}
+                >
+                  {tracks.map((track) => {
+                    const trackKfs = globalFrame.filter(
+                      (kf) => kf.trackId === track.id
+                    );
+                    return (
+                      <div key={track.id} className={styles.keyframeCell}>
+                        {trackKfs.map((kf) => {
+                          const isSelected = selectedKeyframeIds.includes(
+                            kf.id
+                          );
+                          return (
+                            <KeyframeEditPopover
+                              key={kf.id}
+                              keyframe={kf.keyframe}
+                              onUpdate={(newKeyframe) => {
+                                onKeyframesChange(
+                                  ks.map((kf) =>
+                                    kf.id === newKeyframe.id ? newKeyframe : kf
+                                  )
+                                );
+                              }}
+                            >
+                              <div>
+                                <DraggableKeyframeUI
+                                  kf={kf}
+                                  trackId={track.id}
+                                  localIndex={kf.localIndex}
+                                >
+                                  <KeyframeIcon
+                                    localIndex={kf.localIndex}
+                                    isSelected={isSelected}
+                                    onClick={() => {
+                                      onKeyframeSelect(kf.id);
+                                    }}
+                                  />
+                                </DraggableKeyframeUI>
+                              </div>
+                            </KeyframeEditPopover>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </DroppableArea>
+              </div>
+              <div className={styles.headerLessColumn}>
+                <DroppableArea
+                  type="after"
+                  globalIndex={frameIdx}
+                  className={styles.inbetweenDroppableCell}
+                />
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </KeyframeMoveTogetherDndContext>
   );
 }

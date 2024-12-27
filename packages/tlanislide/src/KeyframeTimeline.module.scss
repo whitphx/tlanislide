@@ -92,3 +92,7 @@ $row-height: 30px;
     border-color: var(--color-selected);
   }
 }
+
+.popoverContent {
+  padding: var(--space-4)
+}
