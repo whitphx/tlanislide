@@ -15,8 +15,8 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import {
   Keyframe,
-  getAllLocalSequencesWithGlobalOrder,
-  moveKeyframe,
+  getGlobalOrder,
+  moveKeyframePreservingLocalOrder,
 } from "./keyframe";
 import {
   EASINGS,
@@ -32,12 +32,7 @@ function isEasingOption(value: string): value is keyof typeof EASINGS {
   return EASINGS_OPTIONS.includes(value);
 }
 
-interface KeyframeUIData {
-  id: string;
-  trackId: string;
-  localIndex: number;
-  keyframe: Keyframe<KeyframeData>;
-}
+type KeyframeUIData = Keyframe<KeyframeData> & { localIndex: number };
 
 interface Track {
   id: string;
@@ -64,7 +59,6 @@ const draggableKeyframeDOMContext =
 
 function KeyframeMoveTogetherDndContext({
   children,
-  maxGlobalIndex,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -72,7 +66,6 @@ function KeyframeMoveTogetherDndContext({
   ...dndContextProps
 }: {
   children: React.ReactNode;
-  maxGlobalIndex: number;
 } & DndContextProps) {
   const [draggingState, setDraggingState] =
     useState<KeyframeDraggingState | null>(null);
@@ -119,19 +112,17 @@ function KeyframeMoveTogetherDndContext({
     (trackId, localIndex, node) => {
       const draggableDOMs = draggableDOMsRef.current;
       if (!draggableDOMs[trackId]) {
-        draggableDOMs[trackId] = Array(maxGlobalIndex + 1).fill(null);
-      } else if (draggableDOMs[trackId].length < maxGlobalIndex + 1) {
+        draggableDOMs[trackId] = Array(localIndex + 1).fill(null);
+      } else if (draggableDOMs[trackId].length < localIndex + 1) {
         draggableDOMs[trackId] = [
           ...draggableDOMs[trackId],
-          ...Array(maxGlobalIndex + 1 - draggableDOMs[trackId].length).fill(
-            null
-          ),
+          ...Array(localIndex + 1 - draggableDOMs[trackId].length).fill(null),
         ];
       }
       draggableDOMs[trackId][localIndex] = node;
       draggableDOMsRef.current = draggableDOMs;
     },
-    [maxGlobalIndex]
+    []
   );
 
   const draggableDOMOrgRectsRef = useRef<Record<string, (DOMRect | null)[]>>(
@@ -497,12 +488,35 @@ export function KeyframeTimeline({
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
-  const { globalFrames, tracks, maxGlobalIndex } = useMemo(() => {
-    const seqs = getAllLocalSequencesWithGlobalOrder(ks);
-    const tracks: Track[] = seqs.map((seq) => ({
-      id: `track_${seq.id}`,
-      type: seq.sequence[0].kf.data.type,
-    }));
+  const { globalFrames, tracks } = useMemo(() => {
+    const globalFrames = getGlobalOrder(ks);
+    const globalFramesUIData: KeyframeUIData[][] = [];
+    const tracksMap: Record<
+      string,
+      { type: KeyframeData["type"]; keyframeCount: number }
+    > = {};
+    for (const frame of globalFrames) {
+      const frameUIData: KeyframeUIData[] = [];
+      for (const keyframe of frame) {
+        tracksMap[keyframe.trackId] = tracksMap[keyframe.trackId] ?? {
+          type: keyframe.data.type,
+          keyframeCount: 0,
+        };
+        frameUIData.push({
+          ...keyframe,
+          localIndex: tracksMap[keyframe.trackId].keyframeCount,
+        });
+        tracksMap[keyframe.trackId].keyframeCount++;
+      }
+      globalFramesUIData.push(frameUIData);
+    }
+
+    const tracks: Track[] = Object.entries(tracksMap).map(
+      ([trackId, { type }]) => ({
+        id: trackId,
+        type,
+      })
+    );
     tracks.sort((a, b) => {
       // cameraZoom should be at the top
       if (a.type === "cameraZoom") {
@@ -511,35 +525,10 @@ export function KeyframeTimeline({
       if (b.type === "cameraZoom") {
         return 1;
       }
-      return a.id.localeCompare(b.id);
-    }); // TODO: Better sorting criteria?
-
-    let maxGlobalIndex = 0;
-    const globalFrames: KeyframeUIData[][] = [];
-
-    seqs.forEach((seq) => {
-      let localIndex = 0;
-      seq.sequence.forEach(({ kf, globalIndex }) => {
-        if (globalIndex > maxGlobalIndex) {
-          maxGlobalIndex = globalIndex;
-          if (globalFrames.length < maxGlobalIndex + 1) {
-            for (let i = globalFrames.length; i < maxGlobalIndex + 1; i++) {
-              globalFrames[i] = [];
-            }
-          }
-        }
-        globalFrames[globalIndex] = globalFrames[globalIndex] ?? [];
-        globalFrames[globalIndex].push({
-          id: kf.id,
-          trackId: `track_${seq.id}`,
-          localIndex,
-          keyframe: kf,
-        });
-        localIndex++;
-      });
+      return a.id.localeCompare(b.id); // TODO: Better sorting criteria?
     });
 
-    return { globalFrames, tracks, maxGlobalIndex };
+    return { globalFrames: globalFramesUIData, tracks };
   }, [ks]);
 
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
@@ -560,7 +549,7 @@ export function KeyframeTimeline({
         const activeId = active.id;
         // moveKeyframeでKeyframeを全体順序で移動
 
-        const newKs = moveKeyframe(
+        const newKs = moveKeyframePreservingLocalOrder(
           ks,
           activeId as KeyframeUIData["id"],
           overGlobalIndex,
@@ -588,7 +577,6 @@ export function KeyframeTimeline({
 
   return (
     <KeyframeMoveTogetherDndContext
-      maxGlobalIndex={maxGlobalIndex}
       onDragEnd={handleDragEnd}
       sensors={sensors}
       modifiers={DND_CONTEXT_MODIFIERS}
@@ -634,7 +622,7 @@ export function KeyframeTimeline({
                           return (
                             <div key={kf.id} className={styles.keyframeControl}>
                               <KeyframeEditPopover
-                                keyframe={kf.keyframe}
+                                keyframe={kf}
                                 onUpdate={(newKeyframe) => {
                                   onKeyframesChange(
                                     ks.map((kf) =>
@@ -657,7 +645,7 @@ export function KeyframeTimeline({
                                         onKeyframeSelect(kf.id);
                                       }}
                                     >
-                                      {kf.keyframe.data.type === "cameraZoom"
+                                      {kf.data.type === "cameraZoom"
                                         ? "🎞️"
                                         : kf.localIndex + 1}
                                     </KeyframeIcon>
@@ -667,9 +655,7 @@ export function KeyframeTimeline({
                               <div className={styles.frameAddButtonContainer}>
                                 <KeyframeIcon
                                   as="button"
-                                  onClick={() =>
-                                    requestKeyframeAddAfter(kf.keyframe)
-                                  }
+                                  onClick={() => requestKeyframeAddAfter(kf)}
                                 >
                                   +
                                 </KeyframeIcon>

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   Keyframe,
   getGlobalOrder,
-  moveKeyframe,
+  moveKeyframePreservingLocalOrder,
   getAllLocalSequencesWithGlobalOrder,
   isHead,
   isTail
@@ -104,10 +104,10 @@ describe("keyframe.ts tests", () => {
     it("no op if single or not found", () => {
       // single => same
       const single = [mk("k1", 0, null, { info: "k1" })];
-      const r1 = moveKeyframe(single, "k1", 10);
+      const r1 = moveKeyframePreservingLocalOrder(single, "k1", 10);
       expect(r1).toEqual(single);
 
-      const none = moveKeyframe(single, "unknown", 0);
+      const none = moveKeyframePreservingLocalOrder(single, "unknown", 0);
       expect(none).toEqual(single);
     });
 
@@ -117,7 +117,7 @@ describe("keyframe.ts tests", () => {
         mk("k1", 0, null, { info: "k1" }),
         mk("k2", 1, null, { info: "k2" })
       ];
-      const res = moveKeyframe(ks, "k1", 2);
+      const res = moveKeyframePreservingLocalOrder(ks, "k1", 2);
       // after reorder => 3 frames? Possibly => [[], [k2], [k1]] => reassign => group0 => [k2], group1 => [k1]
       // check final indexes => k2=0, k1=1 or so
       const k1 = res.find(x => x.id === "k1")!;
@@ -132,7 +132,7 @@ describe("keyframe.ts tests", () => {
         mk("k1", 0, null, { info: "k1" }),
         mk("k2", 1, "k1", { info: "k2" })
       ];
-      const res = moveKeyframe(ks, "k2", 0);
+      const res = moveKeyframePreservingLocalOrder(ks, "k2", 0);
       const k1 = res.find(x => x.id === "k1")!;
       const k2 = res.find(x => x.id === "k2")!;
       // local => k2>k1 => => k2.index>k1.index => check
@@ -148,7 +148,7 @@ describe("keyframe.ts tests", () => {
         mk("k3", 2, null, { info: "k3" })
       ];
       // move k1 => newIndex=2 => presumably k2 is child => we move k2 out => etc
-      const res = moveKeyframe(ks, "k1", 2);
+      const res = moveKeyframePreservingLocalOrder(ks, "k1", 2);
       // check final => no local conflict => k2>k1
       const k2 = res.find(x => x.id === "k2")!;
       const k1 = res.find(x => x.id === "k1")!;
@@ -165,7 +165,7 @@ describe("keyframe.ts tests", () => {
         mk("k4", 3, "k3", { info: "k4" })
       ];
       // move k1 => newIndex=2 => forward => we push k2,k3 possibly => final => no conflict
-      const res = moveKeyframe(ks, "k1", 2);
+      const res = moveKeyframePreservingLocalOrder(ks, "k1", 2);
       expect(() => getGlobalOrder(res)).not.toThrow();
       // check local => k2>k1 => k3>k2 => k4>k3
       const k2 = res.find(x => x.id === "k2")!;
@@ -313,12 +313,12 @@ describe("keyframe.ts tests", () => {
       if (forward) {
         const firstId = arr[0].id; // e.g. k1
         const newIdx = arr.length - 1; // last
-        const res = moveKeyframe(arr, firstId, newIdx);
+        const res = moveKeyframePreservingLocalOrder(arr, firstId, newIdx);
         // check
         expect(() => getGlobalOrder(res)).not.toThrow();
       } else {
         const lastId = arr[arr.length - 1].id;
-        const res = moveKeyframe(arr, lastId, 0);
+        const res = moveKeyframePreservingLocalOrder(arr, lastId, 0);
         expect(() => getGlobalOrder(res)).not.toThrow();
       }
     });

@@ -98,7 +98,6 @@ export function getGlobalOrder<T extends JsonObject>(
   return result;
 }
 
-/** reassignGlobalIndexInplace: globalOrder(2次元)を[0,1,2,...]に再付番する */
 function reassignGlobalIndexInplace<T extends JsonObject>(globalOrder: Keyframe<T>[][]) {
   let gIndex = 0;
   for (const group of globalOrder) {
@@ -110,7 +109,7 @@ function reassignGlobalIndexInplace<T extends JsonObject>(globalOrder: Keyframe<
   }
 }
 
-export function moveKeyframe<T extends JsonObject>(
+export function moveKeyframePreservingLocalOrder<T extends JsonObject>(
   ks: Keyframe<T>[],
   targetId: string,
   newIndex: number,
@@ -210,32 +209,4 @@ export function insertKeyframe<T extends JsonObject>(
   ];
   reassignGlobalIndexInplace(newGlobalOrder);
   return newGlobalOrder.flat();
-}
-
-export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
-  ks: Keyframe<T>[]
-): { id: string; sequence: { kf: Keyframe<T>, globalIndex: number }[] }[] {
-  // 1. getGlobalOrder で衝突確認 & 順序を安定化
-  const order2d = getGlobalOrder(ks);
-  reassignGlobalIndexInplace(order2d);
-  const flattened = order2d.flat();
-
-  // 2. trackId -> Keyframe[] のMap
-  const mapIdToKfs = new Map<string, Keyframe<T>[]>();
-  for (const kf of flattened) {
-    if (!mapIdToKfs.has(kf.trackId)) {
-      mapIdToKfs.set(kf.trackId, []);
-    }
-    mapIdToKfs.get(kf.trackId)!.push(kf);
-  }
-
-  // 3. 各 trackId の配列を globalIndex 昇順で並べて "1つの線形局所順序" とみなす
-  const results: { id: string; sequence: { kf: Keyframe<T>, globalIndex: number }[] }[] = [];
-  for (const [localId, arr] of mapIdToKfs.entries()) {
-    arr.sort((a, b) => a.globalIndex - b.globalIndex);
-    const sequence = arr.map(kf => ({ kf, globalIndex: kf.globalIndex }));
-    results.push({ id: localId, sequence });
-  }
-
-  return results;
 }
