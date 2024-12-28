@@ -303,6 +303,19 @@ interface NumberFieldProps {
   onChange: (newValue: number) => void;
 }
 function NumberField({ label, value, max, onChange }: NumberFieldProps) {
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.value === "") {
+        onChange(0);
+        return;
+      }
+      const intVal = parseInt(e.target.value);
+      if (!isNaN(intVal)) {
+        onChange(intVal);
+      }
+    },
+    [onChange]
+  );
   return (
     <div>
       <label>
@@ -310,9 +323,7 @@ function NumberField({ label, value, max, onChange }: NumberFieldProps) {
         <input
           type="number"
           value={value}
-          onChange={(e) => {
-            onChange(parseInt(e.target.value));
-          }}
+          onChange={handleChange}
         />
       </label>
       <input
@@ -320,9 +331,7 @@ function NumberField({ label, value, max, onChange }: NumberFieldProps) {
         min={0}
         max={Math.max(max, value)}
         value={value}
-        onChange={(e) => {
-          onChange(parseInt(e.target.value));
-        }}
+        onChange={handleChange}
       />
     </div>
   );
