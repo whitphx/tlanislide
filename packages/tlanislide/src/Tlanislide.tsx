@@ -138,6 +138,22 @@ function Inner(props: InnerProps) {
   const handleMount = (editor: Editor) => {
     setup(editor);
 
+    editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
+      // Remove keyframe meta if it's not a valid keyframe.
+      // This can happen if a shape is copied and pasted, or if a shape is duplicated.
+      const keyframe = getKeyframe(shape);
+      const keyframeId = keyframe?.id;
+      if (keyframeId == null) {
+        return shape;
+      }
+
+      const allKeyframes = getAllKeyframes(editor);
+      const allKeyframeIds = allKeyframes.map((kf) => kf.id);
+      if (allKeyframeIds.includes(keyframeId)) {
+        delete shape.meta.keyframe;
+      }
+      return shape;
+    });
     editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
       detatchKeyframe(editor, shape.id);
     });
