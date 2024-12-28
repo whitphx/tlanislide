@@ -457,6 +457,8 @@ interface KeyframeTimelineProps {
   selectedKeyframeIds: Keyframe<KeyframeData>["id"][];
   onKeyframeSelect: (keyframeId: string) => void;
   requestKeyframeAddAfter: (prevKeyframe: Keyframe<KeyframeData>) => void;
+  showAttachKeyframeButton: boolean;
+  requestAttachKeyframe: () => void;
 }
 export function KeyframeTimeline({
   ks,
@@ -466,6 +468,8 @@ export function KeyframeTimeline({
   selectedKeyframeIds,
   onKeyframeSelect,
   requestKeyframeAddAfter,
+  showAttachKeyframeButton,
+  requestAttachKeyframe,
 }: KeyframeTimelineProps) {
   // const globalOrder = getGlobalOrder(ks);
   const { globalFrames, tracks, maxGlobalIndex } = useMemo(() => {
@@ -651,6 +655,23 @@ export function KeyframeTimeline({
             </React.Fragment>
           );
         })}
+        {showAttachKeyframeButton && (
+          <div className={styles.column}>
+            <div className={styles.headerCell}>{globalFrames.length + 1}</div>
+            {tracks.map((track) => (
+              <div key={track.id} className={styles.keyframeCell}></div>
+            ))}
+            <div className={styles.keyframeCell}>
+              <KeyframeIcon
+                as="button"
+                isSelected={true}
+                onClick={() => requestAttachKeyframe()}
+              >
+                +
+              </KeyframeIcon>
+            </div>
+          </div>
+        )}
       </DragStateStyleDiv>
     </KeyframeMoveTogetherDndContext>
   );

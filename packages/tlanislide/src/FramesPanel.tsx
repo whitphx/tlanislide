@@ -93,18 +93,6 @@ export const FramesPanel = track(() => {
             }}
           />
         </label>
-
-        {selectedNotKeyframeShapes.length > 0 && (
-          <button
-            onClick={() => {
-              selectedNotKeyframeShapes.forEach((shape) => {
-                attachKeyframe(editor, shape.id);
-              });
-            }}
-          >
-            Attach keyframe(s) to selected shape(s)
-          </button>
-        )}
       </div>
 
       <KeyframeTimeline
@@ -119,6 +107,12 @@ export const FramesPanel = track(() => {
           (kf) => getKeyframe(kf)!.id
         )}
         onKeyframeSelect={handleKeyframeSelect}
+        showAttachKeyframeButton={selectedNotKeyframeShapes.length > 0}
+        requestAttachKeyframe={() => {
+          selectedNotKeyframeShapes.forEach((shape) => {
+            attachKeyframe(editor, shape.id);
+          });
+        }}
         requestKeyframeAddAfter={(prevKeyframe) => {
           const allShapes = editor.getCurrentPageShapes();
           const prevShape = allShapes.find(
