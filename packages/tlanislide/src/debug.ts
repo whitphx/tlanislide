@@ -18,7 +18,9 @@ export function setup(editor: Editor) {
         id: rect0KfId,
         globalIndex: 0,
         localBefore: null,
-        data: {},
+        data: {
+          type: "shapeAnimation",
+        },
       })
     },
   });
@@ -40,6 +42,7 @@ export function setup(editor: Editor) {
         globalIndex: 1,
         localBefore: rect0KfId,
         data: {
+          type: "shapeAnimation",
           duration: 1000,
         },
       })
@@ -68,7 +71,9 @@ export function setup(editor: Editor) {
         id: arrow0KfId,
         globalIndex: 1,
         localBefore: null,
-        data: {},
+        data: {
+          type: "shapeAnimation",
+        },
       })
     }
   });
@@ -96,6 +101,7 @@ export function setup(editor: Editor) {
         globalIndex: 2,
         localBefore: arrow0KfId,
         data: {
+          type: "shapeAnimation",
           duration: 1000,
         },
       })
@@ -124,7 +130,9 @@ export function setup(editor: Editor) {
         id: arrow2KfId,
         globalIndex: 3,
         localBefore: arrow1KfId,
-        data: {},
+        data: {
+          type: "shapeAnimation",
+        },
       })
     }
   });
@@ -152,6 +160,7 @@ export function setup(editor: Editor) {
         globalIndex: 4,
         localBefore: arrow2KfId,
         data: {
+          type: "shapeAnimation",
           duration: 1000,
         },
       })

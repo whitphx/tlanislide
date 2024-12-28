@@ -19,6 +19,7 @@ import {
 import { insertKeyframeLocalAfter, Keyframe } from "./keyframe";
 import { KeyframeTimeline } from "./KeyframeTimeline";
 import styles from "./FramesPanel.module.scss";
+import { SlideShapeType } from "./SlideShapeUtil";
 
 export const FramesPanel = track(() => {
   const currentFrameIndex = $currentFrameIndex.get();
@@ -33,7 +34,7 @@ export const FramesPanel = track(() => {
     (shape) => getKeyframe(shape) != null
   );
   const selectedNotKeyframeShapes = selectedShapes.filter(
-    (shape) => getKeyframe(shape) == null
+    (shape) => getKeyframe(shape) == null && shape.type !== SlideShapeType
   );
 
   const handleKeyframesChange = (newKeyframes: Keyframe<KeyframeData>[]) => {
@@ -110,7 +111,9 @@ export const FramesPanel = track(() => {
         showAttachKeyframeButton={selectedNotKeyframeShapes.length > 0}
         requestAttachKeyframe={() => {
           selectedNotKeyframeShapes.forEach((shape) => {
-            attachKeyframe(editor, shape.id);
+            if (shape.type !== SlideShapeType) {
+              attachKeyframe(editor, shape.id, { type: "shapeAnimation" });
+            }
           });
         }}
         requestKeyframeAddAfter={(prevKeyframe) => {
@@ -127,6 +130,7 @@ export const FramesPanel = track(() => {
             globalIndex: prevKeyframe.globalIndex + 1,
             localBefore: prevKeyframe.id,
             data: {
+              type: prevKeyframe.data.type,
               duration: 1000,
             },
           } satisfies Keyframe<KeyframeData>;

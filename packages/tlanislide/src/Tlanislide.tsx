@@ -9,6 +9,7 @@ import {
   DefaultKeyboardShortcutsDialogContent,
   computed,
   atom,
+  uniqueId,
 } from "tldraw";
 import type {
   TLUiOverrides,
@@ -19,7 +20,7 @@ import type {
 } from "tldraw";
 import "tldraw/tldraw.css";
 
-import { SlideShapeUtil } from "./SlideShapeUtil";
+import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { FramesPanel } from "./FramesPanel";
 import {
@@ -30,9 +31,13 @@ import {
   runFrame,
   getAllKeyframes,
   detatchKeyframe,
+  CameraZoomKeyframeData,
+  KeyframeData,
+  keyframeToJsonObject,
 } from "./models";
 import { setup } from "./debug";
 import React, { useCallback, useEffect, useRef } from "react";
+import { Keyframe } from "./keyframe";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
@@ -139,20 +144,51 @@ function Inner(props: InnerProps) {
     setup(editor);
 
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
-      // Remove keyframe meta if it's not a valid keyframe.
-      // This can happen if a shape is copied and pasted, or if a shape is duplicated.
-      const keyframe = getKeyframe(shape);
-      const keyframeId = keyframe?.id;
-      if (keyframeId == null) {
+      if (shape.type === SlideShapeType) {
+        // Auto attach camera keyframe to the newly created slide shape
+        const globalFrames = getGlobalFrames(editor);
+        let lastCameraKeyframe: Keyframe<KeyframeData> | undefined;
+        for (const frame of globalFrames.reverse()) {
+          const cameraKeyframe = frame.find(
+            (kf) => kf.data.type === "cameraZoom"
+          );
+          if (cameraKeyframe) {
+            lastCameraKeyframe = cameraKeyframe;
+            break;
+          }
+        }
+        const keyframe: Keyframe<CameraZoomKeyframeData> = {
+          id: uniqueId(),
+          globalIndex: globalFrames.length,
+          localBefore: lastCameraKeyframe ? lastCameraKeyframe.id : null,
+          data: {
+            type: "cameraZoom",
+            duration: lastCameraKeyframe ? 1000 : 0,
+          },
+        };
+        return {
+          ...shape,
+          meta: {
+            ...shape.meta,
+            keyframe: keyframeToJsonObject(keyframe),
+          },
+        };
+      } else {
+        // Remove keyframe meta if it's not a valid keyframe.
+        // This can happen if a shape is copied and pasted, or if a shape is duplicated.
+        const keyframe = getKeyframe(shape);
+        const keyframeId = keyframe?.id;
+        if (keyframeId == null) {
+          return shape;
+        }
+
+        const allKeyframes = getAllKeyframes(editor);
+        const allKeyframeIds = allKeyframes.map((kf) => kf.id);
+        if (allKeyframeIds.includes(keyframeId)) {
+          delete shape.meta.keyframe;
+        }
         return shape;
       }
-
-      const allKeyframes = getAllKeyframes(editor);
-      const allKeyframeIds = allKeyframes.map((kf) => kf.id);
-      if (allKeyframeIds.includes(keyframeId)) {
-        delete shape.meta.keyframe;
-      }
-      return shape;
     });
     editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
       detatchKeyframe(editor, shape.id);

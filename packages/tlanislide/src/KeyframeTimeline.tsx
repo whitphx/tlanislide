@@ -24,7 +24,6 @@ import {
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { JsonObject } from "tldraw";
 import type { KeyframeData } from "./models";
 import styles from "./KeyframeTimeline.module.scss";
 
@@ -37,11 +36,12 @@ interface KeyframeUIData {
   id: string;
   trackId: string;
   localIndex: number;
-  keyframe: Keyframe<JsonObject>;
+  keyframe: Keyframe<KeyframeData>;
 }
 
 interface Track {
   id: string;
+  type: KeyframeData["type"];
 }
 
 interface KeyframeDraggingState {
@@ -281,14 +281,11 @@ function DraggableKeyframeUI({
       },
     });
   const { registerDOM, delta } = useDraggableKeyframeDelta(trackId, localIndex);
+  const transformX = delta != null ? delta : (transform?.x ?? 0);
+  const transformY = transform?.y ?? 0;
   const isDraggingSomething = active != null;
   const style: React.CSSProperties = {
-    transform:
-      delta != null
-        ? `translate(${delta}px, 0)`
-        : transform
-          ? `translate(${transform.x}px, ${transform.y}px)`
-          : undefined,
+    transform: `translate(${transformX}px, ${transformY}px)`,
     transition: isDraggingSomething ? undefined : "transform 0.3s",
     cursor: isDragging ? "grabbing" : "grab",
   };
@@ -308,6 +305,38 @@ function DraggableKeyframeUI({
   );
 }
 
+interface NumberFieldProps {
+  label: string;
+  value: number;
+  max: number;
+  onChange: (newValue: number) => void;
+}
+function NumberField({ label, value, max, onChange }: NumberFieldProps) {
+  return (
+    <div>
+      <label>
+        {label}
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => {
+            onChange(parseInt(e.target.value));
+          }}
+        />
+      </label>
+      <input
+        type="range"
+        min={0}
+        max={Math.max(max, value)}
+        value={value}
+        onChange={(e) => {
+          onChange(parseInt(e.target.value));
+        }}
+      />
+    </div>
+  );
+}
+
 interface KeyframeEditPopoverProps {
   keyframe: Keyframe<KeyframeData>;
   onUpdate: (newKf: Keyframe<KeyframeData>) => void;
@@ -323,39 +352,36 @@ function KeyframeEditPopover({
       <TldrawUiPopoverTrigger>{children}</TldrawUiPopoverTrigger>
       <TldrawUiPopoverContent side="bottom" sideOffset={6}>
         <div className={styles.popoverContent}>
-          <div>
-            <label>
-              Duration
-              <input
-                type="number"
-                value={keyframe.data.duration ?? 0}
-                onChange={(e) => {
-                  onUpdate({
-                    ...keyframe,
-                    data: {
-                      ...keyframe.data,
-                      duration: parseInt(e.target.value),
-                    },
-                  });
-                }}
-              />
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(10000, keyframe.data.duration ?? 0)}
-              value={keyframe.data.duration ?? 0}
-              onChange={(e) => {
+          {keyframe.data.type === "cameraZoom" && (
+            <NumberField
+              label="Inset"
+              value={keyframe.data.inset ?? 0}
+              max={1000}
+              onChange={(newInset) =>
                 onUpdate({
                   ...keyframe,
                   data: {
                     ...keyframe.data,
-                    duration: parseInt(e.target.value),
+                    inset: newInset,
                   },
-                });
-              }}
+                })
+              }
             />
-          </div>
+          )}
+          <NumberField
+            label="Duration"
+            value={keyframe.data.duration ?? 0}
+            max={10000}
+            onChange={(newDuration) =>
+              onUpdate({
+                ...keyframe,
+                data: {
+                  ...keyframe.data,
+                  duration: newDuration,
+                },
+              })
+            }
+          />
           <div>
             <label>
               Easing
@@ -471,13 +497,15 @@ export function KeyframeTimeline({
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
-  // const globalOrder = getGlobalOrder(ks);
   const { globalFrames, tracks, maxGlobalIndex } = useMemo(() => {
     const seqs = getAllLocalSequencesWithGlobalOrder(ks);
     const tracks: Track[] = seqs.map((seq) => ({
       id: `track_${seq.id}`,
+      type: seq.sequence[0].kf.data.type,
     }));
-    tracks.sort((a, b) => a.id.localeCompare(b.id)); // TODO: Better sorting criteria?
+    tracks.sort((a, b) =>
+      a.type === "cameraZoom" ? -1 : a.id.localeCompare(b.id)
+    ); // TODO: Better sorting criteria?
 
     let maxGlobalIndex = 0;
     const globalFrames: KeyframeUIData[][] = [];
@@ -622,7 +650,9 @@ export function KeyframeTimeline({
                                         onKeyframeSelect(kf.id);
                                       }}
                                     >
-                                      {kf.localIndex + 1}
+                                      {kf.keyframe.data.type === "cameraZoom"
+                                        ? "🎞️"
+                                        : kf.localIndex + 1}
                                     </KeyframeIcon>
                                   </DraggableKeyframeUI>
                                 </div>
