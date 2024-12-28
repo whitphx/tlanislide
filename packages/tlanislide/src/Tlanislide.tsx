@@ -204,6 +204,10 @@ function Inner(props: InnerProps) {
       return SHOW;
     }
 
+    if (shape.type === SlideShapeType) {
+      return HIDDEN;
+    }
+
     if (shape.meta?.hiddenDuringAnimation) {
       return HIDDEN;
     }
