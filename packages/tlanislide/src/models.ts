@@ -1,4 +1,4 @@
-import { EASINGS, atom, createShapeId } from "tldraw";
+import { EASINGS, atom, createShapeId, uniqueId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import { getGlobalOrder, Keyframe } from "./keyframe";
 
@@ -28,8 +28,8 @@ function isJsonObject(value: unknown): value is JsonObject {
 
 // Keyframe -> JsonObject
 export function keyframeToJsonObject<T extends JsonObject>(kf: Keyframe<T>): JsonObject {
-  const { id, globalIndex, localBefore, data } = kf;
-  const obj = { id, globalIndex, localBefore, data } satisfies JsonObject;
+  const { id, globalIndex, trackId, data } = kf;
+  const obj = { id, globalIndex, trackId, data } satisfies JsonObject;
   return obj;
 }
 
@@ -43,7 +43,7 @@ function isKeyframe(obj: unknown): obj is Keyframe<JsonObject> {
     return (
       typeof o.id === 'string' &&
       typeof o.globalIndex === 'number' &&
-      (o.localBefore === null || typeof o.localBefore === 'string') &&
+      typeof o.trackId === 'string' &&
       typeof o.data === 'object' && o.data !== null && !Array.isArray(o.data)
     );
   }
@@ -73,7 +73,7 @@ export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData:
   const keyframe: Keyframe<KeyframeData> = {
     id: shapeId,
     globalIndex: maxGlobalIndex + 1,
-    localBefore: null,
+    trackId: uniqueId(),
     data: keyframeData,
   }
 
@@ -95,33 +95,8 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
   if (shape == null) {
     return;
   }
-  const keyframe = getKeyframe(shape);
-  if (keyframe == null) {
-    return;
-  }
-
-  const shapes = editor.getCurrentPageShapes();
-  const successorShapes = shapes.filter((shape) => {
-    const kf = getKeyframe(shape);
-    return kf != null && kf.localBefore === keyframe.id;
-  });
-  // NOTE: SuccessorsのglobalIndexは振り直されないので、歯抜けが生じうるが、getGlobalOrder（トポロジカルソート）では問題ない。
-  successorShapes.forEach((succShape) => {
-    editor.updateShape({
-      id: succShape.id,
-      type: succShape.type,
-      meta: {
-        ...succShape.meta,
-        keyframe: keyframeToJsonObject({
-          ...jsonObjectToKeyframe(succShape.meta.keyframe),
-          localBefore: keyframe.localBefore,
-        }),
-      },
-    })
-  });
-
   editor.updateShape({
-    id: shapeId,
+    id: shape.id,
     type: shape.type,
     meta: {
       keyframe: undefined,
@@ -152,9 +127,11 @@ export function getShapeFromKeyframeId(editor: Editor, keyframeId: string): TLSh
   });
 }
 
-export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) {
-  const keyframes = getAllKeyframes(editor);
-
+export function runFrame(editor: Editor, globalFrames: Keyframe<KeyframeData>[][], index: number): boolean {
+  const globalFrame = globalFrames[index];
+  if (globalFrame == null) {
+    return false;
+  }
   globalFrame.forEach((keyframe) => {
     if (keyframe.data.type === "cameraZoom") {
       const shape = getShapeFromKeyframeId(editor, keyframe.id);
@@ -175,11 +152,7 @@ export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) 
         animation: { duration, easing: EASINGS[easing] },
       });
     } else if (keyframe.data.type === "shapeAnimation") {
-      const predecessorKeyframeId = keyframe.localBefore;
-      if (predecessorKeyframeId == null) {
-        return;
-      }
-      const predecessorKeyframe = keyframes.find((keyframe) => keyframe.id === predecessorKeyframeId);
+      const predecessorKeyframe = globalFrames.slice(0, keyframe.globalIndex).reverse().flat().find((kf) => kf.trackId === keyframe.trackId);
       if (predecessorKeyframe == null) {
         return;
       }
@@ -244,4 +217,5 @@ export function runFrame(editor: Editor, globalFrame: Keyframe<KeyframeData>[]) 
       }, { history: "ignore", ignoreShapeLock: true })
     }
   });
+  return true;
 }

@@ -63,13 +63,11 @@ const uiOverrides: TLUiOverrides = {
         const currentFrameIndex = $currentFrameIndex.get();
 
         const nextFrameIndex = currentFrameIndex + 1;
-        const nextFrame = globalFrames[nextFrameIndex];
-        if (nextFrame == null) {
+        const res = runFrame(editor, globalFrames, nextFrameIndex);
+        if (!res) {
           return;
         }
-
         $currentFrameIndex.set(nextFrameIndex);
-        runFrame(editor, nextFrame);
       },
     };
 
@@ -86,13 +84,11 @@ const uiOverrides: TLUiOverrides = {
         const currentFrameIndex = $currentFrameIndex.get();
 
         const prevFrameIndex = currentFrameIndex - 1;
-        const prevFrame = globalFrames[prevFrameIndex];
-        if (prevFrame == null) {
+        const res = runFrame(editor, globalFrames, prevFrameIndex);
+        if (!res) {
           return;
         }
-
         $currentFrameIndex.set(prevFrameIndex);
-        runFrame(editor, prevFrame);
       },
     };
 
@@ -145,6 +141,10 @@ function Inner(props: InnerProps) {
 
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
       if (shape.type === SlideShapeType) {
+        if (shape.meta?.keyframe) {
+          return shape;
+        }
+
         // Auto attach camera keyframe to the newly created slide shape
         const globalFrames = getGlobalFrames(editor);
         let lastCameraKeyframe: Keyframe<KeyframeData> | undefined;
@@ -160,7 +160,7 @@ function Inner(props: InnerProps) {
         const keyframe: Keyframe<CameraZoomKeyframeData> = {
           id: uniqueId(),
           globalIndex: globalFrames.length,
-          localBefore: lastCameraKeyframe ? lastCameraKeyframe.id : null,
+          trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
           data: {
             type: "cameraZoom",
             duration: lastCameraKeyframe ? 1000 : 0,
@@ -242,10 +242,18 @@ function Inner(props: InnerProps) {
       return HIDDEN;
     }
     const keyframes = getAllKeyframes(editor); // TODO: Cache
-    const isLatestPrevInTrack = !keyframes.some(
-      (kf) =>
-        kf.localBefore === keyframe.id && kf.globalIndex <= currentFrameIndex
-    );
+    const isLatestPrevInTrack = !keyframes.some((anotherKf) => {
+      const same = anotherKf.id === keyframe.id;
+      if (same) {
+        return false;
+      }
+
+      const anotherKfIsLatestInTrack =
+        anotherKf.trackId === keyframe.trackId &&
+        keyframe.globalIndex < anotherKf.globalIndex &&
+        anotherKf.globalIndex <= currentFrameIndex;
+      return anotherKfIsLatestInTrack;
+    });
     if (isLatestPrevInTrack) {
       return SHOW;
     }
@@ -310,13 +318,11 @@ function Tlanislide(props: TlanislideProps) {
     }
 
     const globalFrames = getGlobalFrames(editor);
-    const newFrame = globalFrames[currentFrameIndexProp];
-    if (newFrame == null) {
+    const res = runFrame(editor, globalFrames, currentFrameIndexProp);
+    if (!res) {
       return;
     }
-
     $currentFrameIndex.set(currentFrameIndexProp);
-    runFrame(editor, newFrame);
   }, [currentFrameIndexProp]);
 
   return <MemoizedInner onMount={handleMount} />;

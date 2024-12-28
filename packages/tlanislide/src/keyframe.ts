@@ -1,28 +1,27 @@
-import type { JsonObject } from "tldraw"
+import type { JsonObject } from "tldraw";
 
-/** Keyframe構造体 */
 export interface Keyframe<T extends JsonObject> {
   id: string;
-  globalIndex: number;       // 同時クラス (同順位)。歯抜けが生じうる。
-  localBefore: string | null;  // 局所順序: b.localBefore=a => a < b
+  globalIndex: number;
+  trackId: string;
   data: T;
 }
-/** getGlobalOrder
- * Keyframe[]をコピーし、globalIndexとlocalBeforeを踏まえたトポロジカルソートを行い、
- * 2次元配列( [ [gIndex=0], [gIndex=1], ... ] )として返す。
- * サイクル検知すると例外を投げる。
- * ※ 大まかな実装。連番になっていないglobalIndexにも対応(例: 0,100,101,...)
+
+/**
+ * getGlobalOrder:
+ * Keyframe[]をコピーし、(1) 同じtrackId内で globalIndex の大小 ⇒ a->b,
+ * (2) 全体で a.globalIndex < b.globalIndex ⇒ a->b
+ * の2種類のエッジをDAGに追加し、トポロジカルソート。
+ * サイクルあれば例外。最後に "globalIndex" ごとにまとめた2次元配列で返す。
  */
 export function getGlobalOrder<T extends JsonObject>(
   ks: Keyframe<T>[]
 ): Keyframe<T>[][] {
-  // 1. ソート(複製)
+  // 1. 複製 & globalIndex昇順でソート
   const copy = ks.map(k => ({ ...k }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
-  // 2. DAG構築: a->b if
-  //    (1) a.localBefore=b => b < a
-  //    (2) a.globalIndex < b.globalIndex => a < b
+  // 2. DAG構築
   const graph = new Map<string, string[]>();
   const indeg = new Map<string, number>();
   for (const kf of copy) {
@@ -30,16 +29,21 @@ export function getGlobalOrder<T extends JsonObject>(
     indeg.set(kf.id, 0);
   }
 
-  // localBefore => a< b
-  // => b.localBefore=a => a->b
-  for (const b of copy) {
-    if (b.localBefore) {
-      const aId = b.localBefore;
-      graph.get(aId)!.push(b.id);
-      indeg.set(b.id, indeg.get(b.id)! + 1);
+  // 2.1 同じ trackId で a.globalIndex < b.globalIndex => a->b
+  //     (線形な局所順序があるだけなら、a,bで a->bを張ればよい)
+  for (let i = 0; i < copy.length; i++) {
+    for (let j = i + 1; j < copy.length; j++) {
+      const a = copy[i], b = copy[j];
+      // 同じ局所ID & a< b => a->b
+      if (a.trackId === b.trackId && a.globalIndex < b.globalIndex) {
+        graph.get(a.id)!.push(b.id);
+        indeg.set(b.id, indeg.get(b.id)! + 1);
+      }
     }
   }
-  // globalIndex => if a.globalIndex < b.globalIndex => a->b
+
+  // 2.2 全体で a.globalIndex < b.globalIndex => a->b (オプション)
+  //     ユーザー要件: "全体順序でも globalIndex 昇順を優先"
   for (let i = 0; i < copy.length; i++) {
     for (let j = i + 1; j < copy.length; j++) {
       const a = copy[i], b = copy[j];
@@ -71,9 +75,9 @@ export function getGlobalOrder<T extends JsonObject>(
     throw new Error("Cycle or conflict in getGlobalOrder");
   }
 
-  // 4. globalIndex ごとにまとめ
-  const mapById = new Map<string, Keyframe<T>>();
-  for (const c of copy) mapById.set(c.id, c);
+  // 4. globalIndex毎にまとめ
+  const byId = new Map<string, Keyframe<T>>();
+  for (const c of copy) byId.set(c.id, c);
 
   const visited = new Set<string>();
   const result: Keyframe<T>[][] = [];
@@ -83,7 +87,7 @@ export function getGlobalOrder<T extends JsonObject>(
   for (const id of sorted) {
     if (visited.has(id)) continue;
     visited.add(id);
-    const kf = mapById.get(id)!;
+    const kf = byId.get(id)!;
     if (kf.globalIndex !== currentIndex) {
       currentGroup = [];
       result.push(currentGroup);
@@ -91,84 +95,58 @@ export function getGlobalOrder<T extends JsonObject>(
     }
     currentGroup.push(kf);
   }
-
   return result;
 }
 
+/** reassignGlobalIndexInplace: globalOrder(2次元)を[0,1,2,...]に再付番する */
 function reassignGlobalIndexInplace<T extends JsonObject>(globalOrder: Keyframe<T>[][]) {
-  let globalIndex = 0
-  globalOrder.forEach((group) => {
-    if (group.length === 0) return;
-    group.forEach((kf) => {
-      kf.globalIndex = globalIndex;
-    });
-    globalIndex++;
-  });
-  return globalOrder;
+  let gIndex = 0;
+  for (const group of globalOrder) {
+    if (group.length === 0) continue;
+    for (const kf of group) {
+      kf.globalIndex = gIndex;
+    }
+    gIndex++;
+  }
 }
 
 export function moveKeyframe<T extends JsonObject>(
   ks: Keyframe<T>[],
   targetId: string,
   newIndex: number,
-  type: "at" | "after" = "at",
+  type: "at" | "after",
 ): Keyframe<T>[] {
   if (ks.length <= 1) return ks;
 
-  const orgTarget = ks.find(k => k.id === targetId);
-  if (!orgTarget) return ks;
-  const target = { ...orgTarget };// immutable copy
+  const globalOrder = getGlobalOrder(ks);
 
-  if (type === "at" && target.globalIndex === newIndex) return ks;
+  const oldIndex = globalOrder.findIndex(group => group.some(k => k.id === targetId));
+  if (oldIndex === -1) return ks;
 
-  const oldIndex = target.globalIndex;
+  const target = globalOrder[oldIndex].find(k => k.id === targetId);
+  if (target == null) return ks;
+
+  if (type === "at" && oldIndex === newIndex) return ks;
 
   const isForward = (oldIndex <= newIndex);
 
-  const globalOrder = getGlobalOrder(ks);
   let newGlobalOrder: Keyframe<T>[][] = [];
   if (isForward) {
-    const childrenMap = new Map<string, string[]>();
-    for (const kf of ks) {
-      childrenMap.set(kf.id, []);
-    }
-    for (const kf of ks) {
-      if (kf.localBefore) {
-        childrenMap.get(kf.localBefore)!.push(kf.id);
-      }
-    }
+    newGlobalOrder = globalOrder.slice(0, oldIndex);  // [0, oldIndex) are not affected.
 
-    newGlobalOrder = globalOrder.slice(0, oldIndex);
+    newGlobalOrder.push(globalOrder[oldIndex].filter(k => k.id !== targetId));  // Remove target
 
-    newGlobalOrder.push(globalOrder[oldIndex].filter(kf => kf.id !== target.id));
-
-    let affectionSearchCurrIds = [target.id];
-    const affectedChildrenIds: Set<string> = new Set()
-    const affectedKfs: Keyframe<T>[] = []
-    const visited: Set<string> = new Set();
+    const pushedOutKfs: Keyframe<T>[] = [];
     for (let i = oldIndex + 1; i <= newIndex; i++) {
-      const newGlobalFrame: Keyframe<T>[] = [];
-
-      affectionSearchCurrIds = affectionSearchCurrIds.filter(id => {
-        const childStillNotVisited = childrenMap.get(id)!.some(childId => !visited.has(childId));
-        return childStillNotVisited;
-      });
-      for (const cur of affectionSearchCurrIds) {
-        childrenMap.get(cur)!.forEach(childId => {
-          affectedChildrenIds.add(childId);
-        });
-      }
-      globalOrder[i].forEach(kf => {
-        if (affectedChildrenIds.has(kf.id)) {
-          affectedKfs.push(kf);
-          affectedChildrenIds.delete(kf.id);
-          affectionSearchCurrIds.push(kf.id);
-          visited.add(kf.id);
+      const updatedGlobalFrame: Keyframe<T>[] = [];
+      globalOrder[i].forEach(k => {
+        if (k.trackId === target.trackId) {
+          pushedOutKfs.push(k);
         } else {
-          newGlobalFrame.push(kf);
+          updatedGlobalFrame.push(k);
         }
       });
-      newGlobalOrder.push(newGlobalFrame);
+      newGlobalOrder.push(updatedGlobalFrame);
     }
 
     if (type === "at") {
@@ -177,201 +155,87 @@ export function moveKeyframe<T extends JsonObject>(
       newGlobalOrder.push([target]);
     }
 
-    affectedKfs.forEach(kf => {
-      newGlobalOrder.push([kf]);
+    pushedOutKfs.forEach(k => {
+      newGlobalOrder.push([k]);
     });
 
-    newGlobalOrder = newGlobalOrder.concat(globalOrder.slice(newIndex + 1));
+    newGlobalOrder.push(...globalOrder.slice(newIndex + 1));
   } else {
-    const parentMap = new Map<string, string | null>();
-    for (const kf of ks) {
-      parentMap.set(kf.id, kf.localBefore);
-    }
+    const targetIndex = type === "at" ? newIndex : newIndex + 1;
+    newGlobalOrder = globalOrder.slice(0, targetIndex);  // [0, targetIndex) are not affected.
 
-    const targetIndex = type === "at" ? newIndex : newIndex + 1
-    newGlobalOrder = globalOrder.slice(0, targetIndex);
-
-    let affectionSearchCurrId: string | null = target.id;
-    const affectedKfs: Keyframe<T>[] = [];
+    const pushedOutKfs: Keyframe<T>[] = [];
     const affectedGlobalFrames: Keyframe<T>[][] = [];
     for (let i = oldIndex - 1; i >= targetIndex; i--) {
-      const newGlobalFrame: Keyframe<T>[] = [];
-      globalOrder[i].forEach(kf => {
-        if (affectionSearchCurrId != null && kf.id === parentMap.get(affectionSearchCurrId)) {
-          affectedKfs.unshift(kf);
-          affectionSearchCurrId = kf.id;
+      const updatedGlobalFrame: Keyframe<T>[] = [];
+      globalOrder[i].forEach(k => {
+        if (k.trackId === target.trackId) {
+          pushedOutKfs.unshift(k);
         } else {
-          newGlobalFrame.push(kf);
+          updatedGlobalFrame.push(k);
         }
       });
-      affectedGlobalFrames.unshift(newGlobalFrame);
+      affectedGlobalFrames.unshift(updatedGlobalFrame);
     }
 
-    affectedKfs.forEach(kf => {
-      newGlobalOrder.push([kf]);
-    });
+    newGlobalOrder.push(...pushedOutKfs.map(k => [k]));
 
     if (type === "at") {
       affectedGlobalFrames[0].push(target);
     } else if (type === "after") {
       affectedGlobalFrames.unshift([target]);
     }
-    newGlobalOrder = newGlobalOrder.concat(affectedGlobalFrames);
+    newGlobalOrder.push(...affectedGlobalFrames);
 
-    newGlobalOrder.push(globalOrder[oldIndex].filter(kf => kf.id !== target.id));
+    newGlobalOrder.push(globalOrder[oldIndex].filter(k => k.id !== targetId));
 
-    newGlobalOrder = newGlobalOrder.concat(globalOrder.slice(oldIndex + 1));
+    newGlobalOrder.push(...globalOrder.slice(oldIndex + 1));
   }
 
   reassignGlobalIndexInplace(newGlobalOrder);
-
   return newGlobalOrder.flat();
 }
 
-export function insertKeyframeLocalAfter<T extends JsonObject>(
+export function insertKeyframe<T extends JsonObject>(
   ks: Keyframe<T>[],
-  newKeyframe: Keyframe<T> & { localBefore: string },
+  newKeyframe: Keyframe<T>,
+  globalIndex: number,
 ): Keyframe<T>[] {
   const globalOrder = getGlobalOrder(ks);
 
-  const newGlobalOrder: Keyframe<T>[][] = [];
-  let localBeforeKf: Keyframe<T> | undefined = undefined;
-  for (const group of globalOrder) {
-    group.forEach(kf => {
-      // SuccessorのlocalBeforeを差し替える
-      if (localBeforeKf && kf.localBefore === localBeforeKf.id) {
-        kf.localBefore = newKeyframe.id;
-      }
-    });
-
-    newGlobalOrder.push(group);
-
-    const localBeforeKfInThisGroup = group.find(kf => kf.id === newKeyframe.localBefore);
-    if (localBeforeKfInThisGroup) {
-      localBeforeKf = localBeforeKfInThisGroup;
-      newGlobalOrder.push([newKeyframe]);
-    }
-  }
+  const newGlobalOrder = [
+    ...globalOrder.slice(0, globalIndex),
+    [newKeyframe],
+    ...globalOrder.slice(globalIndex),
+  ];
   reassignGlobalIndexInplace(newGlobalOrder);
   return newGlobalOrder.flat();
 }
 
-/**
- * すべての局所順序ごとに、含まれるKeyframeを列挙し、
- * さらに全体順序の情報 (globalIndex) を付与して返す関数。
- *
- * - localBefore=null のKeyframe を「頭」として DFS/BFSで辿り、ローカルシーケンスを構築。
- * - 1つの「頭」から複数の後続Keyframeがあれば、分岐して複数シーケンスが生成される。
- * - 「頭」が存在しない(= localBefore != null のKeyframeだけ)だが、前任先が見つからない Keyframe は孤立扱いで単体列として返す。
- * - 全体順序は getGlobalOrder の結果に基づいて（あるいは Keyframe の globalIndex をそのまま使用）、
- *   Keyframeが持つ globalIndex を参照して付与する。
- *
- * 戻り値: { sequence: {kf: Keyframe<T>, globalIndex: number}[] }[]
- *   - sequenceは局所順序の並び (頭→末尾)
- *   - 各要素で Keyframe と そのKeyframeの globalIndex を返す
- */
-interface SequenceItem<T extends JsonObject> { kf: Keyframe<T>; globalIndex: number };
-type NonEmptyArray<T> = [T, ...T[]];
 export function getAllLocalSequencesWithGlobalOrder<T extends JsonObject>(
   ks: Keyframe<T>[]
-): { id: string; sequence: NonEmptyArray<SequenceItem<T>> }[] {
-  // 1. getGlobalOrder で最終的な整合性を確かめておく（サイクル検出など）
-  //    サイクルがある場合、ここで例外になる可能性
-  const order2d = getGlobalOrder(ks); // 2次元 [ [kA, kB], [kC], ... ]
+): { id: string; sequence: { kf: Keyframe<T>, globalIndex: number }[] }[] {
+  // 1. getGlobalOrder で衝突確認 & 順序を安定化
+  const order2d = getGlobalOrder(ks);
   reassignGlobalIndexInplace(order2d);
-
-  // 1.1 flattenして keyframeId -> Keyframe のマップを作る
   const flattened = order2d.flat();
-  const mapById = new Map<string, Keyframe<T>>();
-  for (const kf of flattened) {
-    mapById.set(kf.id, kf);
-  }
 
-  // 2. ローカル後続をたどるため、子リスト childMap を作る: parentId -> Keyframe[] ( = parent.localBefore == parentId ? )
-  const childMap = new Map<string, Keyframe<T>[]>();
+  // 2. trackId -> Keyframe[] のMap
+  const mapIdToKfs = new Map<string, Keyframe<T>[]>();
   for (const kf of flattened) {
-    childMap.set(kf.id, []);
-  }
-  for (const kf of flattened) {
-    if (kf.localBefore) {
-      const parentId = kf.localBefore;
-      if (childMap.has(parentId)) {
-        childMap.get(parentId)!.push(kf);
-      } else {
-        childMap.set(parentId, [kf]);
-      }
+    if (!mapIdToKfs.has(kf.trackId)) {
+      mapIdToKfs.set(kf.trackId, []);
     }
+    mapIdToKfs.get(kf.trackId)!.push(kf);
   }
 
-  // 3. 頭となるKeyframeを見つける ( localBefore === null )
-  //    ただし頭が無いKeyframeでも、全くつながっていない場合は単体列として扱う
-  const heads = flattened.filter(k => k.localBefore === null);
-
-  const visited = new Set<string>();
-  const results: { id: string; sequence: NonEmptyArray<SequenceItem<T>> }[] = [];
-
-  /**
-   * DFSでローカルシーケンスを辿る
-   */
-  function dfs(current: Keyframe<T>, path: NonEmptyArray<Keyframe<T>>) {
-    visited.add(current.id);
-    const children = childMap.get(current.id)!; // 後続
-    if (children.length === 0) {
-      // 末尾まで来た
-      const sequence = path.map(kf => ({
-        kf,
-        globalIndex: kf.globalIndex
-      })) as NonEmptyArray<SequenceItem<T>>;
-      results.push({ sequence, id: sequence[0].kf.id });
-    } else {
-      // 分岐
-      for (const c of children) {
-        if (!visited.has(c.id)) {
-          dfs(c, [...path, c]);
-        } else {
-          // すでに訪問済み => ループ? => 一応無視
-        }
-      }
-    }
-  }
-
-  // 4. 頭から DFS してローカルシーケンス列を作る
-  for (const head of heads) {
-    dfs(head, [head]);
-  }
-
-  // 5. 頭がないが訪問されていないKeyframeがある場合、孤立列として追加
-  for (const kf of flattened) {
-    if (!visited.has(kf.id)) {
-      // localBefore=nullじゃない、かつ childMap上でもどこにもつながっていない？
-      // => 単独シーケンス
-      results.push({
-        sequence: [{
-          kf,
-          globalIndex: kf.globalIndex
-        }],
-        id: kf.id
-      });
-      visited.add(kf.id);
-    }
+  // 3. 各 trackId の配列を globalIndex 昇順で並べて "1つの線形局所順序" とみなす
+  const results: { id: string; sequence: { kf: Keyframe<T>, globalIndex: number }[] }[] = [];
+  for (const [localId, arr] of mapIdToKfs.entries()) {
+    arr.sort((a, b) => a.globalIndex - b.globalIndex);
+    const sequence = arr.map(kf => ({ kf, globalIndex: kf.globalIndex }));
+    results.push({ id: localId, sequence });
   }
 
   return results;
-}
-
-/** 1. Keyframeが局所順序関係において先頭かどうかを判定する関数
-*    - 先頭: localBeforeがnullの場合、そのKeyframeは先頭要素
-*      （局所順序が定義されていなくても単独要素とみなせるので先頭=localBefore===null）
-*/
-export function isHead<T extends JsonObject>(kf: Keyframe<T>): boolean {
-  return kf.localBefore === null;
-}
-
-/** 2. Keyframeが局所順序関係において末尾かどうかを判定する関数
-*    - 末尾: このKeyframeをlocalBeforeに持つKeyframeが存在しない場合が末尾
-*    - 局所順序が無い(=単体)の場合、もちろん末尾でもある
-*/
-export function isTail<T extends JsonObject>(ks: Keyframe<T>[], kf: Keyframe<T>): boolean {
-  // kfをlocalBeforeに持つKeyframeが無ければ末尾
-  return !ks.some(x => x.localBefore === kf.id);
 }

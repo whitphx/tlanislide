@@ -16,7 +16,7 @@ import {
   getAllKeyframes,
   keyframeToJsonObject,
 } from "./models";
-import { insertKeyframeLocalAfter, Keyframe } from "./keyframe";
+import { insertKeyframe, Keyframe } from "./keyframe";
 import { KeyframeTimeline } from "./KeyframeTimeline";
 import styles from "./FramesPanel.module.scss";
 import { SlideShapeType } from "./SlideShapeUtil";
@@ -101,8 +101,10 @@ export const FramesPanel = track(() => {
         onKeyframesChange={handleKeyframesChange}
         currentFrameIndex={currentFrameIndex}
         onFrameSelect={(i) => {
-          $currentFrameIndex.set(i);
-          runFrame(editor, frames[i]);
+          const res = runFrame(editor, frames, i);
+          if (res) {
+            $currentFrameIndex.set(i);
+          }
         }}
         selectedKeyframeIds={selectedKeyframeShapes.map(
           (kf) => getKeyframe(kf)!.id
@@ -127,8 +129,8 @@ export const FramesPanel = track(() => {
 
           const newKeyframe = {
             id: uniqueId(),
-            globalIndex: prevKeyframe.globalIndex + 1,
-            localBefore: prevKeyframe.id,
+            globalIndex: 0, // NOTE: This will be recalculated later.
+            trackId: prevKeyframe.trackId,
             data: {
               type: prevKeyframe.data.type,
               duration: 1000,
@@ -150,9 +152,10 @@ export const FramesPanel = track(() => {
               });
               editor.select(newShapeId);
 
-              const newKeyframes = insertKeyframeLocalAfter(
+              const newKeyframes = insertKeyframe(
                 allKeyframes,
-                newKeyframe
+                newKeyframe,
+                prevKeyframe.globalIndex + 1
               );
               handleKeyframesChange(newKeyframes);
             },

@@ -3,7 +3,7 @@ import { KeyframeData, keyframeToJsonObject } from "./models"
 
 export function setup(editor: Editor) {
   const rect0Id = createShapeId("rect0");
-  const rect0KfId = uniqueId();
+  const rectTrackId = uniqueId();
   editor.createShape({
     id: rect0Id,
     type: "geo",
@@ -15,9 +15,9 @@ export function setup(editor: Editor) {
     },
     meta: {
       keyframe: keyframeToJsonObject({
-        id: rect0KfId,
+        id: uniqueId(),
         globalIndex: 0,
-        localBefore: null,
+        trackId: rectTrackId,
         data: {
           type: "shapeAnimation",
         },
@@ -26,7 +26,6 @@ export function setup(editor: Editor) {
   });
 
   const rect1Id = createShapeId("rect1");
-  const rect1KfId = uniqueId();
   editor.createShape({
     id: rect1Id,
     type: "geo",
@@ -38,9 +37,9 @@ export function setup(editor: Editor) {
     },
     meta: {
       keyframe: keyframeToJsonObject<KeyframeData>({
-        id: rect1KfId,
+        id: uniqueId(),
         globalIndex: 1,
-        localBefore: rect0KfId,
+        trackId: rectTrackId,
         data: {
           type: "shapeAnimation",
           duration: 1000,
@@ -50,7 +49,7 @@ export function setup(editor: Editor) {
   });
 
   const arrow0Id = createShapeId("arrow0");
-  const arrow0KfId = uniqueId();
+  const arrowTrackId = uniqueId();
   editor.createShape({
     id: arrow0Id,
     type: "arrow",
@@ -68,9 +67,9 @@ export function setup(editor: Editor) {
     },
     meta: {
       keyframe: keyframeToJsonObject({
-        id: arrow0KfId,
+        id: uniqueId(),
         globalIndex: 1,
-        localBefore: null,
+        trackId: arrowTrackId,
         data: {
           type: "shapeAnimation",
         },
@@ -79,7 +78,6 @@ export function setup(editor: Editor) {
   });
 
   const arrow1Id = createShapeId("arrow1");
-  const arrow1KfId = uniqueId();
   editor.createShape({
     id: arrow1Id,
     type: "arrow",
@@ -97,9 +95,9 @@ export function setup(editor: Editor) {
     },
     meta: {
       keyframe: keyframeToJsonObject<KeyframeData>({
-        id: arrow1KfId,
+        id: uniqueId(),
         globalIndex: 2,
-        localBefore: arrow0KfId,
+        trackId: arrowTrackId,
         data: {
           type: "shapeAnimation",
           duration: 1000,
@@ -109,7 +107,6 @@ export function setup(editor: Editor) {
   });
 
   const arrow2Id = createShapeId("arrow2");
-  const arrow2KfId = uniqueId();
   editor.createShape({
     id: arrow2Id,
     type: "arrow",
@@ -127,9 +124,9 @@ export function setup(editor: Editor) {
     },
     meta: {
       keyframe: keyframeToJsonObject({
-        id: arrow2KfId,
+        id: uniqueId(),
         globalIndex: 3,
-        localBefore: arrow1KfId,
+        trackId: arrowTrackId,
         data: {
           type: "shapeAnimation",
         },
@@ -138,7 +135,6 @@ export function setup(editor: Editor) {
   });
 
   const arrow3Id = createShapeId("arrow3");
-  const arrow3KfId = uniqueId();
   editor.createShape({
     id: arrow3Id,
     type: "arrow",
@@ -156,9 +152,9 @@ export function setup(editor: Editor) {
     },
     meta: {
       keyframe: keyframeToJsonObject<KeyframeData>({
-        id: arrow3KfId,
+        id: uniqueId(),
         globalIndex: 4,
-        localBefore: arrow2KfId,
+        trackId: arrowTrackId,
         data: {
           type: "shapeAnimation",
           duration: 1000,
