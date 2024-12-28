@@ -147,16 +147,10 @@ function Inner(props: InnerProps) {
 
         // Auto attach camera keyframe to the newly created slide shape
         const globalFrames = getGlobalFrames(editor);
-        let lastCameraKeyframe: Keyframe<KeyframeData> | undefined;
-        for (const frame of globalFrames.reverse()) {
-          const cameraKeyframe = frame.find(
-            (kf) => kf.data.type === "cameraZoom"
-          );
-          if (cameraKeyframe) {
-            lastCameraKeyframe = cameraKeyframe;
-            break;
-          }
-        }
+        const lastCameraKeyframe = globalFrames
+          .reverse()
+          .flat()
+          .find((kf) => kf.data.type === "cameraZoom");
         const keyframe: Keyframe<CameraZoomKeyframeData> = {
           id: uniqueId(),
           globalIndex: globalFrames.length,
