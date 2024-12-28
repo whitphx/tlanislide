@@ -503,9 +503,16 @@ export function KeyframeTimeline({
       id: `track_${seq.id}`,
       type: seq.sequence[0].kf.data.type,
     }));
-    tracks.sort((a, b) =>
-      a.type === "cameraZoom" ? -1 : a.id.localeCompare(b.id)
-    ); // TODO: Better sorting criteria?
+    tracks.sort((a, b) => {
+      // cameraZoom should be at the top
+      if (a.type === "cameraZoom") {
+        return -1;
+      }
+      if (b.type === "cameraZoom") {
+        return 1;
+      }
+      return a.id.localeCompare(b.id);
+    }); // TODO: Better sorting criteria?
 
     let maxGlobalIndex = 0;
     const globalFrames: KeyframeUIData[][] = [];
