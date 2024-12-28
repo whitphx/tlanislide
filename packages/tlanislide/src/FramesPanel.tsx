@@ -94,52 +94,6 @@ export const FramesPanel = track(() => {
           />
         </label>
 
-        {selectedKeyframeShapes.length > 0 && (
-          <button
-            onClick={() => {
-              let newKeyframes = allKeyframes;
-
-              editor.run(
-                () => {
-                  selectedKeyframeShapes.forEach((shape) => {
-                    const keyframe = getKeyframe(shape);
-                    if (keyframe == null) {
-                      return;
-                    }
-
-                    const newKeyframe = {
-                      id: uniqueId(),
-                      globalIndex: keyframe.globalIndex + 1,
-                      localBefore: keyframe.id,
-                      data: {
-                        duration: 1000,
-                      },
-                    } satisfies Keyframe<KeyframeData>;
-                    newKeyframes = insertKeyframeLocalAfter(
-                      newKeyframes,
-                      newKeyframe
-                    );
-
-                    editor.createShape({
-                      ...shape,
-                      id: createShapeId(),
-                      x: shape.x + 100,
-                      y: shape.y + 100,
-                      meta: {
-                        keyframe: keyframeToJsonObject(newKeyframe),
-                      },
-                    });
-                  });
-
-                  handleKeyframesChange(newKeyframes);
-                },
-                { history: "ignore" }
-              );
-            }}
-          >
-            Add next keyframe shape(s) to selected shape(s)
-          </button>
-        )}
         {selectedNotKeyframeShapes.length > 0 && (
           <button
             onClick={() => {
@@ -165,6 +119,48 @@ export const FramesPanel = track(() => {
           (kf) => getKeyframe(kf)!.id
         )}
         onKeyframeSelect={handleKeyframeSelect}
+        requestKeyframeAddAfter={(prevKeyframe) => {
+          const allShapes = editor.getCurrentPageShapes();
+          const prevShape = allShapes.find(
+            (shape) => getKeyframe(shape)?.id === prevKeyframe.id
+          );
+          if (prevShape == null) {
+            return;
+          }
+
+          const newKeyframe = {
+            id: uniqueId(),
+            globalIndex: prevKeyframe.globalIndex + 1,
+            localBefore: prevKeyframe.id,
+            data: {
+              duration: 1000,
+            },
+          } satisfies Keyframe<KeyframeData>;
+
+          const newShapeId = createShapeId();
+
+          editor.run(
+            () => {
+              editor.createShape({
+                ...prevShape,
+                id: newShapeId,
+                x: prevShape.x + 100,
+                y: prevShape.y + 100,
+                meta: {
+                  keyframe: keyframeToJsonObject(newKeyframe),
+                },
+              });
+              editor.select(newShapeId);
+
+              const newKeyframes = insertKeyframeLocalAfter(
+                allKeyframes,
+                newKeyframe
+              );
+              handleKeyframesChange(newKeyframes);
+            },
+            { history: "ignore" }
+          );
+        }}
       />
     </div>
   );

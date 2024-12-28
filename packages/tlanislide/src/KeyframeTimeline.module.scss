@@ -1,5 +1,6 @@
 $header-row-height: 40px;
 $row-height: 30px;
+$inbetween-droppable-cell-width: 16px;
 
 .timelineContainer {
   display: flex;
@@ -15,15 +16,57 @@ $row-height: 30px;
     padding-top: $header-row-height
   }
 
+  .droppableCell {
+    &.over {
+      background: var(--color-muted-2);
+    }
+  }
+
+  .inbetweenDroppableCell {
+    width: $inbetween-droppable-cell-width;
+    height: 100%;
+  }
+
+  .droppableColumn {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   .headerCell {
     height: $header-row-height;
   }
 
   .keyframeCell {
+    position: relative;
+    width: 100%;
     height: $row-height;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .keyframeControl {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .frameAddButtonContainer {
+    position: absolute;
+    left: 100%;
+    width: $inbetween-droppable-cell-width;
+    display: none;  // Hidden by default, shown on hover
+    align-items: center;
+    justify-content: center;
+  }
+  &:not(.dragging) {
+    .keyframeControl:hover > .frameAddButtonContainer, .frameAddButtonContainer:hover {
+      display: flex;
+    }
   }
 }
 
@@ -57,40 +100,34 @@ $row-height: 30px;
   }
 }
 
-.droppableCell {
-  &.over {
-    background: var(--color-muted-2);
-  }
-}
-
-.inbetweenDroppableCell {
-  width: 16px;
-  height: 100%;
-}
-
-.droppableColumn {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .keyframeIcon {
   color: var(--color-text-1);
   background: var(--color-background);
   box-shadow: var(--shadow-1);
   /* Circle shape */
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  margin: 0;
   border-radius: 50%;
-  text-align: center;
   box-sizing: content-box;
   border: 2px solid transparent;
+
+  &:hover {
+    background: var(--color-muted-2);
+  }
 
   &.selected {
     border-color: var(--color-selected);
   }
+}
+button.keyframeIcon {
+  cursor: pointer;
 }
 
 .popoverContent {

@@ -3,13 +3,14 @@ import {
   DndContext,
   useDraggable,
   useDroppable,
+  useDndContext,
   useSensors,
   useSensor,
   PointerSensor,
   MouseSensor,
   TouchSensor,
   KeyboardSensor,
-  DndContextProps,
+  type DndContextProps,
 } from "@dnd-kit/core";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import {
@@ -24,8 +25,8 @@ import {
   TldrawUiPopoverContent,
 } from "tldraw";
 import type { JsonObject } from "tldraw";
+import type { KeyframeData } from "./models";
 import styles from "./KeyframeTimeline.module.scss";
-import { KeyframeData } from "./models";
 
 const EASINGS_OPTIONS = Object.keys(EASINGS);
 function isEasingOption(value: string): value is keyof typeof EASINGS {
@@ -387,20 +388,34 @@ function KeyframeEditPopover({
   );
 }
 
-interface KeyframeIconProps {
-  localIndex: number;
-  isSelected: boolean;
-  onClick: () => void;
+interface DragStateStyleDivProps {
+  children: React.ReactNode;
+  className: string;
+  classNameWhenDragging: string;
 }
-function KeyframeIcon(props: KeyframeIconProps) {
+function DragStateStyleDiv(props: DragStateStyleDivProps) {
+  const { active } = useDndContext();
   return (
     <div
-      className={`${styles.keyframeIcon} ${props.isSelected ? styles.selected : ""}`}
-      onClick={props.onClick}
+      className={active != null ? props.classNameWhenDragging : props.className}
     >
-      {props.localIndex + 1}
+      {props.children}
     </div>
   );
+}
+
+interface KeyframeIconProps {
+  isSelected?: boolean;
+  onClick: () => void;
+  children?: React.ReactNode;
+  as?: React.ElementType;
+}
+function KeyframeIcon(props: KeyframeIconProps) {
+  return React.createElement(props.as ?? "div", {
+    className: `${styles.keyframeIcon} ${props.isSelected ? styles.selected : ""}`,
+    onClick: props.onClick,
+    children: props.children,
+  });
 }
 
 function DroppableArea({
@@ -441,6 +456,7 @@ interface KeyframeTimelineProps {
   onFrameSelect: (frameIndex: number) => void;
   selectedKeyframeIds: Keyframe<KeyframeData>["id"][];
   onKeyframeSelect: (keyframeId: string) => void;
+  requestKeyframeAddAfter: (prevKeyframe: Keyframe<KeyframeData>) => void;
 }
 export function KeyframeTimeline({
   ks,
@@ -449,6 +465,7 @@ export function KeyframeTimeline({
   onFrameSelect,
   selectedKeyframeIds,
   onKeyframeSelect,
+  requestKeyframeAddAfter,
 }: KeyframeTimelineProps) {
   // const globalOrder = getGlobalOrder(ks);
   const { globalFrames, tracks, maxGlobalIndex } = useMemo(() => {
@@ -537,7 +554,10 @@ export function KeyframeTimeline({
       sensors={sensors}
       modifiers={DND_CONTEXT_MODIFIERS}
     >
-      <div className={styles.timelineContainer}>
+      <DragStateStyleDiv
+        className={styles.timelineContainer}
+        classNameWhenDragging={`${styles.timelineContainer} ${styles.dragging}`}
+      >
         <div className={styles.headerLessColumn}>
           <DroppableArea
             type="after"
@@ -573,33 +593,47 @@ export function KeyframeTimeline({
                             kf.id
                           );
                           return (
-                            <KeyframeEditPopover
-                              key={kf.id}
-                              keyframe={kf.keyframe}
-                              onUpdate={(newKeyframe) => {
-                                onKeyframesChange(
-                                  ks.map((kf) =>
-                                    kf.id === newKeyframe.id ? newKeyframe : kf
-                                  )
-                                );
-                              }}
-                            >
-                              <div>
-                                <DraggableKeyframeUI
-                                  kf={kf}
-                                  trackId={track.id}
-                                  localIndex={kf.localIndex}
-                                >
-                                  <KeyframeIcon
+                            <div key={kf.id} className={styles.keyframeControl}>
+                              <KeyframeEditPopover
+                                keyframe={kf.keyframe}
+                                onUpdate={(newKeyframe) => {
+                                  onKeyframesChange(
+                                    ks.map((kf) =>
+                                      kf.id === newKeyframe.id
+                                        ? newKeyframe
+                                        : kf
+                                    )
+                                  );
+                                }}
+                              >
+                                <div>
+                                  <DraggableKeyframeUI
+                                    kf={kf}
+                                    trackId={track.id}
                                     localIndex={kf.localIndex}
-                                    isSelected={isSelected}
-                                    onClick={() => {
-                                      onKeyframeSelect(kf.id);
-                                    }}
-                                  />
-                                </DraggableKeyframeUI>
+                                  >
+                                    <KeyframeIcon
+                                      isSelected={isSelected}
+                                      onClick={() => {
+                                        onKeyframeSelect(kf.id);
+                                      }}
+                                    >
+                                      {kf.localIndex + 1}
+                                    </KeyframeIcon>
+                                  </DraggableKeyframeUI>
+                                </div>
+                              </KeyframeEditPopover>
+                              <div className={styles.frameAddButtonContainer}>
+                                <KeyframeIcon
+                                  as="button"
+                                  onClick={() =>
+                                    requestKeyframeAddAfter(kf.keyframe)
+                                  }
+                                >
+                                  +
+                                </KeyframeIcon>
                               </div>
-                            </KeyframeEditPopover>
+                            </div>
                           );
                         })}
                       </div>
@@ -617,7 +651,7 @@ export function KeyframeTimeline({
             </React.Fragment>
           );
         })}
-      </div>
+      </DragStateStyleDiv>
     </KeyframeMoveTogetherDndContext>
   );
 }
