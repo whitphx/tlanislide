@@ -410,16 +410,20 @@ interface DragStateStyleDivProps {
   className: string;
   classNameWhenDragging: string;
 }
-function DragStateStyleDiv(props: DragStateStyleDivProps) {
+const DragStateStyleDiv = React.forwardRef<
+  HTMLDivElement,
+  DragStateStyleDivProps
+>((props, ref) => {
   const { active } = useDndContext();
   return (
     <div
+      ref={ref}
       className={active != null ? props.classNameWhenDragging : props.className}
     >
       {props.children}
     </div>
   );
-}
+});
 
 interface KeyframeIconProps {
   isSelected?: boolean;
@@ -462,6 +466,46 @@ function DroppableArea({
       {children}
     </div>
   );
+}
+
+// To animate the active column indicator.
+function useAnimatedActiveColumnIndicator(currentColumnIndex: number) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<Record<number, HTMLElement | null>>({});
+  const columnIndicatorRef = useRef<HTMLDivElement>(null);
+
+  const moveIndicator = useCallback((columnIndex: number) => {
+    const activeColumnEl = columnsRef.current[columnIndex];
+    const indicatorEl = columnIndicatorRef.current;
+    const containerEl = containerRef.current;
+
+    if (!activeColumnEl || !indicatorEl || !containerEl) {
+      return;
+    }
+
+    // Rather than activeColumnEl.offsetLeft,
+    // we should calculate the offset from the container using getBoundingClientRect()
+    // for more stable positioning.
+    const activeColumnRect = activeColumnEl.getBoundingClientRect();
+    const containerRect = containerEl.getBoundingClientRect();
+
+    const activeColumnLeft = activeColumnRect.left - containerRect.left;
+    const activeColumnWidth = activeColumnRect.width;
+
+    indicatorEl.style.width = `${activeColumnWidth}px`;
+    indicatorEl.style.transform = `translateX(${activeColumnLeft}px)`;
+    indicatorEl.style.opacity = "1";
+  }, []);
+
+  const setColumnRef = useCallback(
+    (columnIndex: number) => (node: HTMLElement | null) => {
+      columnsRef.current[columnIndex] = node;
+      moveIndicator(currentColumnIndex);
+    },
+    [moveIndicator, currentColumnIndex]
+  );
+
+  return { containerRef, setColumnRef, columnIndicatorRef };
 }
 
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
@@ -575,6 +619,9 @@ export function KeyframeTimeline({
     useSensor(KeyboardSensor)
   );
 
+  const { containerRef, setColumnRef, columnIndicatorRef } =
+    useAnimatedActiveColumnIndicator(currentFrameIndex);
+
   return (
     <KeyframeMoveTogetherDndContext
       onDragEnd={handleDragEnd}
@@ -582,9 +629,14 @@ export function KeyframeTimeline({
       modifiers={DND_CONTEXT_MODIFIERS}
     >
       <DragStateStyleDiv
+        ref={containerRef}
         className={styles.timelineContainer}
         classNameWhenDragging={`${styles.timelineContainer} ${styles.dragging}`}
       >
+        <div
+          ref={columnIndicatorRef}
+          className={styles.activeColumnIndicator}
+        />
         <div className={styles.headerLessColumn}>
           <DroppableArea
             type="after"
@@ -595,7 +647,7 @@ export function KeyframeTimeline({
         {globalFrames.map((globalFrame, frameIdx) => {
           return (
             <React.Fragment key={globalFrame[0].id}>
-              <div className={styles.column}>
+              <div className={styles.column} ref={setColumnRef(frameIdx)}>
                 <div className={styles.headerCell}>
                   <button
                     className={`${styles.frameButton} ${frameIdx === currentFrameIndex ? styles.selected : ""}`}

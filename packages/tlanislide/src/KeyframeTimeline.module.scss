@@ -3,6 +3,7 @@ $row-height: 30px;
 $inbetween-droppable-cell-width: 16px;
 
 .timelineContainer {
+  position: relative;
   display: flex;
   flex-direction: row;
 
@@ -10,6 +11,7 @@ $inbetween-droppable-cell-width: 16px;
     display: flex;
     flex-direction: column;
     min-width: 40px;
+    padding: 0 0 var(--space-2);
   }
 
   .headerLessColumn {
@@ -68,6 +70,18 @@ $inbetween-droppable-cell-width: 16px;
       display: flex;
     }
   }
+
+  .activeColumnIndicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition: all 0.3s ease;
+    display: block;
+    opacity: 0;
+    box-shadow: 0 0 2px 1px var(--color-selected);
+    border-radius: var(--radius-2)
+  }
 }
 
 .frameButton {
@@ -90,6 +104,7 @@ $inbetween-droppable-cell-width: 16px;
   font-size: 12px;
   gap: 0px;
   color: var(--color-text-1);
+  border-radius: var(--radius-2);
 
   &:hover {
     background: var(--color-muted-2);
