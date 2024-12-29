@@ -139,11 +139,7 @@ function Inner(props: InnerProps) {
     setup(editor);
 
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
-      if (shape.type === SlideShapeType) {
-        if (shape.meta?.keyframe) {
-          return shape;
-        }
-
+      if (shape.type === SlideShapeType && shape.meta?.keyframe == null) {
         // Auto attach camera keyframe to the newly created slide shape
         const globalFrames = getGlobalFrames(editor);
         const lastCameraKeyframe = globalFrames
@@ -167,8 +163,8 @@ function Inner(props: InnerProps) {
           },
         };
       } else {
-        // Remove keyframe meta if it's not a valid keyframe.
-        // This can happen if a shape is copied and pasted, or if a shape is duplicated.
+        // If the shape contains a keyframe, ensure that the keyframe is unique.
+        // This is necessary e.g. when a shape is duplicated, the keyframe should not be duplicated.
         const keyframe = getKeyframe(shape);
         const keyframeId = keyframe?.id;
         if (keyframeId == null) {
@@ -178,7 +174,11 @@ function Inner(props: InnerProps) {
         const allKeyframes = getAllKeyframes(editor);
         const allKeyframeIds = allKeyframes.map((kf) => kf.id);
         if (allKeyframeIds.includes(keyframeId)) {
-          delete shape.meta.keyframe;
+          shape.meta.keyframe = {
+            ...keyframe,
+            id: uniqueId(),
+            globalIndex: getGlobalFrames(editor).length,
+          };
         }
         return shape;
       }
