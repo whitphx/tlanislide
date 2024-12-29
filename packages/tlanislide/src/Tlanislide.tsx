@@ -32,7 +32,6 @@ import {
   getAllKeyframes,
   detatchKeyframe,
   CameraZoomKeyframeData,
-  KeyframeData,
   keyframeToJsonObject,
 } from "./models";
 import { setup } from "./debug";

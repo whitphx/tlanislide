@@ -1,7 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
-  DndContext,
-  useDraggable,
   useDroppable,
   useDndContext,
   useSensors,
@@ -13,287 +11,23 @@ import {
   type DndContextProps,
 } from "@dnd-kit/core";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import {
-  Keyframe,
-  getGlobalOrder,
-  moveKeyframePreservingLocalOrder,
-} from "./keyframe";
+import { Keyframe, moveKeyframePreservingLocalOrder } from "../keyframe";
 import {
   EASINGS,
   TldrawUiPopover,
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { KeyframeData } from "./models";
+import type { KeyframeData } from "../models";
+import { calcKeyframeUIData, type KeyframeUIData } from "./keyframe-ui-data";
+import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
+import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
+import { DraggableKeyframeUI } from "./DraggableKeyframeUI";
 import styles from "./KeyframeTimeline.module.scss";
 
 const EASINGS_OPTIONS = Object.keys(EASINGS);
 function isEasingOption(value: string): value is keyof typeof EASINGS {
   return EASINGS_OPTIONS.includes(value);
-}
-
-type KeyframeUIData = Keyframe<KeyframeData> & { localIndex: number };
-
-interface Track {
-  id: string;
-  type: KeyframeData["type"];
-}
-
-interface KeyframeDraggingState {
-  trackId: string;
-  localIndex: number;
-  delta: number;
-}
-type DraggableKeyframeDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][localIndex] = HTMLElement | null
-type DraggableKeyframeDOMDeltas = Record<string, Record<number, number>>; // obj[trackId][localIndex] = delta
-interface DraggableKeyframeDOMContext {
-  registerDOM: (
-    trackId: string,
-    localIndex: number,
-    node: HTMLElement | null
-  ) => void;
-  draggableElementDeltas: DraggableKeyframeDOMDeltas | null;
-}
-const draggableKeyframeDOMContext =
-  React.createContext<DraggableKeyframeDOMContext | null>(null);
-
-function KeyframeMoveTogetherDndContext({
-  children,
-  onDragStart,
-  onDragMove,
-  onDragEnd,
-  onDragCancel,
-  ...dndContextProps
-}: {
-  children: React.ReactNode;
-} & DndContextProps) {
-  const [draggingState, setDraggingState] =
-    useState<KeyframeDraggingState | null>(null);
-
-  const handleDragMove = useCallback<
-    NonNullable<DndContextProps["onDragMove"]>
-  >(
-    (event) => {
-      const { active, delta } = event;
-      const trackId = active.data.current?.trackId;
-      const localIndex = active.data.current?.localIndex;
-      if (typeof trackId === "string" && typeof localIndex === "number") {
-        setDraggingState({
-          trackId,
-          localIndex,
-          delta: delta.x,
-        });
-      }
-
-      onDragMove?.(event);
-    },
-    [onDragMove]
-  );
-
-  const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
-    (event) => {
-      setDraggingState(null);
-      onDragEnd?.(event);
-    },
-    [onDragEnd]
-  );
-  const handleDragCancel = useCallback<
-    NonNullable<DndContextProps["onDragCancel"]>
-  >(
-    (event) => {
-      setDraggingState(null);
-      onDragCancel?.(event);
-    },
-    [onDragCancel]
-  );
-
-  const draggableDOMsRef = useRef<DraggableKeyframeDOMs>({});
-  const registerDOM = useCallback<DraggableKeyframeDOMContext["registerDOM"]>(
-    (trackId, localIndex, node) => {
-      const draggableDOMs = draggableDOMsRef.current;
-      if (!draggableDOMs[trackId]) {
-        draggableDOMs[trackId] = Array(localIndex + 1).fill(null);
-      } else if (draggableDOMs[trackId].length < localIndex + 1) {
-        draggableDOMs[trackId] = [
-          ...draggableDOMs[trackId],
-          ...Array(localIndex + 1 - draggableDOMs[trackId].length).fill(null),
-        ];
-      }
-      draggableDOMs[trackId][localIndex] = node;
-      draggableDOMsRef.current = draggableDOMs;
-    },
-    []
-  );
-
-  const draggableDOMOrgRectsRef = useRef<Record<string, (DOMRect | null)[]>>(
-    {}
-  );
-  const initializeDOMRects = useCallback(() => {
-    const draggableDOMs = draggableDOMsRef.current;
-    const draggableDOMOrgRects: Record<string, (DOMRect | null)[]> = {};
-    for (const trackId in draggableDOMs) {
-      draggableDOMOrgRects[trackId] = draggableDOMs[trackId].map((dom) => {
-        if (dom == null) {
-          return null;
-        }
-        return dom.getBoundingClientRect();
-      });
-    }
-    draggableDOMOrgRectsRef.current = draggableDOMOrgRects;
-  }, []);
-  const handleDragStart = useCallback<
-    NonNullable<DndContextProps["onDragStart"]>
-  >(
-    (...args) => {
-      initializeDOMRects();
-      onDragStart?.(...args);
-    },
-    [initializeDOMRects, onDragStart]
-  );
-
-  const draggableElementDeltas = useMemo(() => {
-    if (draggingState == null) {
-      return null;
-    }
-    const { trackId, localIndex, delta } = draggingState;
-
-    const draggableDOMOrgRects = draggableDOMOrgRectsRef.current;
-    const rectsInTrack = draggableDOMOrgRects[trackId];
-    if (rectsInTrack == null) {
-      return null;
-    }
-
-    const selfRect = rectsInTrack[localIndex];
-    if (selfRect == null) {
-      return null;
-    }
-
-    if (delta > 0) {
-      const draggableElementDeltas: Record<number, number> = {};
-      // Dragging right
-      let right = selfRect.right + delta;
-      for (let i = localIndex + 1; i < rectsInTrack.length; i++) {
-        const domRect = rectsInTrack[i];
-        if (domRect == null) continue;
-        if (domRect.left < right) {
-          const delta = right - domRect.left;
-          draggableElementDeltas[i] = delta;
-          right = right + domRect.width;
-        } else {
-          break;
-        }
-      }
-      return { [trackId]: draggableElementDeltas };
-    } else if (delta < 0) {
-      // Dragging left
-      const draggableElementDeltas: Record<number, number> = {};
-      let left = selfRect.left + delta;
-      for (let i = localIndex - 1; i >= 0; i--) {
-        const domRect = rectsInTrack[i];
-        if (domRect == null) continue;
-        if (left < domRect.right) {
-          const delta = left - domRect.right;
-          draggableElementDeltas[i] = delta;
-          left = left - domRect.width;
-        } else {
-          break;
-        }
-      }
-      return { [trackId]: draggableElementDeltas };
-    }
-
-    return null;
-  }, [draggingState]);
-
-  return (
-    <draggableKeyframeDOMContext.Provider
-      value={{
-        registerDOM,
-        draggableElementDeltas,
-      }}
-    >
-      <DndContext
-        {...dndContextProps}
-        onDragStart={handleDragStart}
-        onDragMove={handleDragMove}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        {children}
-      </DndContext>
-    </draggableKeyframeDOMContext.Provider>
-  );
-}
-
-/**
- * When the user drags a keyframe,
- * the keyframe should move together with other keyframes in the same track
- * to demonstrate the `moveKeyframe()`'s effect.
- * This hook provides the delta value to move each keyframe draggable element.
- */
-interface UseDraggableKeyframeDeltaReturn {
-  registerDOM: DraggableKeyframeDOMContext["registerDOM"];
-  delta: number | null;
-}
-function useDraggableKeyframeDelta(
-  trackId: string,
-  localIndex: number
-): UseDraggableKeyframeDeltaReturn {
-  const context = React.useContext(draggableKeyframeDOMContext);
-  if (context == null) {
-    throw new Error(
-      "useDraggableKeyframeDelta must be used within a DraggableKeyframeDeltaProvider"
-    );
-  }
-
-  return {
-    registerDOM: context.registerDOM,
-    delta: context.draggableElementDeltas?.[trackId]?.[localIndex] ?? null,
-  };
-}
-
-function DraggableKeyframeUI({
-  kf,
-  trackId,
-  localIndex,
-  children,
-}: {
-  kf: KeyframeUIData;
-  trackId: string;
-  localIndex: number;
-  children: React.ReactNode;
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging, active } =
-    useDraggable({
-      id: kf.id,
-      data: {
-        trackId,
-        localIndex,
-      },
-    });
-  const { registerDOM, delta } = useDraggableKeyframeDelta(trackId, localIndex);
-  const transformX = delta != null ? delta : (transform?.x ?? 0);
-  const transformY = transform?.y ?? 0;
-  const isDraggingSomething = active != null;
-  const style: React.CSSProperties = {
-    transform: `translate(${transformX}px, ${transformY}px)`,
-    transition: isDraggingSomething ? undefined : "transform 0.3s",
-    cursor: isDragging ? "grabbing" : "grab",
-  };
-
-  return (
-    <div
-      ref={(node) => {
-        setNodeRef(node);
-        registerDOM(trackId, localIndex, node);
-      }}
-      {...attributes}
-      {...listeners}
-      style={style}
-    >
-      {children}
-    </div>
-  );
 }
 
 interface NumberFieldProps {
@@ -320,11 +54,7 @@ function NumberField({ label, value, max, onChange }: NumberFieldProps) {
     <div>
       <label>
         {label}
-        <input
-          type="number"
-          value={value}
-          onChange={handleChange}
-        />
+        <input type="number" value={value} onChange={handleChange} />
       </label>
       <input
         type="range"
@@ -333,6 +63,41 @@ function NumberField({ label, value, max, onChange }: NumberFieldProps) {
         value={value}
         onChange={handleChange}
       />
+    </div>
+  );
+}
+
+function SelectField<T extends string[]>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: T;
+  onChange: (newValue: T[number]) => void;
+}) {
+  return (
+    <div>
+      <label>
+        {label}
+        <select
+          value={value}
+          onChange={(e) => {
+            if (options.includes(e.target.value)) {
+              onChange(e.target.value);
+            }
+          }}
+        >
+          <option value=""></option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }
@@ -382,32 +147,22 @@ function KeyframeEditPopover({
               })
             }
           />
-          <div>
-            <label>
-              Easing
-              <select
-                value={keyframe.data.easing ?? ""}
-                onChange={(e) => {
-                  if (isEasingOption(e.target.value)) {
-                    onUpdate({
-                      ...keyframe,
-                      data: {
-                        ...keyframe.data,
-                        easing: e.target.value,
-                      },
-                    });
-                  }
-                }}
-              >
-                <option value=""></option>
-                {EASINGS_OPTIONS.map((easing) => (
-                  <option key={easing} value={easing}>
-                    {easing}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <SelectField
+            label="Easing"
+            value={keyframe.data.easing ?? ""}
+            options={EASINGS_OPTIONS}
+            onChange={(newEasing) => {
+              if (isEasingOption(newEasing)) {
+                onUpdate({
+                  ...keyframe,
+                  data: {
+                    ...keyframe.data,
+                    easing: newEasing,
+                  },
+                });
+              }
+            }}
+          />
         </div>
       </TldrawUiPopoverContent>
     </TldrawUiPopover>
@@ -477,46 +232,6 @@ function DroppableArea({
   );
 }
 
-// To animate the active column indicator.
-function useAnimatedActiveColumnIndicator(currentColumnIndex: number) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnsRef = useRef<Record<number, HTMLElement | null>>({});
-  const columnIndicatorRef = useRef<HTMLDivElement>(null);
-
-  const moveIndicator = useCallback((columnIndex: number) => {
-    const activeColumnEl = columnsRef.current[columnIndex];
-    const indicatorEl = columnIndicatorRef.current;
-    const containerEl = containerRef.current;
-
-    if (!activeColumnEl || !indicatorEl || !containerEl) {
-      return;
-    }
-
-    // Rather than activeColumnEl.offsetLeft,
-    // we should calculate the offset from the container using getBoundingClientRect()
-    // for more stable positioning.
-    const activeColumnRect = activeColumnEl.getBoundingClientRect();
-    const containerRect = containerEl.getBoundingClientRect();
-
-    const activeColumnLeft = activeColumnRect.left - containerRect.left;
-    const activeColumnWidth = activeColumnRect.width;
-
-    indicatorEl.style.width = `${activeColumnWidth}px`;
-    indicatorEl.style.transform = `translateX(${activeColumnLeft}px)`;
-    indicatorEl.style.opacity = "1";
-  }, []);
-
-  const setColumnRef = useCallback(
-    (columnIndex: number) => (node: HTMLElement | null) => {
-      columnsRef.current[columnIndex] = node;
-      moveIndicator(currentColumnIndex);
-    },
-    [moveIndicator, currentColumnIndex]
-  );
-
-  return { containerRef, setColumnRef, columnIndicatorRef };
-}
-
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps {
@@ -541,48 +256,7 @@ export function KeyframeTimeline({
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
-  const { globalFrames, tracks } = useMemo(() => {
-    const globalFrames = getGlobalOrder(ks);
-    const globalFramesUIData: KeyframeUIData[][] = [];
-    const tracksMap: Record<
-      string,
-      { type: KeyframeData["type"]; keyframeCount: number }
-    > = {};
-    for (const frame of globalFrames) {
-      const frameUIData: KeyframeUIData[] = [];
-      for (const keyframe of frame) {
-        tracksMap[keyframe.trackId] = tracksMap[keyframe.trackId] ?? {
-          type: keyframe.data.type,
-          keyframeCount: 0,
-        };
-        frameUIData.push({
-          ...keyframe,
-          localIndex: tracksMap[keyframe.trackId].keyframeCount,
-        });
-        tracksMap[keyframe.trackId].keyframeCount++;
-      }
-      globalFramesUIData.push(frameUIData);
-    }
-
-    const tracks: Track[] = Object.entries(tracksMap).map(
-      ([trackId, { type }]) => ({
-        id: trackId,
-        type,
-      })
-    );
-    tracks.sort((a, b) => {
-      // cameraZoom should be at the top
-      if (a.type === "cameraZoom") {
-        return -1;
-      }
-      if (b.type === "cameraZoom") {
-        return 1;
-      }
-      return a.id.localeCompare(b.id); // TODO: Better sorting criteria?
-    });
-
-    return { globalFrames: globalFramesUIData, tracks };
-  }, [ks]);
+  const { globalFrames, tracks } = useMemo(() => calcKeyframeUIData(ks), [ks]);
 
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
