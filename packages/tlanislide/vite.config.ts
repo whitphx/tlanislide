@@ -12,11 +12,12 @@ export default defineConfig({
       fileName: 'tlanislide',
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: ['react', 'react-dom', 'tldraw'],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          tldraw: 'tldraw',
         },
       },
     },
