@@ -11,6 +11,7 @@ import {
   atom,
   uniqueId,
   react,
+  track,
 } from "tldraw";
 import type {
   TLUiOverrides,
@@ -24,6 +25,7 @@ import "tldraw/tldraw.css";
 import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { FramesPanel } from "./FramesPanel";
+import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import {
   getGlobalFrames,
   $currentFrameIndex,
@@ -92,6 +94,15 @@ const uiOverrides: TLUiOverrides = {
       },
     };
 
+    actions["toggle-presentation-mode"] = {
+      id: "toggle-presentation-mode",
+      label: "Toggle Presentation Mode",
+      kbd: "p",
+      onSelect() {
+        $presentationMode.set(!$presentationMode.get());
+      },
+    };
+
     return actions;
   },
   tools(editor, tools) {
@@ -132,10 +143,32 @@ const components: TLComponents = {
   },
 };
 
+const NULL_COMPONENTS_OVERRIDE = {
+  ContextMenu: null,
+  ActionsMenu: null,
+  HelpMenu: null,
+  ZoomMenu: null,
+  MainMenu: null,
+  Minimap: null,
+  StylePanel: null,
+  PageMenu: null,
+  NavigationPanel: null,
+  Toolbar: null,
+  KeyboardShortcutsDialog: null,
+  QuickActions: null,
+  HelperButtons: null,
+  DebugPanel: null,
+  DebugMenu: null,
+  MenuPanel: null,
+  SharePanel: null,
+  CursorChatBubble: null,
+  TopPanel: null,
+};
+
 interface InnerProps {
   onMount: TldrawProps["onMount"];
 }
-function Inner(props: InnerProps) {
+const Inner = track((props: InnerProps) => {
   const handleMount = (editor: Editor) => {
     setup(editor);
 
@@ -259,17 +292,29 @@ function Inner(props: InnerProps) {
     return HIDDEN;
   };
 
+  const presentationMode = $presentationMode.get();
+
   return (
     <Tldraw
       onMount={handleMount}
-      components={components}
+      components={{
+        ...components,
+        ...(presentationMode ? NULL_COMPONENTS_OVERRIDE : {}), // Hide all UI components in presentation mode. `hideUi` option is not used because it also disables the hotkeys.
+      }}
       overrides={uiOverrides}
       shapeUtils={MyCustomShapes}
       tools={MyCustomTools}
       isShapeHidden={determineShapeHidden}
-    />
+      options={{
+        createTextOnCanvasDoubleClick: !presentationMode,
+      }}
+    >
+      {
+        presentationMode && <ReadonlyOverlay /> // Prevent interactions with shapes in presentation mode. Tldraw's `readOnly` option is not used because it allows some ops like selecting shapes or editing text.
+      }
+    </Tldraw>
   );
-}
+});
 
 // IMPORTANT: Memoization is necessary to prevent re-rendering of the entire Tldraw component tree and recreating the editor instance when the most outer `Tlanislide` component's props change, which typically happens when the current frame index changes in the parent component.
 const MemoizedInner = React.memo(Inner);
