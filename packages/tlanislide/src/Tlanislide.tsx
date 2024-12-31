@@ -10,6 +10,7 @@ import {
   computed,
   atom,
   uniqueId,
+  react,
 } from "tldraw";
 import type {
   TLUiOverrides,
@@ -275,12 +276,14 @@ const MemoizedInner = React.memo(Inner);
 
 interface TlanislideProps {
   currentFrameIndex?: number;
+  onCurrentFrameIndexChange?: (newFrameIndex: number) => void;
   presentationMode?: boolean;
   onMount?: TldrawProps["onMount"];
 }
 function Tlanislide(props: TlanislideProps) {
   const {
     currentFrameIndex: currentFrameIndexProp,
+    onCurrentFrameIndexChange,
     presentationMode = false,
     onMount,
   } = props;
@@ -321,6 +324,18 @@ function Tlanislide(props: TlanislideProps) {
     }
     $currentFrameIndex.set(currentFrameIndexProp);
   }, [currentFrameIndexProp]);
+  useEffect(() => {
+    if (onCurrentFrameIndexChange == null) {
+      return;
+    }
+
+    return react(
+      "current frame index to call onCurrentFrameIndexChange prop",
+      () => {
+        onCurrentFrameIndexChange($currentFrameIndex.get());
+      }
+    );
+  }, [onCurrentFrameIndexChange]);
 
   return <MemoizedInner onMount={handleMount} />;
 }

@@ -1,7 +1,12 @@
 <template>
   <div class="absolute inset-0">
     <div class="inverse-transform" ref="wrapperEl">
-      <Tlanislide @mount="handleMount" :currentFrameIndex="$clicks" :presentationMode="true" />
+      <Tlanislide
+        @mount="handleMount"
+        :currentFrameIndex="$clicks"
+        @currentFrameIndexChange="$clicks = $event"
+        :presentationMode="true"
+      />
     </div>
   </div>
 </template>
