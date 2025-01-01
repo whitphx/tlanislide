@@ -206,10 +206,11 @@ const NULL_COMPONENTS_OVERRIDE = {
 
 interface InnerProps {
   onMount: TldrawProps["onMount"];
+  store?: TldrawProps["store"];
   perInstanceAtoms: PerInstanceAtoms;
 }
 const Inner = track((props: InnerProps) => {
-  const { onMount, perInstanceAtoms } = props;
+  const { onMount, store, perInstanceAtoms } = props;
 
   const handleMount = (editor: Editor) => {
     setup(editor);
@@ -351,6 +352,7 @@ const Inner = track((props: InnerProps) => {
         maxPages: 1,
         createTextOnCanvasDoubleClick: !presentationMode,
       }}
+      store={store}
     >
       {
         presentationMode && <ReadonlyOverlay /> // Prevent interactions with shapes in presentation mode. Tldraw's `readOnly` option is not used because it allows some ops like selecting shapes or editing text.
@@ -367,9 +369,10 @@ interface TlanislideProps {
   onStepChange?: (newStep: number) => void;
   presentationMode?: boolean;
   onMount?: TldrawProps["onMount"];
+  store?: TldrawProps["store"];
 }
 function Tlanislide(props: TlanislideProps) {
-  const { step, onStepChange, presentationMode, onMount } = props;
+  const { step, onStepChange, presentationMode, onMount, store } = props;
 
   const tlanislideAtoms = usePerInstanceAtoms();
   const {
@@ -433,7 +436,7 @@ function Tlanislide(props: TlanislideProps) {
   }, [$currentStepIndex, onStepChange]);
 
   return (
-    <MemoizedInner onMount={handleMount} perInstanceAtoms={tlanislideAtoms} />
+    <MemoizedInner onMount={handleMount} perInstanceAtoms={tlanislideAtoms} store={store} />
   );
 }
 
