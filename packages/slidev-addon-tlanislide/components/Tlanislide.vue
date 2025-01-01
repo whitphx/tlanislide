@@ -1,25 +1,48 @@
 <template>
-  <div class="absolute inset-0">
+  <div>
     <div class="inverse-transform" ref="wrapperEl">
       <Tlanislide
         @mount="handleMount"
         :step="$clicks"
         @stepChange="$clicks = $event"
-        :presentationMode="true"
+        :presentationMode="!edit"
       />
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts">
 import { createRoot } from 'react-dom/client'
+import { setVeauryOptions, applyPureReactInVue } from 'veaury';
+import TlanislideReact from "tlanislide";
+
+setVeauryOptions({
+  react: {
+    createRoot
+  }
+});
+
+export default {
+  components: {
+    // Tlanislide: applyReactInVue(TlanislideReact),
+    Tlanislide: applyPureReactInVue(TlanislideReact),
+  },
+}
+</script>
+
+<script setup lang="ts">
 import { ref, watch } from "vue";
-import { setVeauryOptions, applyPureReactInVue } from 'veaury'
 import { useCssVar } from "@vueuse/core";
 import { useSlideContext } from "@slidev/client"
-import TlanislideReact from "tlanislide"
 import "tlanislide/tlanislide.css"
 import "./tlanislide.css"
+
+type Props = {
+  key: string;
+  edit: boolean;
+};
+
+const { edit } = defineProps<Partial<Props>>();
 
 // Ref: https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L159-L164
 // update zoom when wrapper resizes
@@ -39,18 +62,7 @@ const handleMount = () => {
     { immediate: true }
   );
 };
-
-setVeauryOptions({
-  react: {
-    createRoot
-  }
-});
-
-const Tlanislide = applyPureReactInVue(TlanislideReact);
 </script>
 
 <style scoped>
-button {
-  font-weight: bold;
-}
 </style>
