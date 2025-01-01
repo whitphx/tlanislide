@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/Tlanislide.tsx'),
+      entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'TLAniSlide',
       fileName: 'tlanislide',
     },

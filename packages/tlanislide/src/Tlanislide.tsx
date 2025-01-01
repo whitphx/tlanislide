@@ -22,7 +22,8 @@ import type {
 } from "tldraw";
 import "tldraw/tldraw.css";
 
-import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
+import { SlideShapeType } from "./shapes/SlideShapeUtil";
+import { customShapeUtils } from "./shapes";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { makeControlPanel } from "./ControlPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
@@ -35,12 +36,8 @@ import {
   CameraZoomKeyframeData,
   keyframeToJsonObject,
 } from "./models";
-import { setup } from "./debug";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Keyframe } from "./keyframe";
-
-const MyCustomShapes = [SlideShapeUtil];
-const MyCustomTools = [SlideShapeTool];
 
 // We use atoms as it's Tldraw's design,
 // but we also need to manage these states per instance of Tlanislide component
@@ -213,8 +210,6 @@ const Inner = track((props: InnerProps) => {
   const { onMount, store, perInstanceAtoms } = props;
 
   const handleMount = (editor: Editor) => {
-    setup(editor);
-
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
       if (shape.type === SlideShapeType && shape.meta?.keyframe == null) {
         // Auto attach camera keyframe to the newly created slide shape
@@ -345,8 +340,8 @@ const Inner = track((props: InnerProps) => {
         ...(presentationMode ? NULL_COMPONENTS_OVERRIDE : {}), // Hide all UI components in presentation mode. `hideUi` option is not used because it also disables the hotkeys.
       }}
       overrides={makeUiOverrides(perInstanceAtoms)}
-      shapeUtils={MyCustomShapes}
-      tools={MyCustomTools}
+      shapeUtils={customShapeUtils}
+      tools={[SlideShapeTool]}
       isShapeHidden={determineShapeHidden}
       options={{
         maxPages: 1,
@@ -436,7 +431,11 @@ function Tlanislide(props: TlanislideProps) {
   }, [$currentStepIndex, onStepChange]);
 
   return (
-    <MemoizedInner onMount={handleMount} perInstanceAtoms={tlanislideAtoms} store={store} />
+    <MemoizedInner
+      onMount={handleMount}
+      perInstanceAtoms={tlanislideAtoms}
+      store={store}
+    />
   );
 }
 
