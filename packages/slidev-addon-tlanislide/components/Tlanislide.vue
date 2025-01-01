@@ -38,7 +38,6 @@ import "tlanislide/tlanislide.css"
 import "./tlanislide.css"
 
 type Props = {
-  key: string;
   edit: boolean;
 };
 
