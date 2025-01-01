@@ -44,7 +44,11 @@ import { Keyframe } from "./keyframe";
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
 
-const $keyControlsEnabled = atom("key controls are enabled", true);
+const $stepHotkeyEnabled = atom("steps hotkeys are enabled", true);
+const $presentationModeHotkeyEnabled = atom(
+  "presentation mode hotkey is enabled",
+  true
+);
 
 const uiOverrides: TLUiOverrides = {
   actions(editor, actions) {
@@ -55,7 +59,7 @@ const uiOverrides: TLUiOverrides = {
       label: "Next Step",
       kbd: "right",
       onSelect() {
-        if (!$keyControlsEnabled.get()) {
+        if (!$stepHotkeyEnabled.get()) {
           return;
         }
 
@@ -76,7 +80,7 @@ const uiOverrides: TLUiOverrides = {
       label: "Previous Step",
       kbd: "left",
       onSelect() {
-        if (!$keyControlsEnabled.get()) {
+        if (!$stepHotkeyEnabled.get()) {
           return;
         }
 
@@ -97,6 +101,10 @@ const uiOverrides: TLUiOverrides = {
       label: "Toggle Presentation Mode",
       kbd: "p",
       onSelect() {
+        if (!$presentationModeHotkeyEnabled.get()) {
+          return;
+        }
+
         $presentationMode.set(!$presentationMode.get());
       },
     };
@@ -332,13 +340,14 @@ function Tlanislide(props: TlanislideProps) {
   } = props;
 
   useEffect(() => {
-    $presentationMode.set(presentationMode);
-  }, [presentationMode]);
-  useEffect(() => {
-    $keyControlsEnabled.set(step == null);
+    $stepHotkeyEnabled.set(step == null);
   }, [step]);
+  useEffect(() => {
+    $presentationModeHotkeyEnabled.set(presentationMode == null);
+  }, [presentationMode]);
 
   const editorRef = useRef<Editor | null>(null);
+
   const handleMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
@@ -346,6 +355,13 @@ function Tlanislide(props: TlanislideProps) {
     },
     [onMount]
   );
+
+  useEffect(() => {
+    if (presentationMode == null) {
+      return;
+    }
+    $presentationMode.set(presentationMode);
+  }, [presentationMode]);
 
   useEffect(() => {
     if (step == null) {
@@ -360,8 +376,8 @@ function Tlanislide(props: TlanislideProps) {
       return;
     }
 
-    const globalFrames = getOrderedSteps(editor);
-    const res = runStep(editor, globalFrames, step);
+    const orderedSteps = getOrderedSteps(editor);
+    const res = runStep(editor, orderedSteps, step);
     if (!res) {
       return;
     }
