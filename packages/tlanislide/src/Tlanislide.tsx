@@ -312,6 +312,7 @@ const Inner = track((props: InnerProps) => {
       tools={MyCustomTools}
       isShapeHidden={determineShapeHidden}
       options={{
+        maxPages: 1,
         createTextOnCanvasDoubleClick: !presentationMode,
       }}
     >
