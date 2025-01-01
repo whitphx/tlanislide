@@ -24,7 +24,7 @@ import "tldraw/tldraw.css";
 
 import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
-import { FramesPanel } from "./FramesPanel";
+import { ControlPanel } from "./ControlPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import {
   getOrderedSteps,
@@ -116,7 +116,7 @@ const uiOverrides: TLUiOverrides = {
 };
 
 const components: TLComponents = {
-  TopPanel: FramesPanel,
+  TopPanel: ControlPanel,
   Toolbar: (props) => {
     const tools = useTools();
     const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);

@@ -15,13 +15,13 @@ import {
   KeyframeData,
   getAllKeyframes,
   keyframeToJsonObject,
-} from "./models";
-import { insertKeyframe, Keyframe } from "./keyframe";
-import { KeyframeTimeline } from "./KeyframeTimeline";
-import styles from "./FramesPanel.module.scss";
-import { SlideShapeType } from "./SlideShapeUtil";
+} from "../models";
+import { insertKeyframe, Keyframe } from "../keyframe";
+import { KeyframeTimeline } from "../KeyframeTimeline";
+import styles from "./ControlPanel.module.scss";
+import { SlideShapeType } from "../SlideShapeUtil";
 
-export const FramesPanel = track(() => {
+export const ControlPanel = track(() => {
   const currentStepIndex = $currentStepIndex.get();
 
   const editor = useEditor();
