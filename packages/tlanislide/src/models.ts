@@ -67,12 +67,15 @@ export function jsonObjectToKeyframe<T extends JsonObject>(
   throw new Error(`Given input is not a valid Keyframe. ${JSON.stringify(obj)}`);
 }
 
-export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData: KeyframeData) {
-  const maxGlobalIndex = Math.max(...getAllKeyframes(editor).map((kf) => kf.globalIndex))
+export function getNextGlobalIndex<T extends JsonObject>(keyframes: Keyframe<T>[]): number {
+  const globalIndexes = keyframes.map((kf) => kf.globalIndex);
+  return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
+}
 
+export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData: KeyframeData) {
   const keyframe: Keyframe<KeyframeData> = {
     id: shapeId,
-    globalIndex: maxGlobalIndex + 1,
+    globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
     trackId: uniqueId(),
     data: keyframeData,
   }
