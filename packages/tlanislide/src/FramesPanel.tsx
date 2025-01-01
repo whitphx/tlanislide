@@ -6,10 +6,10 @@ import {
   uniqueId,
 } from "tldraw";
 import {
-  getGlobalFrames,
-  $currentFrameIndex,
+  getOrderedSteps,
+  $currentStepIndex,
   $presentationMode,
-  runFrame,
+  runStep,
   getKeyframe,
   attachKeyframe,
   KeyframeData,
@@ -22,10 +22,10 @@ import styles from "./FramesPanel.module.scss";
 import { SlideShapeType } from "./SlideShapeUtil";
 
 export const FramesPanel = track(() => {
-  const currentFrameIndex = $currentFrameIndex.get();
+  const currentStepIndex = $currentStepIndex.get();
 
   const editor = useEditor();
-  const frames = getGlobalFrames(editor);
+  const steps = getOrderedSteps(editor);
 
   const allKeyframes = getAllKeyframes(editor);
 
@@ -99,11 +99,11 @@ export const FramesPanel = track(() => {
       <KeyframeTimeline
         ks={allKeyframes}
         onKeyframesChange={handleKeyframesChange}
-        currentFrameIndex={currentFrameIndex}
-        onFrameSelect={(i) => {
-          const res = runFrame(editor, frames, i);
+        currentStepIndex={currentStepIndex}
+        onStepSelect={(i) => {
+          const res = runStep(editor, steps, i);
           if (res) {
-            $currentFrameIndex.set(i);
+            $currentStepIndex.set(i);
           }
         }}
         selectedKeyframeIds={selectedKeyframeShapes.map(

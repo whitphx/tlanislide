@@ -4,7 +4,7 @@ import { getGlobalOrder, Keyframe } from "./keyframe";
 
 export const $presentationMode = atom<boolean>("presentation mode", false);
 
-export const $currentFrameIndex = atom<number>("current frame index", 0);
+export const $currentStepIndex = atom<number>("current step index", 0);
 
 export interface KeyframeDataBase extends JsonObject {
   type: string;
@@ -116,7 +116,7 @@ export function getAllKeyframes(editor: Editor): Keyframe<KeyframeData>[] {
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
-export function getGlobalFrames(editor: Editor): Keyframe<KeyframeData>[][] {
+export function getOrderedSteps(editor: Editor): Keyframe<KeyframeData>[][] {
   const keyframes = getAllKeyframes(editor);
   const globalOrder = getGlobalOrder(keyframes);
   return globalOrder;
@@ -130,12 +130,13 @@ export function getShapeFromKeyframeId(editor: Editor, keyframeId: string): TLSh
   });
 }
 
-export function runFrame(editor: Editor, globalFrames: Keyframe<KeyframeData>[][], index: number): boolean {
-  const globalFrame = globalFrames[index];
-  if (globalFrame == null) {
+type Step = Keyframe<KeyframeData>[];
+export function runStep(editor: Editor, steps: Step[], index: number): boolean {
+  const step = steps[index];
+  if (step == null) {
     return false;
   }
-  globalFrame.forEach((keyframe) => {
+  step.forEach((keyframe) => {
     if (keyframe.data.type === "cameraZoom") {
       const shape = getShapeFromKeyframeId(editor, keyframe.id);
       if (shape == null) {
@@ -155,7 +156,7 @@ export function runFrame(editor: Editor, globalFrames: Keyframe<KeyframeData>[][
         animation: { duration, easing: EASINGS[easing] },
       });
     } else if (keyframe.data.type === "shapeAnimation") {
-      const predecessorKeyframe = globalFrames.slice(0, keyframe.globalIndex).reverse().flat().find((kf) => kf.trackId === keyframe.trackId);
+      const predecessorKeyframe = steps.slice(0, keyframe.globalIndex).reverse().flat().find((kf) => kf.trackId === keyframe.trackId);
       if (predecessorKeyframe == null) {
         return;
       }

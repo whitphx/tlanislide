@@ -237,8 +237,8 @@ const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 interface KeyframeTimelineProps {
   ks: Keyframe<KeyframeData>[];
   onKeyframesChange: (newKs: Keyframe<KeyframeData>[]) => void;
-  currentFrameIndex: number;
-  onFrameSelect: (frameIndex: number) => void;
+  currentStepIndex: number;
+  onStepSelect: (stepIndex: number) => void;
   selectedKeyframeIds: Keyframe<KeyframeData>["id"][];
   onKeyframeSelect: (keyframeId: string) => void;
   requestKeyframeAddAfter: (prevKeyframe: Keyframe<KeyframeData>) => void;
@@ -248,15 +248,15 @@ interface KeyframeTimelineProps {
 export function KeyframeTimeline({
   ks,
   onKeyframesChange,
-  currentFrameIndex,
-  onFrameSelect,
+  currentStepIndex,
+  onStepSelect,
   selectedKeyframeIds,
   onKeyframeSelect,
   requestKeyframeAddAfter,
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
-  const { globalFrames, tracks } = useMemo(() => calcKeyframeUIData(ks), [ks]);
+  const { steps, tracks } = useMemo(() => calcKeyframeUIData(ks), [ks]);
 
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
@@ -303,7 +303,7 @@ export function KeyframeTimeline({
   );
 
   const { containerRef, setColumnRef, columnIndicatorRef } =
-    useAnimatedActiveColumnIndicator(currentFrameIndex);
+    useAnimatedActiveColumnIndicator(currentStepIndex);
 
   return (
     <KeyframeMoveTogetherDndContext
@@ -327,25 +327,25 @@ export function KeyframeTimeline({
             className={styles.inbetweenDroppableCell}
           />
         </div>
-        {globalFrames.map((globalFrame, frameIdx) => {
+        {steps.map((stepFrames, stepIdx) => {
           return (
-            <React.Fragment key={globalFrame[0].id}>
-              <div className={styles.column} ref={setColumnRef(frameIdx)}>
+            <React.Fragment key={stepFrames[0].id}>
+              <div className={styles.column} ref={setColumnRef(stepIdx)}>
                 <div className={styles.headerCell}>
                   <button
-                    className={`${styles.frameButton} ${frameIdx === currentFrameIndex ? styles.selected : ""}`}
-                    onClick={() => onFrameSelect(frameIdx)}
+                    className={`${styles.frameButton} ${stepIdx === currentStepIndex ? styles.selected : ""}`}
+                    onClick={() => onStepSelect(stepIdx)}
                   >
-                    {frameIdx + 1}
+                    {stepIdx + 1}
                   </button>
                 </div>
                 <DroppableArea
                   type="at"
-                  globalIndex={frameIdx}
+                  globalIndex={stepIdx}
                   className={styles.droppableColumn}
                 >
                   {tracks.map((track) => {
-                    const trackKfs = globalFrame.filter(
+                    const trackKfs = stepFrames.filter(
                       (kf) => kf.trackId === track.id
                     );
                     return (
@@ -406,7 +406,7 @@ export function KeyframeTimeline({
               <div className={styles.headerLessColumn}>
                 <DroppableArea
                   type="after"
-                  globalIndex={frameIdx}
+                  globalIndex={stepIdx}
                   className={styles.inbetweenDroppableCell}
                 />
               </div>
@@ -415,7 +415,7 @@ export function KeyframeTimeline({
         })}
         {showAttachKeyframeButton && (
           <div className={styles.column}>
-            <div className={styles.headerCell}>{globalFrames.length + 1}</div>
+            <div className={styles.headerCell}>{steps.length + 1}</div>
             {tracks.map((track) => (
               <div key={track.id} className={styles.keyframeCell}></div>
             ))}

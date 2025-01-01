@@ -27,11 +27,11 @@ import { SlideShapeTool } from "./SlideShapeTool";
 import { FramesPanel } from "./FramesPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import {
-  getGlobalFrames,
-  $currentFrameIndex,
+  getOrderedSteps,
+  $currentStepIndex,
   $presentationMode,
   getKeyframe,
-  runFrame,
+  runStep,
   getAllKeyframes,
   detatchKeyframe,
   CameraZoomKeyframeData,
@@ -48,49 +48,47 @@ const $keyControlsEnabled = atom("key controls are enabled", true);
 
 const uiOverrides: TLUiOverrides = {
   actions(editor, actions) {
-    const $globalFrames = computed("global frames", () =>
-      getGlobalFrames(editor)
-    );
+    const $steps = computed("ordered steps", () => getOrderedSteps(editor));
 
-    actions["next-frame"] = {
-      id: "next-frame",
-      label: "Next Frame",
+    actions["next-step"] = {
+      id: "next-step",
+      label: "Next Step",
       kbd: "right",
       onSelect() {
         if (!$keyControlsEnabled.get()) {
           return;
         }
 
-        const globalFrames = $globalFrames.get();
-        const currentFrameIndex = $currentFrameIndex.get();
+        const steps = $steps.get();
+        const currentStepIndex = $currentStepIndex.get();
 
-        const nextFrameIndex = currentFrameIndex + 1;
-        const res = runFrame(editor, globalFrames, nextFrameIndex);
+        const nextStepIndex = currentStepIndex + 1;
+        const res = runStep(editor, steps, nextStepIndex);
         if (!res) {
           return;
         }
-        $currentFrameIndex.set(nextFrameIndex);
+        $currentStepIndex.set(nextStepIndex);
       },
     };
 
-    actions["prev-frame"] = {
-      id: "prev-frame",
-      label: "Previous Frame",
+    actions["prev-step"] = {
+      id: "prev-step",
+      label: "Previous Step",
       kbd: "left",
       onSelect() {
         if (!$keyControlsEnabled.get()) {
           return;
         }
 
-        const globalFrames = $globalFrames.get();
-        const currentFrameIndex = $currentFrameIndex.get();
+        const steps = $steps.get();
+        const currentStepIndex = $currentStepIndex.get();
 
-        const prevFrameIndex = currentFrameIndex - 1;
-        const res = runFrame(editor, globalFrames, prevFrameIndex);
+        const prevStepIndex = currentStepIndex - 1;
+        const res = runStep(editor, steps, prevStepIndex);
         if (!res) {
           return;
         }
-        $currentFrameIndex.set(prevFrameIndex);
+        $currentStepIndex.set(prevStepIndex);
       },
     };
 
@@ -175,14 +173,14 @@ const Inner = track((props: InnerProps) => {
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
       if (shape.type === SlideShapeType && shape.meta?.keyframe == null) {
         // Auto attach camera keyframe to the newly created slide shape
-        const globalFrames = getGlobalFrames(editor);
-        const lastCameraKeyframe = globalFrames
+        const orderedSteps = getOrderedSteps(editor);
+        const lastCameraKeyframe = orderedSteps
           .reverse()
           .flat()
           .find((kf) => kf.data.type === "cameraZoom");
         const keyframe: Keyframe<CameraZoomKeyframeData> = {
           id: uniqueId(),
-          globalIndex: globalFrames.length,
+          globalIndex: orderedSteps.length,
           trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
           data: {
             type: "cameraZoom",
@@ -211,7 +209,7 @@ const Inner = track((props: InnerProps) => {
           shape.meta.keyframe = {
             ...keyframe,
             id: uniqueId(),
-            globalIndex: getGlobalFrames(editor).length,
+            globalIndex: getOrderedSteps(editor).length,
           };
         }
         return shape;
@@ -251,15 +249,15 @@ const Inner = track((props: InnerProps) => {
       return SHOW;
     }
 
-    const globalFrames = getGlobalFrames(editor); // TODO: Cache
-    const currentFrameIndex = $currentFrameIndex.get();
-    const currentFrame = globalFrames[currentFrameIndex];
-    if (currentFrame == null) {
+    const orderedSteps = getOrderedSteps(editor); // TODO: Cache
+    const currentStepIndex = $currentStepIndex.get();
+    const currentStep = orderedSteps[currentStepIndex];
+    if (currentStep == null) {
       // Fallback: This should never happen, but if it does, show the shape
       return SHOW;
     }
 
-    const isCurrent = currentFrame
+    const isCurrent = currentStep
       .map((keyframe) => keyframe.id)
       .includes(keyframe.id);
     if (isCurrent) {
@@ -268,7 +266,7 @@ const Inner = track((props: InnerProps) => {
     }
 
     // The last frame of a finished animation should always be visible
-    const isFuture = keyframe.globalIndex > currentFrameIndex;
+    const isFuture = keyframe.globalIndex > currentStepIndex;
     if (isFuture) {
       return HIDDEN;
     }
@@ -282,7 +280,7 @@ const Inner = track((props: InnerProps) => {
       const anotherKfIsLatestInTrack =
         anotherKf.trackId === keyframe.trackId &&
         keyframe.globalIndex < anotherKf.globalIndex &&
-        anotherKf.globalIndex <= currentFrameIndex;
+        anotherKf.globalIndex <= currentStepIndex;
       return anotherKfIsLatestInTrack;
     });
     if (isLatestPrevInTrack) {
@@ -320,15 +318,15 @@ const Inner = track((props: InnerProps) => {
 const MemoizedInner = React.memo(Inner);
 
 interface TlanislideProps {
-  currentFrameIndex?: number;
-  onCurrentFrameIndexChange?: (newFrameIndex: number) => void;
+  currentStepIndex?: number;
+  onCurrentStepIndexChange?: (newStepIndex: number) => void;
   presentationMode?: boolean;
   onMount?: TldrawProps["onMount"];
 }
 function Tlanislide(props: TlanislideProps) {
   const {
-    currentFrameIndex: currentFrameIndexProp,
-    onCurrentFrameIndexChange,
+    currentStepIndex: currentStepIndexProp,
+    onCurrentStepIndexChange,
     presentationMode = false,
     onMount,
   } = props;
@@ -337,8 +335,8 @@ function Tlanislide(props: TlanislideProps) {
     $presentationMode.set(presentationMode);
   }, [presentationMode]);
   useEffect(() => {
-    $keyControlsEnabled.set(currentFrameIndexProp == null);
-  }, [currentFrameIndexProp]);
+    $keyControlsEnabled.set(currentStepIndexProp == null);
+  }, [currentStepIndexProp]);
 
   const editorRef = useRef<Editor | null>(null);
   const handleMount = useCallback(
@@ -350,10 +348,10 @@ function Tlanislide(props: TlanislideProps) {
   );
 
   useEffect(() => {
-    if (currentFrameIndexProp == null) {
+    if (currentStepIndexProp == null) {
       return;
     }
-    if ($currentFrameIndex.get() === currentFrameIndexProp) {
+    if ($currentStepIndex.get() === currentStepIndexProp) {
       return;
     }
 
@@ -362,25 +360,22 @@ function Tlanislide(props: TlanislideProps) {
       return;
     }
 
-    const globalFrames = getGlobalFrames(editor);
-    const res = runFrame(editor, globalFrames, currentFrameIndexProp);
+    const globalFrames = getOrderedSteps(editor);
+    const res = runStep(editor, globalFrames, currentStepIndexProp);
     if (!res) {
       return;
     }
-    $currentFrameIndex.set(currentFrameIndexProp);
-  }, [currentFrameIndexProp]);
+    $currentStepIndex.set(currentStepIndexProp);
+  }, [currentStepIndexProp]);
   useEffect(() => {
-    if (onCurrentFrameIndexChange == null) {
+    if (onCurrentStepIndexChange == null) {
       return;
     }
 
-    return react(
-      "current frame index to call onCurrentFrameIndexChange prop",
-      () => {
-        onCurrentFrameIndexChange($currentFrameIndex.get());
-      }
-    );
-  }, [onCurrentFrameIndexChange]);
+    return react("current frame index to call onCurrentStepIndexChange", () => {
+      onCurrentStepIndexChange($currentStepIndex.get());
+    });
+  }, [onCurrentStepIndexChange]);
 
   return <MemoizedInner onMount={handleMount} />;
 }

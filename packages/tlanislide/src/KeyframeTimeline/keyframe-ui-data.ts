@@ -11,15 +11,15 @@ export type KeyframeUIData = Keyframe<KeyframeData> & { localIndex: number };
 export function calcKeyframeUIData(
   ks: Keyframe<KeyframeData>[],
 ) {
-  const globalFrames = getGlobalOrder(ks);
-  const globalFramesUIData: KeyframeUIData[][] = [];
+  const orderedSteps = getGlobalOrder(ks);
+  const stepsUIData: KeyframeUIData[][] = [];
   const tracksMap: Record<
     string,
     { type: KeyframeData["type"]; keyframeCount: number }
   > = {};
-  for (const frame of globalFrames) {
+  for (const step of orderedSteps) {
     const frameUIData: KeyframeUIData[] = [];
-    for (const keyframe of frame) {
+    for (const keyframe of step) {
       tracksMap[keyframe.trackId] = tracksMap[keyframe.trackId] ?? {
         type: keyframe.data.type,
         keyframeCount: 0,
@@ -30,7 +30,7 @@ export function calcKeyframeUIData(
       });
       tracksMap[keyframe.trackId].keyframeCount++;
     }
-    globalFramesUIData.push(frameUIData);
+    stepsUIData.push(frameUIData);
   }
 
   const tracks: Track[] = Object.entries(tracksMap).map(
@@ -50,5 +50,5 @@ export function calcKeyframeUIData(
     return a.id.localeCompare(b.id); // TODO: Better sorting criteria?
   });
 
-  return { globalFrames: globalFramesUIData, tracks };
+  return { steps: stepsUIData, tracks };
 }
