@@ -318,15 +318,15 @@ const Inner = track((props: InnerProps) => {
 const MemoizedInner = React.memo(Inner);
 
 interface TlanislideProps {
-  currentStepIndex?: number;
-  onCurrentStepIndexChange?: (newStepIndex: number) => void;
+  step?: number;
+  onStepChange?: (newStep: number) => void;
   presentationMode?: boolean;
   onMount?: TldrawProps["onMount"];
 }
 function Tlanislide(props: TlanislideProps) {
   const {
-    currentStepIndex: currentStepIndexProp,
-    onCurrentStepIndexChange,
+    step,
+    onStepChange: onStepChange,
     presentationMode = false,
     onMount,
   } = props;
@@ -335,8 +335,8 @@ function Tlanislide(props: TlanislideProps) {
     $presentationMode.set(presentationMode);
   }, [presentationMode]);
   useEffect(() => {
-    $keyControlsEnabled.set(currentStepIndexProp == null);
-  }, [currentStepIndexProp]);
+    $keyControlsEnabled.set(step == null);
+  }, [step]);
 
   const editorRef = useRef<Editor | null>(null);
   const handleMount = useCallback(
@@ -348,10 +348,10 @@ function Tlanislide(props: TlanislideProps) {
   );
 
   useEffect(() => {
-    if (currentStepIndexProp == null) {
+    if (step == null) {
       return;
     }
-    if ($currentStepIndex.get() === currentStepIndexProp) {
+    if ($currentStepIndex.get() === step) {
       return;
     }
 
@@ -361,21 +361,21 @@ function Tlanislide(props: TlanislideProps) {
     }
 
     const globalFrames = getOrderedSteps(editor);
-    const res = runStep(editor, globalFrames, currentStepIndexProp);
+    const res = runStep(editor, globalFrames, step);
     if (!res) {
       return;
     }
-    $currentStepIndex.set(currentStepIndexProp);
-  }, [currentStepIndexProp]);
+    $currentStepIndex.set(step);
+  }, [step]);
   useEffect(() => {
-    if (onCurrentStepIndexChange == null) {
+    if (onStepChange == null) {
       return;
     }
 
     return react("current frame index to call onCurrentStepIndexChange", () => {
-      onCurrentStepIndexChange($currentStepIndex.get());
+      onStepChange($currentStepIndex.get());
     });
-  }, [onCurrentStepIndexChange]);
+  }, [onStepChange]);
 
   return <MemoizedInner onMount={handleMount} />;
 }

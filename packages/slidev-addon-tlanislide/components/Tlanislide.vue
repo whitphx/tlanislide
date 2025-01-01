@@ -3,8 +3,8 @@
     <div class="inverse-transform" ref="wrapperEl">
       <Tlanislide
         @mount="handleMount"
-        :currentFrameIndex="$clicks"
-        @currentFrameIndexChange="$clicks = $event"
+        :step="$clicks"
+        @stepChange="$clicks = $event"
         :presentationMode="true"
       />
     </div>
