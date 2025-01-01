@@ -1,10 +1,6 @@
-import { EASINGS, atom, createShapeId, uniqueId } from "tldraw";
+import { EASINGS, createShapeId, uniqueId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import { getGlobalOrder, Keyframe } from "./keyframe";
-
-export const $presentationMode = atom<boolean>("presentation mode", false);
-
-export const $currentStepIndex = atom<number>("current step index", 0);
 
 export interface KeyframeDataBase extends JsonObject {
   type: string;

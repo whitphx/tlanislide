@@ -8,10 +8,10 @@ import {
   DefaultKeyboardShortcutsDialog,
   DefaultKeyboardShortcutsDialogContent,
   computed,
-  atom,
   uniqueId,
   react,
   track,
+  useAtom,
 } from "tldraw";
 import type {
   TLUiOverrides,
@@ -24,12 +24,10 @@ import "tldraw/tldraw.css";
 
 import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
-import { ControlPanel } from "./ControlPanel";
+import { makeControlPanel } from "./ControlPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import {
   getOrderedSteps,
-  $currentStepIndex,
-  $presentationMode,
   getKeyframe,
   runStep,
   getAllKeyframes,
@@ -38,115 +36,150 @@ import {
   keyframeToJsonObject,
 } from "./models";
 import { setup } from "./debug";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Keyframe } from "./keyframe";
 
 const MyCustomShapes = [SlideShapeUtil];
 const MyCustomTools = [SlideShapeTool];
 
-const $stepHotkeyEnabled = atom("steps hotkeys are enabled", true);
-const $presentationModeHotkeyEnabled = atom(
-  "presentation mode hotkey is enabled",
-  true
-);
+// We use atoms as it's Tldraw's design,
+// but we also need to manage these states per instance of Tlanislide component
+// and isolate different instances from each other.
+// This hook is used to create such per-instance atoms.
+function usePerInstanceAtoms() {
+  const $stepHotkeyEnabled = useAtom("steps hotkeys are enabled", true);
+  const $presentationModeHotkeyEnabled = useAtom(
+    "presentation mode hotkey is enabled",
+    true
+  );
+  const $presentationMode = useAtom<boolean>("presentation mode", false);
+  const $currentStepIndex = useAtom<number>("current step index", 0);
 
-const uiOverrides: TLUiOverrides = {
-  actions(editor, actions) {
-    const $steps = computed("ordered steps", () => getOrderedSteps(editor));
-
-    actions["next-step"] = {
-      id: "next-step",
-      label: "Next Step",
-      kbd: "right",
-      onSelect() {
-        if (!$stepHotkeyEnabled.get()) {
-          return;
-        }
-
-        const steps = $steps.get();
-        const currentStepIndex = $currentStepIndex.get();
-
-        const nextStepIndex = currentStepIndex + 1;
-        const res = runStep(editor, steps, nextStepIndex);
-        if (!res) {
-          return;
-        }
-        $currentStepIndex.set(nextStepIndex);
-      },
+  return useMemo(() => {
+    return {
+      $stepHotkeyEnabled,
+      $presentationModeHotkeyEnabled,
+      $presentationMode,
+      $currentStepIndex,
     };
+  }, [
+    $stepHotkeyEnabled,
+    $presentationModeHotkeyEnabled,
+    $presentationMode,
+    $currentStepIndex,
+  ]);
+}
+type PerInstanceAtoms = ReturnType<typeof usePerInstanceAtoms>;
 
-    actions["prev-step"] = {
-      id: "prev-step",
-      label: "Previous Step",
-      kbd: "left",
-      onSelect() {
-        if (!$stepHotkeyEnabled.get()) {
-          return;
-        }
+const makeUiOverrides = ({
+  $stepHotkeyEnabled,
+  $presentationModeHotkeyEnabled,
+  $currentStepIndex,
+  $presentationMode,
+}: PerInstanceAtoms): TLUiOverrides => {
+  return {
+    actions(editor, actions) {
+      const $steps = computed("ordered steps", () => getOrderedSteps(editor));
 
-        const steps = $steps.get();
-        const currentStepIndex = $currentStepIndex.get();
+      actions["next-step"] = {
+        id: "next-step",
+        label: "Next Step",
+        kbd: "right",
+        onSelect() {
+          if (!$stepHotkeyEnabled.get()) {
+            return;
+          }
 
-        const prevStepIndex = currentStepIndex - 1;
-        const res = runStep(editor, steps, prevStepIndex);
-        if (!res) {
-          return;
-        }
-        $currentStepIndex.set(prevStepIndex);
-      },
-    };
+          const steps = $steps.get();
+          const currentStepIndex = $currentStepIndex.get();
 
-    actions["toggle-presentation-mode"] = {
-      id: "toggle-presentation-mode",
-      label: "Toggle Presentation Mode",
-      kbd: "p",
-      onSelect() {
-        if (!$presentationModeHotkeyEnabled.get()) {
-          return;
-        }
+          const nextStepIndex = currentStepIndex + 1;
+          const res = runStep(editor, steps, nextStepIndex);
+          if (!res) {
+            return;
+          }
+          $currentStepIndex.set(nextStepIndex);
+        },
+      };
 
-        $presentationMode.set(!$presentationMode.get());
-      },
-    };
+      actions["prev-step"] = {
+        id: "prev-step",
+        label: "Previous Step",
+        kbd: "left",
+        onSelect() {
+          if (!$stepHotkeyEnabled.get()) {
+            return;
+          }
 
-    return actions;
-  },
-  tools(editor, tools) {
-    tools.slide = {
-      id: SlideShapeTool.id,
-      icon: "group",
-      label: "Slide",
-      kbd: "s",
-      onSelect: () => editor.setCurrentTool(SlideShapeTool.id),
-    };
-    return tools;
-  },
+          const steps = $steps.get();
+          const currentStepIndex = $currentStepIndex.get();
+
+          const prevStepIndex = currentStepIndex - 1;
+          const res = runStep(editor, steps, prevStepIndex);
+          if (!res) {
+            return;
+          }
+          $currentStepIndex.set(prevStepIndex);
+        },
+      };
+
+      actions["toggle-presentation-mode"] = {
+        id: "toggle-presentation-mode",
+        label: "Toggle Presentation Mode",
+        kbd: "p",
+        onSelect() {
+          if (!$presentationModeHotkeyEnabled.get()) {
+            return;
+          }
+
+          $presentationMode.set(!$presentationMode.get());
+        },
+      };
+
+      return actions;
+    },
+    tools(editor, tools) {
+      tools.slide = {
+        id: SlideShapeTool.id,
+        icon: "group",
+        label: "Slide",
+        kbd: "s",
+        onSelect: () => editor.setCurrentTool(SlideShapeTool.id),
+      };
+      return tools;
+    },
+  };
 };
 
-const components: TLComponents = {
-  TopPanel: ControlPanel,
-  Toolbar: (props) => {
-    const tools = useTools();
-    const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);
-    return (
-      <DefaultToolbar {...props}>
-        <TldrawUiMenuItem
-          {...tools[SlideShapeTool.id]}
-          isSelected={isSlideToolSelected}
-        />
-        <DefaultToolbarContent />
-      </DefaultToolbar>
-    );
-  },
-  KeyboardShortcutsDialog: (props) => {
-    const tools = useTools();
-    return (
-      <DefaultKeyboardShortcutsDialog {...props}>
-        <TldrawUiMenuItem {...tools[SlideShapeTool.id]} />
-        <DefaultKeyboardShortcutsDialogContent />
-      </DefaultKeyboardShortcutsDialog>
-    );
-  },
+const makeComponents = ({
+  $currentStepIndex,
+  $presentationMode,
+}: PerInstanceAtoms): TLComponents => {
+  return {
+    TopPanel: makeControlPanel({ $currentStepIndex, $presentationMode }),
+    Toolbar: (props) => {
+      const tools = useTools();
+      const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);
+      return (
+        <DefaultToolbar {...props}>
+          <TldrawUiMenuItem
+            {...tools[SlideShapeTool.id]}
+            isSelected={isSlideToolSelected}
+          />
+          <DefaultToolbarContent />
+        </DefaultToolbar>
+      );
+    },
+    KeyboardShortcutsDialog: (props) => {
+      const tools = useTools();
+      return (
+        <DefaultKeyboardShortcutsDialog {...props}>
+          <TldrawUiMenuItem {...tools[SlideShapeTool.id]} />
+          <DefaultKeyboardShortcutsDialogContent />
+        </DefaultKeyboardShortcutsDialog>
+      );
+    },
+  };
 };
 
 const NULL_COMPONENTS_OVERRIDE = {
@@ -173,8 +206,11 @@ const NULL_COMPONENTS_OVERRIDE = {
 
 interface InnerProps {
   onMount: TldrawProps["onMount"];
+  perInstanceAtoms: PerInstanceAtoms;
 }
 const Inner = track((props: InnerProps) => {
+  const { onMount, perInstanceAtoms } = props;
+
   const handleMount = (editor: Editor) => {
     setup(editor);
 
@@ -227,7 +263,7 @@ const Inner = track((props: InnerProps) => {
       detatchKeyframe(editor, shape.id);
     });
 
-    props.onMount?.(editor);
+    onMount?.(editor);
 
     return () => {
       editor.dispose();
@@ -235,7 +271,7 @@ const Inner = track((props: InnerProps) => {
   };
 
   const determineShapeHidden = (shape: TLShape, editor: Editor): boolean => {
-    const presentationMode = $presentationMode.get();
+    const presentationMode = perInstanceAtoms.$presentationMode.get();
     const editMode = !presentationMode;
     const HIDDEN = true;
     const SHOW = false;
@@ -258,7 +294,7 @@ const Inner = track((props: InnerProps) => {
     }
 
     const orderedSteps = getOrderedSteps(editor); // TODO: Cache
-    const currentStepIndex = $currentStepIndex.get();
+    const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
     const currentStep = orderedSteps[currentStepIndex];
     if (currentStep == null) {
       // Fallback: This should never happen, but if it does, show the shape
@@ -298,16 +334,16 @@ const Inner = track((props: InnerProps) => {
     return HIDDEN;
   };
 
-  const presentationMode = $presentationMode.get();
+  const presentationMode = perInstanceAtoms.$presentationMode.get();
 
   return (
     <Tldraw
       onMount={handleMount}
       components={{
-        ...components,
+        ...makeComponents(perInstanceAtoms),
         ...(presentationMode ? NULL_COMPONENTS_OVERRIDE : {}), // Hide all UI components in presentation mode. `hideUi` option is not used because it also disables the hotkeys.
       }}
-      overrides={uiOverrides}
+      overrides={makeUiOverrides(perInstanceAtoms)}
       shapeUtils={MyCustomShapes}
       tools={MyCustomTools}
       isShapeHidden={determineShapeHidden}
@@ -333,19 +369,22 @@ interface TlanislideProps {
   onMount?: TldrawProps["onMount"];
 }
 function Tlanislide(props: TlanislideProps) {
+  const { step, onStepChange, presentationMode, onMount } = props;
+
+  const tlanislideAtoms = usePerInstanceAtoms();
   const {
-    step,
-    onStepChange: onStepChange,
-    presentationMode = false,
-    onMount,
-  } = props;
+    $currentStepIndex,
+    $presentationMode,
+    $stepHotkeyEnabled,
+    $presentationModeHotkeyEnabled,
+  } = tlanislideAtoms;
 
   useEffect(() => {
     $stepHotkeyEnabled.set(step == null);
-  }, [step]);
+  }, [$stepHotkeyEnabled, step]);
   useEffect(() => {
     $presentationModeHotkeyEnabled.set(presentationMode == null);
-  }, [presentationMode]);
+  }, [$presentationModeHotkeyEnabled, presentationMode]);
 
   const editorRef = useRef<Editor | null>(null);
 
@@ -358,11 +397,10 @@ function Tlanislide(props: TlanislideProps) {
   );
 
   useEffect(() => {
-    if (presentationMode == null) {
-      return;
+    if (presentationMode != null) {
+      $presentationMode.set(presentationMode);
     }
-    $presentationMode.set(presentationMode);
-  }, [presentationMode]);
+  }, [$presentationMode, presentationMode]);
 
   useEffect(() => {
     if (step == null) {
@@ -383,7 +421,7 @@ function Tlanislide(props: TlanislideProps) {
       return;
     }
     $currentStepIndex.set(step);
-  }, [step]);
+  }, [$currentStepIndex, step]);
   useEffect(() => {
     if (onStepChange == null) {
       return;
@@ -392,9 +430,11 @@ function Tlanislide(props: TlanislideProps) {
     return react("current frame index to call onCurrentStepIndexChange", () => {
       onStepChange($currentStepIndex.get());
     });
-  }, [onStepChange]);
+  }, [$currentStepIndex, onStepChange]);
 
-  return <MemoizedInner onMount={handleMount} />;
+  return (
+    <MemoizedInner onMount={handleMount} perInstanceAtoms={tlanislideAtoms} />
+  );
 }
 
 export default Tlanislide;
