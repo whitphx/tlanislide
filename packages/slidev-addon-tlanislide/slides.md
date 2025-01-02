@@ -4,15 +4,15 @@
 clicks: 4
 ---
 
-## TlAniSlide
+## TlAniSlide 1
 
-<Tlanislide key="a" class="w-200 h-100" />
+<Tlanislide id="deck1" class="w-200 h-100" />
 
 
 ---
 clicks: 4
 ---
 
-## TlAniSlide Edit mode
+## TlAniSlide 2
 
-<Tlanislide key="b" edit class="w-200 h-100" />
+<Tlanislide id="deck2" class="w-200 h-100" />
