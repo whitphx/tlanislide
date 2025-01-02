@@ -34,10 +34,17 @@ export default {
 <script setup lang="ts">
 // Inspired by slidev-addon-tldraw:
 // https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
-import { debounce, Editor, getSnapshot, type TLStoreSnapshot } from "tldraw";
+import {
+  debounce,
+  Editor,
+  getSnapshot,
+  getUserPreferences,
+  setUserPreferences,
+  type TLStoreSnapshot,
+} from "tldraw";
 import { ref, watch } from "vue";
 import { useCssVar, onClickOutside } from "@vueuse/core";
-import { useSlideContext } from "@slidev/client";
+import { useDarkMode, useSlideContext } from "@slidev/client";
 import "tlanislide/tlanislide.css";
 import "./tlanislide.css";
 // @ts-expect-error virtual import
@@ -57,6 +64,20 @@ const props = withDefaults(
   },
 );
 
+const { isDark } = useDarkMode();
+watch(
+  isDark,
+  (isDark) => {
+    setUserPreferences({
+      ...getUserPreferences(),
+      colorScheme: isDark ? "dark" : "light",
+    });
+  },
+  { immediate: true },
+);
+
+const { $scale, $clicks } = useSlideContext();
+
 const container = ref<HTMLElement>();
 
 const isEditing = ref(false);
@@ -73,7 +94,6 @@ onClickOutside(container, () => {
 
 // Ref: https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
 const scale = useCssVar("--slide-scale", container);
-const { $scale, $clicks } = useSlideContext();
 
 const handleMount = (editor: Editor) => {
   function save() {
