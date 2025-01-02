@@ -41,7 +41,7 @@ import {
   Editor,
   getSnapshot,
   loadSnapshot,
-  TLStoreSnapshot,
+  type TLStoreSnapshot,
 } from "tldraw";
 import { ref, shallowRef, watch } from "vue";
 import { useCssVar, onClickOutside } from "@vueuse/core";
