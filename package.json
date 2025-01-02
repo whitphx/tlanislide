@@ -1,5 +1,10 @@
 {
-	"devDependencies": {
-		"prettier": "3.4.2"
-	}
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "3.4.2"
+  }
 }
