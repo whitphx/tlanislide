@@ -14,7 +14,8 @@
     "vite.config.ts"
   ],
   "scripts": {
-    "dev": "slidev"
+    "dev": "slidev",
+    "format": "prettier . --write"
   },
   "peerDependencies": {
     "@slidev/client": ">=0.49.0",

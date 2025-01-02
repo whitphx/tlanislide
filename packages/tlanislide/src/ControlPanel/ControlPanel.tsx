@@ -36,10 +36,10 @@ export function makeControlPanel(atoms: {
 
     const selectedShapes = editor.getSelectedShapes();
     const selectedKeyframeShapes = selectedShapes.filter(
-      (shape) => getKeyframe(shape) != null
+      (shape) => getKeyframe(shape) != null,
     );
     const selectedNotKeyframeShapes = selectedShapes.filter(
-      (shape) => getKeyframe(shape) == null && shape.type !== SlideShapeType
+      (shape) => getKeyframe(shape) == null && shape.type !== SlideShapeType,
     );
 
     const handleKeyframesChange = (newKeyframes: Keyframe<KeyframeData>[]) => {
@@ -47,7 +47,7 @@ export function makeControlPanel(atoms: {
 
       const updateShapePartials = allShapes.map((shape) => {
         const newKeyframe = newKeyframes.find(
-          (kf) => kf.id === getKeyframe(shape)?.id
+          (kf) => kf.id === getKeyframe(shape)?.id,
         );
         if (newKeyframe == null) {
           return {
@@ -74,7 +74,7 @@ export function makeControlPanel(atoms: {
     const handleKeyframeSelect = (keyframeId: string) => {
       const allShapes = editor.getCurrentPageShapes();
       const targetShapes = allShapes.filter(
-        (shape) => getKeyframe(shape)?.id === keyframeId
+        (shape) => getKeyframe(shape)?.id === keyframeId,
       );
       editor.select(...targetShapes);
     };
@@ -112,7 +112,7 @@ export function makeControlPanel(atoms: {
             }
           }}
           selectedKeyframeIds={selectedKeyframeShapes.map(
-            (kf) => getKeyframe(kf)!.id
+            (kf) => getKeyframe(kf)!.id,
           )}
           onKeyframeSelect={handleKeyframeSelect}
           showAttachKeyframeButton={selectedNotKeyframeShapes.length > 0}
@@ -126,7 +126,7 @@ export function makeControlPanel(atoms: {
           requestKeyframeAddAfter={(prevKeyframe) => {
             const allShapes = editor.getCurrentPageShapes();
             const prevShape = allShapes.find(
-              (shape) => getKeyframe(shape)?.id === prevKeyframe.id
+              (shape) => getKeyframe(shape)?.id === prevKeyframe.id,
             );
             if (prevShape == null) {
               return;
@@ -160,11 +160,11 @@ export function makeControlPanel(atoms: {
                 const newKeyframes = insertKeyframe(
                   allKeyframes,
                   newKeyframe,
-                  prevKeyframe.globalIndex + 1
+                  prevKeyframe.globalIndex + 1,
                 );
                 handleKeyframesChange(newKeyframes);
               },
-              { history: "ignore" }
+              { history: "ignore" },
             );
           }}
         />

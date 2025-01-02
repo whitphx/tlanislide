@@ -42,7 +42,7 @@ export function KeyframeMoveTogetherDndContext({
 
       onDragMove?.(event);
     },
-    [onDragMove]
+    [onDragMove],
   );
 
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
@@ -50,7 +50,7 @@ export function KeyframeMoveTogetherDndContext({
       setDraggingState(null);
       onDragEnd?.(event);
     },
-    [onDragEnd]
+    [onDragEnd],
   );
   const handleDragCancel = useCallback<
     NonNullable<DndContextProps["onDragCancel"]>
@@ -59,7 +59,7 @@ export function KeyframeMoveTogetherDndContext({
       setDraggingState(null);
       onDragCancel?.(event);
     },
-    [onDragCancel]
+    [onDragCancel],
   );
 
   const draggableDOMsRef = useRef<DraggableKeyframeDOMs>({});
@@ -77,11 +77,11 @@ export function KeyframeMoveTogetherDndContext({
       draggableDOMs[trackId][localIndex] = node;
       draggableDOMsRef.current = draggableDOMs;
     },
-    []
+    [],
   );
 
   const draggableDOMOrgRectsRef = useRef<Record<string, (DOMRect | null)[]>>(
-    {}
+    {},
   );
   const initializeDOMRects = useCallback(() => {
     const draggableDOMs = draggableDOMsRef.current;
@@ -103,7 +103,7 @@ export function KeyframeMoveTogetherDndContext({
       initializeDOMRects();
       onDragStart?.(...args);
     },
-    [initializeDOMRects, onDragStart]
+    [initializeDOMRects, onDragStart],
   );
 
   const draggableDOMDeltaXs = useMemo(() => {

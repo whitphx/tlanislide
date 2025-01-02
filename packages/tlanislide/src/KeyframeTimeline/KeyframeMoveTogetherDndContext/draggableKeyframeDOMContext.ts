@@ -6,7 +6,7 @@ export interface DraggableKeyframeDOMContext {
   registerDOM: (
     trackId: string,
     localIndex: number,
-    node: HTMLElement | null
+    node: HTMLElement | null,
   ) => void;
   draggableDOMDeltaXs: DraggableKeyframeDOMDeltaXs | null;
 }

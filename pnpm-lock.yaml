@@ -6,6 +6,12 @@ settings:
 
 importers:
 
+  .:
+    devDependencies:
+      prettier:
+        specifier: 3.4.2
+        version: 3.4.2
+
   packages/slidev-addon-tlanislide:
     dependencies:
       '@vueuse/core':

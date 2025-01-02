@@ -15,7 +15,7 @@ $inbetween-droppable-cell-width: 16px;
   }
 
   .headerLessColumn {
-    padding-top: $header-row-height
+    padding-top: $header-row-height;
   }
 
   .droppableCell {
@@ -61,12 +61,13 @@ $inbetween-droppable-cell-width: 16px;
     position: absolute;
     left: 100%;
     width: $inbetween-droppable-cell-width;
-    display: none;  // Hidden by default, shown on hover
+    display: none; // Hidden by default, shown on hover
     align-items: center;
     justify-content: center;
   }
   &:not(.dragging) {
-    .keyframeControl:hover > .frameAddButtonContainer, .frameAddButtonContainer:hover {
+    .keyframeControl:hover > .frameAddButtonContainer,
+    .frameAddButtonContainer:hover {
       display: flex;
     }
   }
@@ -80,7 +81,7 @@ $inbetween-droppable-cell-width: 16px;
     display: block;
     opacity: 0;
     box-shadow: 0 0 2px 1px var(--color-selected);
-    border-radius: var(--radius-2)
+    border-radius: var(--radius-2);
   }
 }
 
@@ -146,5 +147,5 @@ button.keyframeIcon {
 }
 
 .popoverContent {
-  padding: var(--space-4)
+  padding: var(--space-4);
 }

@@ -48,7 +48,7 @@ function NumberField({ label, value, max, onChange }: NumberFieldProps) {
         onChange(intVal);
       }
     },
-    [onChange]
+    [onChange],
   );
   return (
     <div>
@@ -280,12 +280,12 @@ export function KeyframeTimeline({
           ks,
           activeId as KeyframeUIData["id"],
           overGlobalIndex,
-          overType
+          overType,
         );
         onKeyframesChange(newKs);
       }
     },
-    [ks, onKeyframesChange]
+    [ks, onKeyframesChange],
   );
 
   // To capture click events on draggable elements.
@@ -299,7 +299,7 @@ export function KeyframeTimeline({
     }),
     useSensor(MouseSensor),
     useSensor(TouchSensor),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
 
   const { containerRef, setColumnRef, columnIndicatorRef } =
@@ -346,13 +346,13 @@ export function KeyframeTimeline({
                 >
                   {tracks.map((track) => {
                     const trackKfs = stepFrames.filter(
-                      (kf) => kf.trackId === track.id
+                      (kf) => kf.trackId === track.id,
                     );
                     return (
                       <div key={track.id} className={styles.keyframeCell}>
                         {trackKfs.map((kf) => {
                           const isSelected = selectedKeyframeIds.includes(
-                            kf.id
+                            kf.id,
                           );
                           return (
                             <div key={kf.id} className={styles.keyframeControl}>
@@ -363,8 +363,8 @@ export function KeyframeTimeline({
                                     ks.map((kf) =>
                                       kf.id === newKeyframe.id
                                         ? newKeyframe
-                                        : kf
-                                    )
+                                        : kf,
+                                    ),
                                   );
                                 }}
                               >

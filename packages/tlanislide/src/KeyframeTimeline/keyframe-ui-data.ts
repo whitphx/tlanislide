@@ -8,9 +8,7 @@ export interface Track {
 
 export type KeyframeUIData = Keyframe<KeyframeData> & { localIndex: number };
 
-export function calcKeyframeUIData(
-  ks: Keyframe<KeyframeData>[],
-) {
+export function calcKeyframeUIData(ks: Keyframe<KeyframeData>[]) {
   const orderedSteps = getGlobalOrder(ks);
   const stepsUIData: KeyframeUIData[][] = [];
   const tracksMap: Record<
@@ -37,7 +35,7 @@ export function calcKeyframeUIData(
     ([trackId, { type }]) => ({
       id: trackId,
       type,
-    })
+    }),
   );
   tracks.sort((a, b) => {
     // cameraZoom should be at the top

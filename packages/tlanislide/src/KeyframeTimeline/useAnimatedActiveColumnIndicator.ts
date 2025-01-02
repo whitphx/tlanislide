@@ -34,7 +34,7 @@ export function useAnimatedActiveColumnIndicator(currentColumnIndex: number) {
       columnsRef.current[columnIndex] = node;
       moveIndicator(currentColumnIndex);
     },
-    [moveIndicator, currentColumnIndex]
+    [moveIndicator, currentColumnIndex],
   );
 
   return { containerRef, setColumnRef, columnIndicatorRef };

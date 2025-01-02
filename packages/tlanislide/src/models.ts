@@ -19,11 +19,13 @@ export interface CameraZoomKeyframeData extends KeyframeDataBase {
 export type KeyframeData = ShapeAnimationKeyframeData | CameraZoomKeyframeData;
 
 function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 // Keyframe -> JsonObject
-export function keyframeToJsonObject<T extends JsonObject>(kf: Keyframe<T>): JsonObject {
+export function keyframeToJsonObject<T extends JsonObject>(
+  kf: Keyframe<T>,
+): JsonObject {
   const { id, globalIndex, trackId, data } = kf;
   const obj = { id, globalIndex, trackId, data } satisfies JsonObject;
   return obj;
@@ -31,16 +33,15 @@ export function keyframeToJsonObject<T extends JsonObject>(kf: Keyframe<T>): Jso
 
 // unknown -> Keyframe<JsonObject>
 function isKeyframe(obj: unknown): obj is Keyframe<JsonObject> {
-  if (
-    typeof obj === 'object' && obj !== null &&
-    !Array.isArray(obj)
-  ) {
+  if (typeof obj === "object" && obj !== null && !Array.isArray(obj)) {
     const o = obj as { [key: string]: unknown };
     return (
-      typeof o.id === 'string' &&
-      typeof o.globalIndex === 'number' &&
-      typeof o.trackId === 'string' &&
-      typeof o.data === 'object' && o.data !== null && !Array.isArray(o.data)
+      typeof o.id === "string" &&
+      typeof o.globalIndex === "number" &&
+      typeof o.trackId === "string" &&
+      typeof o.data === "object" &&
+      o.data !== null &&
+      !Array.isArray(o.data)
     );
   }
   return false;
@@ -49,7 +50,7 @@ function isKeyframe(obj: unknown): obj is Keyframe<JsonObject> {
 // JsonObject -> Keyframe<T>
 export function jsonObjectToKeyframe<T extends JsonObject>(
   obj: unknown,
-  validateData?: (data: JsonObject) => data is T
+  validateData?: (data: JsonObject) => data is T,
 ): Keyframe<T> {
   if (isKeyframe(obj)) {
     // objはKeyframe<JsonObject> まで絞り込まれた
@@ -60,21 +61,29 @@ export function jsonObjectToKeyframe<T extends JsonObject>(
     // validateDataがない場合はT=JsonObjectとして返す
     return obj as Keyframe<T>;
   }
-  throw new Error(`Given input is not a valid Keyframe. ${JSON.stringify(obj)}`);
+  throw new Error(
+    `Given input is not a valid Keyframe. ${JSON.stringify(obj)}`,
+  );
 }
 
-export function getNextGlobalIndex<T extends JsonObject>(keyframes: Keyframe<T>[]): number {
+export function getNextGlobalIndex<T extends JsonObject>(
+  keyframes: Keyframe<T>[],
+): number {
   const globalIndexes = keyframes.map((kf) => kf.globalIndex);
   return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
 }
 
-export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData: KeyframeData) {
+export function attachKeyframe(
+  editor: Editor,
+  shapeId: TLShapeId,
+  keyframeData: KeyframeData,
+) {
   const keyframe: Keyframe<KeyframeData> = {
     id: shapeId,
     globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
     trackId: uniqueId(),
     data: keyframeData,
-  }
+  };
 
   const shape = editor.getShape(shapeId);
   if (shape == null) {
@@ -86,7 +95,7 @@ export function attachKeyframe(editor: Editor, shapeId: TLShapeId, keyframeData:
     meta: {
       keyframe: keyframeToJsonObject(keyframe),
     },
-  })
+  });
 }
 
 export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
@@ -100,11 +109,15 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
     meta: {
       keyframe: undefined,
     },
-  })
+  });
 }
 
-export function getKeyframe(shape: TLShape): Keyframe<KeyframeData> | undefined {
-  return isJsonObject(shape.meta.keyframe) ? jsonObjectToKeyframe(shape.meta.keyframe) : undefined;
+export function getKeyframe(
+  shape: TLShape,
+): Keyframe<KeyframeData> | undefined {
+  return isJsonObject(shape.meta.keyframe)
+    ? jsonObjectToKeyframe(shape.meta.keyframe)
+    : undefined;
 }
 
 export function getAllKeyframes(editor: Editor): Keyframe<KeyframeData>[] {
@@ -118,7 +131,10 @@ export function getOrderedSteps(editor: Editor): Keyframe<KeyframeData>[][] {
   return globalOrder;
 }
 
-export function getShapeFromKeyframeId(editor: Editor, keyframeId: string): TLShape | undefined {
+export function getShapeFromKeyframeId(
+  editor: Editor,
+  keyframeId: string,
+): TLShape | undefined {
   const shapes = editor.getCurrentPageShapes();
   return shapes.find((shape) => {
     const keyframe = getKeyframe(shape);
@@ -142,17 +158,21 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
       const { inset = 0, duration = 0, easing = "easeInCubic" } = keyframe.data;
       const immediate = duration === 0;
 
-      editor.stopCameraAnimation()
-      const bounds = editor.getShapePageBounds(shape)
-      if (!bounds) return
-      editor.selectNone()
+      editor.stopCameraAnimation();
+      const bounds = editor.getShapePageBounds(shape);
+      if (!bounds) return;
+      editor.selectNone();
       editor.zoomToBounds(bounds, {
         inset,
         immediate,
         animation: { duration, easing: EASINGS[easing] },
       });
     } else if (keyframe.data.type === "shapeAnimation") {
-      const predecessorKeyframe = steps.slice(0, keyframe.globalIndex).reverse().flat().find((kf) => kf.trackId === keyframe.trackId);
+      const predecessorKeyframe = steps
+        .slice(0, keyframe.globalIndex)
+        .reverse()
+        .flat()
+        .find((kf) => kf.trackId === keyframe.trackId);
       if (predecessorKeyframe == null) {
         return;
       }
@@ -163,58 +183,70 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
       if (shape == null) {
         return;
       }
-      const predecessorShape = getShapeFromKeyframeId(editor, predecessorKeyframe.id);
+      const predecessorShape = getShapeFromKeyframeId(
+        editor,
+        predecessorKeyframe.id,
+      );
       if (predecessorShape == null) {
         return;
       }
 
-      editor.run(() => {
-        editor.updateShape({
-          id: shape.id,
-          type: shape.id,
-          meta: {
-            ...shape.meta,
-            hiddenDuringAnimation: true,
-          }
-        })
+      editor.run(
+        () => {
+          editor.updateShape({
+            id: shape.id,
+            type: shape.id,
+            meta: {
+              ...shape.meta,
+              hiddenDuringAnimation: true,
+            },
+          });
 
-        const { duration = 0, easing = "easeInCubic" } = keyframe.data;
-        const immediate = duration === 0;
+          const { duration = 0, easing = "easeInCubic" } = keyframe.data;
+          const immediate = duration === 0;
 
-        // Create and manipulate a temporary shape for animation
-        const animeShapeId = createShapeId();
-        editor.createShape({
-          ...predecessorShape,
-          id: animeShapeId,
-          type: shape.type,
-          meta: undefined,
-        });
-        editor.animateShape({
-          ...shape,
-          id: animeShapeId,
-          meta: undefined,
-        }, {
-          immediate,
-          animation: {
-            duration,
-            easing: EASINGS[easing],
-          }
-        });
-        setTimeout(() => {
-          editor.run(() => {
-            editor.deleteShape(animeShapeId);
+          // Create and manipulate a temporary shape for animation
+          const animeShapeId = createShapeId();
+          editor.createShape({
+            ...predecessorShape,
+            id: animeShapeId,
+            type: shape.type,
+            meta: undefined,
+          });
+          editor.animateShape(
+            {
+              ...shape,
+              id: animeShapeId,
+              meta: undefined,
+            },
+            {
+              immediate,
+              animation: {
+                duration,
+                easing: EASINGS[easing],
+              },
+            },
+          );
+          setTimeout(() => {
+            editor.run(
+              () => {
+                editor.deleteShape(animeShapeId);
 
-            editor.updateShape({
-              id: shape.id,
-              type: shape.id,
-              meta: {
-                ...shape.meta,
-                hiddenDuringAnimation: false,
-              }
-            })
-          }, { history: "ignore", ignoreShapeLock: true });
-        }, duration);
-      }, { history: "ignore", ignoreShapeLock: true })
+                editor.updateShape({
+                  id: shape.id,
+                  type: shape.id,
+                  meta: {
+                    ...shape.meta,
+                    hiddenDuringAnimation: false,
+                  },
+                });
+              },
+              { history: "ignore", ignoreShapeLock: true },
+            );
+          }, duration);
+        },
+        { history: "ignore", ignoreShapeLock: true },
+      );
     }
   });
   return true;

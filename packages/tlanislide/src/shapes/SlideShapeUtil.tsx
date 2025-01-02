@@ -80,7 +80,7 @@ export class SlideShapeUtil extends ShapeUtil<SlideShape> {
                 style: "dashed",
                 lengthRatio: 6,
                 forceSolid: zoomLevel < 0.2,
-              }
+              },
             );
 
             return (

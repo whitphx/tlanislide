@@ -24,7 +24,7 @@ export function DraggableKeyframeUI({
     });
   const { registerDOM, deltaX } = useDraggableKeyframeDelta(
     trackId,
-    localIndex
+    localIndex,
   );
   const transformX = deltaX != null ? deltaX : (transform?.x ?? 0);
   const transformY = transform?.y ?? 0;

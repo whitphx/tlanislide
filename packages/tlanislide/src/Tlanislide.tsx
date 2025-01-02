@@ -47,7 +47,7 @@ function usePerInstanceAtoms() {
   const $stepHotkeyEnabled = useAtom("steps hotkeys are enabled", true);
   const $presentationModeHotkeyEnabled = useAtom(
     "presentation mode hotkey is enabled",
-    true
+    true,
   );
   const $presentationMode = useAtom<boolean>("presentation mode", false);
   const $currentStepIndex = useAtom<number>("current step index", 0);
@@ -391,7 +391,7 @@ function Tlanislide(props: TlanislideProps) {
       editorRef.current = editor;
       onMount?.(editor);
     },
-    [onMount]
+    [onMount],
   );
 
   useEffect(() => {

@@ -1,5 +1,8 @@
 import React from "react";
-import { DraggableKeyframeDOMContext, draggableKeyframeDOMContext } from "./draggableKeyframeDOMContext";
+import {
+  DraggableKeyframeDOMContext,
+  draggableKeyframeDOMContext,
+} from "./draggableKeyframeDOMContext";
 
 /**
  * When the user drags a keyframe,
@@ -13,12 +16,12 @@ interface UseDraggableKeyframeDeltaReturn {
 }
 export function useDraggableKeyframeDelta(
   trackId: string,
-  localIndex: number
+  localIndex: number,
 ): UseDraggableKeyframeDeltaReturn {
   const context = React.useContext(draggableKeyframeDOMContext);
   if (context == null) {
     throw new Error(
-      "useDraggableKeyframeDelta must be used within a DraggableKeyframeDeltaProvider"
+      "useDraggableKeyframeDelta must be used within a DraggableKeyframeDeltaProvider",
     );
   }
 

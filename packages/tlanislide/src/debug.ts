@@ -1,5 +1,5 @@
 import { Editor, createShapeId, uniqueId } from "tldraw";
-import { KeyframeData, keyframeToJsonObject } from "./models"
+import { KeyframeData, keyframeToJsonObject } from "./models";
 
 export function setup(editor: Editor) {
   const rect0Id = createShapeId("rect0");
@@ -21,7 +21,7 @@ export function setup(editor: Editor) {
         data: {
           type: "shapeAnimation",
         },
-      })
+      }),
     },
   });
 
@@ -44,8 +44,8 @@ export function setup(editor: Editor) {
           type: "shapeAnimation",
           duration: 1000,
         },
-      })
-    }
+      }),
+    },
   });
 
   const arrow0Id = createShapeId("arrow0");
@@ -73,8 +73,8 @@ export function setup(editor: Editor) {
         data: {
           type: "shapeAnimation",
         },
-      })
-    }
+      }),
+    },
   });
 
   const arrow1Id = createShapeId("arrow1");
@@ -102,8 +102,8 @@ export function setup(editor: Editor) {
           type: "shapeAnimation",
           duration: 1000,
         },
-      })
-    }
+      }),
+    },
   });
 
   const arrow2Id = createShapeId("arrow2");
@@ -130,8 +130,8 @@ export function setup(editor: Editor) {
         data: {
           type: "shapeAnimation",
         },
-      })
-    }
+      }),
+    },
   });
 
   const arrow3Id = createShapeId("arrow3");
@@ -159,7 +159,7 @@ export function setup(editor: Editor) {
           type: "shapeAnimation",
           duration: 1000,
         },
-      })
-    }
+      }),
+    },
   });
 }
