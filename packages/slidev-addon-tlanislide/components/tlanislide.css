@@ -26,3 +26,13 @@
       calc(calc(var(--slide-scale) - 1) * -50%)
     );
 }
+
+/* transparent background */
+.tl-theme__light,
+.tl-theme__dark {
+  --color-background: rgba(0, 0, 0, 0);
+}
+
+:not(.editing) .tl-container__focused {
+  outline: none;
+}

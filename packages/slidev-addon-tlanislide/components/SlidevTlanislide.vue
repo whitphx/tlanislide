@@ -1,6 +1,10 @@
 <template>
   <div>
-    <div class="inverse-transform" ref="container" @dblclick="onDblclick">
+    <div
+      :class="['inverse-transform', { editing: isEditing }]"
+      ref="container"
+      @dblclick="onDblclick"
+    >
       <Tlanislide
         @mount="handleMount"
         :step="$clicks"
