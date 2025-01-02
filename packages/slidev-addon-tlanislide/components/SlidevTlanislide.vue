@@ -1,21 +1,3 @@
-<template>
-  <div>
-    <div
-      :class="['inverse-transform', { editing: isEditing }]"
-      ref="container"
-      @dblclick="onDblclick"
-    >
-      <Tlanislide
-        @mount="handleMount"
-        :step="$clicks"
-        @stepChange="$clicks = $event"
-        :presentationMode="!isEditing"
-        :snapshot="savedSnapshot"
-      />
-    </div>
-  </div>
-</template>
-
 <script lang="ts">
 import { createRoot } from "react-dom/client";
 import { setVeauryOptions, applyPureReactInVue } from "veaury";
@@ -50,7 +32,6 @@ import { ref, watch } from "vue";
 import { useCssVar, onClickOutside } from "@vueuse/core";
 import { useDarkMode, useSlideContext } from "@slidev/client";
 import "tlanislide/tlanislide.css";
-import "./tlanislide.css";
 // @ts-expect-error virtual import
 import ALL_SNAPSHOT from "/@slidev-tlanislide-snapshot";
 
@@ -122,4 +103,59 @@ const handleMount = (editor: Editor) => {
 };
 </script>
 
-<style scoped></style>
+<template>
+  <div>
+    <div
+      :class="['container', 'inverse-transform', { editing: isEditing }]"
+      ref="container"
+      @dblclick="onDblclick"
+    >
+      <Tlanislide
+        @mount="handleMount"
+        :step="$clicks"
+        @stepChange="$clicks = $event"
+        :presentationMode="!isEditing"
+        :snapshot="savedSnapshot"
+      />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/*
+  Super thanks to https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/tldraw.css
+  It is MIT licensed as below:
+
+  ```
+  MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  ```
+*/
+
+/*
+  Slides are CSS transformed at parent level, and Tldraw breaks on such transformations.
+  Inverse the transformation to make Tldraw work correctly. (note that `all: unset` only partially works)
+*/
+.inverse-transform {
+  width: calc(var(--slide-scale) * 100%);
+  height: calc(var(--slide-scale) * 100%);
+  transform: scale(calc(1 / var(--slide-scale)))
+    translate(
+      calc(calc(var(--slide-scale) - 1) * -50%),
+      calc(calc(var(--slide-scale) - 1) * -50%)
+    );
+}
+
+.container :deep(.tl-theme__light, .tl-theme__dark) {
+  --color-background: rgba(0, 0, 0, 0);
+}
+
+.container:not(.editing) :deep(.tl-container__focused) {
+  outline: none;
+}
+</style>
