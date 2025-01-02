@@ -17,7 +17,7 @@ export default defineConfig({
       name: "tlanislide-server",
       configureServer(server) {
         root = server.config.root;
-        server.ws.on("connection", (socket, req) => {
+        server.ws.on("connection", (socket) => {
           socket.on("message", async (data) => {
             const payload = JSON.parse(data.toString());
             if (
