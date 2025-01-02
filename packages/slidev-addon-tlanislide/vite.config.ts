@@ -35,6 +35,11 @@ export default defineConfig({
                 join(snapshotDir, `${payload.data.id}.json`),
                 snapshotData,
               );
+              // Invalidate the module so that the saved snapshot is loaded on the next request.
+              const mod = server.moduleGraph.getModuleById(
+                "/@slidev-tlanislide-snapshot",
+              );
+              if (mod) server.moduleGraph.invalidateModule(mod);
             }
           });
         });
