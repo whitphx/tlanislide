@@ -18,7 +18,7 @@ import {
 import { insertKeyframe, Keyframe } from "../keyframe";
 import { KeyframeTimeline } from "../KeyframeTimeline";
 import styles from "./ControlPanel.module.scss";
-import { SlideShapeType } from "../shapes/SlideShapeUtil";
+import { SlideShapeType } from "../SlideShapeUtil";
 
 export function makeControlPanel(atoms: {
   $currentStepIndex: Atom<number>;

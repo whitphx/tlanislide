@@ -19,11 +19,12 @@ import type {
   Editor,
   TLShape,
   TldrawProps,
+  TLStoreSnapshot,
+  TLEditorSnapshot,
 } from "tldraw";
 import "tldraw/tldraw.css";
 
-import { SlideShapeType } from "./shapes/SlideShapeUtil";
-import { customShapeUtils } from "./shapes";
+import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { makeControlPanel } from "./ControlPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
@@ -38,6 +39,9 @@ import {
 } from "./models";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Keyframe } from "./keyframe";
+
+const customShapeUtils = [SlideShapeUtil];
+const customTools = [SlideShapeTool];
 
 // We use atoms as it's Tldraw's design,
 // but we also need to manage these states per instance of Tlanislide component
@@ -203,11 +207,11 @@ const NULL_COMPONENTS_OVERRIDE = {
 
 interface InnerProps {
   onMount: TldrawProps["onMount"];
-  store?: TldrawProps["store"];
+  snapshot?: TLEditorSnapshot | TLStoreSnapshot;
   perInstanceAtoms: PerInstanceAtoms;
 }
 const Inner = track((props: InnerProps) => {
-  const { onMount, store, perInstanceAtoms } = props;
+  const { onMount, snapshot, perInstanceAtoms } = props;
 
   const handleMount = (editor: Editor) => {
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
@@ -341,13 +345,13 @@ const Inner = track((props: InnerProps) => {
       }}
       overrides={makeUiOverrides(perInstanceAtoms)}
       shapeUtils={customShapeUtils}
-      tools={[SlideShapeTool]}
+      tools={customTools}
       isShapeHidden={determineShapeHidden}
       options={{
         maxPages: 1,
         createTextOnCanvasDoubleClick: !presentationMode,
       }}
-      store={store}
+      snapshot={snapshot}
     >
       {
         presentationMode && <ReadonlyOverlay /> // Prevent interactions with shapes in presentation mode. Tldraw's `readOnly` option is not used because it allows some ops like selecting shapes or editing text.
@@ -363,11 +367,11 @@ interface TlanislideProps {
   step?: number;
   onStepChange?: (newStep: number) => void;
   presentationMode?: boolean;
-  onMount?: TldrawProps["onMount"];
-  store?: TldrawProps["store"];
+  onMount?: InnerProps["onMount"];
+  snapshot?: InnerProps["snapshot"];
 }
 function Tlanislide(props: TlanislideProps) {
-  const { step, onStepChange, presentationMode, onMount, store } = props;
+  const { step, onStepChange, presentationMode, onMount, snapshot } = props;
 
   const tlanislideAtoms = usePerInstanceAtoms();
   const {
@@ -434,7 +438,7 @@ function Tlanislide(props: TlanislideProps) {
     <MemoizedInner
       onMount={handleMount}
       perInstanceAtoms={tlanislideAtoms}
-      store={store}
+      snapshot={snapshot}
     />
   );
 }

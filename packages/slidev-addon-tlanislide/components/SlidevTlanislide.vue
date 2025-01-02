@@ -6,7 +6,7 @@
         :step="$clicks"
         @stepChange="$clicks = $event"
         :presentationMode="!isEditing"
-        :store="store"
+        :snapshot="savedSnapshot"
       />
     </div>
   </div>
@@ -34,19 +34,10 @@ export default {
 <script setup lang="ts">
 // Inspired by slidev-addon-tldraw:
 // https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
-import {
-  createTLStore,
-  defaultShapeUtils,
-  debounce,
-  Editor,
-  getSnapshot,
-  loadSnapshot,
-  type TLStoreSnapshot,
-} from "tldraw";
-import { ref, shallowRef, watch } from "vue";
+import { debounce, Editor, getSnapshot, type TLStoreSnapshot } from "tldraw";
+import { ref, watch } from "vue";
 import { useCssVar, onClickOutside } from "@vueuse/core";
 import { useSlideContext } from "@slidev/client";
-import { customShapeUtils } from "tlanislide";
 import "tlanislide/tlanislide.css";
 import "./tlanislide.css";
 // @ts-expect-error virtual import
@@ -80,33 +71,22 @@ onClickOutside(container, () => {
   isEditing.value = false;
 });
 
-function save() {
-  if (isEditing.value) {
-    const { document } = getSnapshot(store);
-    import.meta.hot?.send("tlanislide-snapshot", {
-      id: props.id,
-      snapshot: { document },
-    });
-  }
-}
-const debouncedSave = debounce(save, 500);
-
-const store = createTLStore({
-  shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
-});
-if (savedSnapshot) {
-  loadSnapshot(store, savedSnapshot);
-}
-store.listen(debouncedSave, { source: "user", scope: "all" });
-
-const editorRef = shallowRef<Editor>();
-
 // Ref: https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
 const scale = useCssVar("--slide-scale", container);
 const { $scale, $clicks } = useSlideContext();
 
 const handleMount = (editor: Editor) => {
-  editorRef.value = editor;
+  function save() {
+    if (isEditing.value) {
+      const { document } = getSnapshot(editor.store);
+      import.meta.hot?.send("tlanislide-snapshot", {
+        id: props.id,
+        snapshot: { document },
+      });
+    }
+  }
+  const debouncedSave = debounce(save, 500);
+  editor.store.listen(debouncedSave, { source: "user", scope: "document" });
 
   watch(
     $scale,
