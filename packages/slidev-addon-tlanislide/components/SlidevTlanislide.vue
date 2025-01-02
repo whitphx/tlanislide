@@ -104,20 +104,18 @@ const handleMount = (editor: Editor) => {
 </script>
 
 <template>
-  <div>
-    <div
-      :class="['container', 'inverse-transform', { editing: isEditing }]"
-      ref="container"
-      @dblclick="onDblclick"
-    >
-      <Tlanislide
-        @mount="handleMount"
-        :step="$clicks"
-        @stepChange="$clicks = $event"
-        :presentationMode="!isEditing"
-        :snapshot="savedSnapshot"
-      />
-    </div>
+  <div
+    :class="['container', 'inverse-transform', { editing: isEditing }]"
+    ref="container"
+    @dblclick="onDblclick"
+  >
+    <Tlanislide
+      @mount="handleMount"
+      :step="$clicks"
+      @stepChange="$clicks = $event"
+      :presentationMode="!isEditing"
+      :snapshot="savedSnapshot"
+    />
   </div>
 </template>
 
