@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: |
+          cd packages/tlanislide && pnpm lint
+          cd ../slidev-addon-tlanislide && pnpm lint
+
+      - name: Format check
+        run: |
+          cd packages/tlanislide && pnpm format --check
+          cd ../slidev-addon-tlanislide && pnpm format --check
+
+      - name: Build tlanislide
+        run: cd packages/tlanislide && pnpm build
+
+      - name: Test tlanislide
+        run: cd packages/tlanislide && pnpm test
+
+      - name: Build slidev-addon-tlanislide
+        run: cd packages/slidev-addon-tlanislide && pnpm build
