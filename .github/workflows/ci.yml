@@ -7,8 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  tlanislide:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/tlanislide
 
     strategy:
       matrix:
@@ -29,22 +32,52 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+        working-directory: .
 
       - name: Lint
-        run: |
-          cd packages/tlanislide && pnpm lint
-          cd ../slidev-addon-tlanislide && pnpm lint
+        run: pnpm lint
 
       - name: Format check
-        run: |
-          cd packages/tlanislide && pnpm format --check
-          cd ../slidev-addon-tlanislide && pnpm format --check
+        run: pnpm format --check
 
-      - name: Build tlanislide
-        run: cd packages/tlanislide && pnpm build
+      - name: Build
+        run: pnpm build
 
-      - name: Test tlanislide
-        run: cd packages/tlanislide && pnpm test
+      - name: Test
+        run: pnpm test
 
-      - name: Build slidev-addon-tlanislide
-        run: cd packages/slidev-addon-tlanislide && pnpm build
+  slidev-addon-tlanislide:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/slidev-addon-tlanislide
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: .
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format --check
+
+      - name: Build
+        run: pnpm build
