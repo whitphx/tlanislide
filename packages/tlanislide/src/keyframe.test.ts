@@ -93,7 +93,7 @@ describe("Keyframe Implementation Tests", () => {
       expect(res[3][0].id).toBe("k2");
     });
 
-    it.skip("should detect a conflict if two Keyframes have the same trackId and the same globalIndex", () => {
+    it("should detect a conflict if two Keyframes have the same trackId and the same globalIndex", () => {
       // Same track => must form a strictly ascending chain by globalIndex
       // But here we have two Keyframes in track "A" both at globalIndex=2 => conflict
       const ks = [makeKF("k1", 2, "A"), makeKF("k2", 2, "A")];

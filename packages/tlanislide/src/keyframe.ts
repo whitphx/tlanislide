@@ -21,6 +21,18 @@ export function getGlobalOrder<T extends JsonObject>(
   const copy = ks.map((k) => ({ ...k }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
+  // 1.5 Check for conflicts (same trackId and globalIndex)
+  for (let i = 0; i < copy.length - 1; i++) {
+    const current = copy[i];
+    const next = copy[i + 1];
+    if (
+      current.trackId === next.trackId &&
+      current.globalIndex === next.globalIndex
+    ) {
+      throw new Error("Cycle or conflict: same trackId and globalIndex");
+    }
+  }
+
   // 2. DAG構築
   const graph = new Map<string, string[]>();
   const indeg = new Map<string, number>();
