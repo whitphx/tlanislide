@@ -21,18 +21,6 @@ export function getGlobalOrder<T extends JsonObject>(
   const copy = ks.map((k) => ({ ...k }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
-  // 1.5 Check for conflicts (same trackId and globalIndex)
-  for (let i = 0; i < copy.length - 1; i++) {
-    const current = copy[i];
-    const next = copy[i + 1];
-    if (
-      current.trackId === next.trackId &&
-      current.globalIndex === next.globalIndex
-    ) {
-      throw new Error("Cycle or conflict: same trackId and globalIndex");
-    }
-  }
-
   // 2. DAG構築
   const graph = new Map<string, string[]>();
   const indeg = new Map<string, number>();
@@ -47,10 +35,20 @@ export function getGlobalOrder<T extends JsonObject>(
     for (let j = i + 1; j < copy.length; j++) {
       const a = copy[i],
         b = copy[j];
-      // 同じ局所ID & a< b => a->b
-      if (a.trackId === b.trackId && a.globalIndex < b.globalIndex) {
-        graph.get(a.id)!.push(b.id);
-        indeg.set(b.id, indeg.get(b.id)! + 1);
+      // Handle same trackId cases:
+      // 1. If a.globalIndex < b.globalIndex => a->b (normal case)
+      // 2. If a.globalIndex === b.globalIndex => create cycle (a->b and b->a)
+      if (a.trackId === b.trackId) {
+        if (a.globalIndex < b.globalIndex) {
+          graph.get(a.id)!.push(b.id);
+          indeg.set(b.id, indeg.get(b.id)! + 1);
+        } else if (a.globalIndex === b.globalIndex) {
+          // Create a cycle to represent the conflict
+          graph.get(a.id)!.push(b.id);
+          graph.get(b.id)!.push(a.id);
+          indeg.set(b.id, indeg.get(b.id)! + 1);
+          indeg.set(a.id, indeg.get(a.id)! + 1);
+        }
       }
     }
   }

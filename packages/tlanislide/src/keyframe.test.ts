@@ -97,9 +97,8 @@ describe("Keyframe Implementation Tests", () => {
       // Same track => must form a strictly ascending chain by globalIndex
       // But here we have two Keyframes in track "A" both at globalIndex=2 => conflict
       const ks = [makeKF("k1", 2, "A"), makeKF("k2", 2, "A")];
-      // This results in a local-edge a->b for a.globalIndex<b.globalIndex,
-      // but they are equal => can't form an order => cycle or conflict
-      // TODO: Fix this test - currently skipped due to failing assertion
+      // This results in a cycle in the DAG since both keyframes try to order before each other,
+      // which correctly represents the conflict of same trackId and globalIndex
       expect(() => getGlobalOrder(ks)).toThrowError("Cycle or conflict");
     });
   });
