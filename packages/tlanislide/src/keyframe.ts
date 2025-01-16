@@ -17,11 +17,23 @@ export interface Keyframe<T extends JsonObject> {
 export function getGlobalOrder<T extends JsonObject>(
   ks: Keyframe<T>[],
 ): Keyframe<T>[][] {
-  // 1. 複製 & globalIndex昇順でソート
+  // 1. Copy & sort by globalIndex
   const copy = ks.map((k) => ({ ...k }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
-  // 2. DAG構築
+  // 2. Early conflict detection using double nested loop
+  for (let i = 0; i < copy.length; i++) {
+    for (let j = i + 1; j < copy.length; j++) {
+      if (
+        copy[i].trackId === copy[j].trackId &&
+        copy[i].globalIndex === copy[j].globalIndex
+      ) {
+        throw new Error("Cycle or conflict: same trackId and globalIndex");
+      }
+    }
+  }
+
+  // 3. DAG construction for topological sort
   const graph = new Map<string, string[]>();
   const indeg = new Map<string, number>();
   for (const kf of copy) {
@@ -29,13 +41,11 @@ export function getGlobalOrder<T extends JsonObject>(
     indeg.set(kf.id, 0);
   }
 
-  // 2.1 同じ trackId で a.globalIndex < b.globalIndex => a->b
-  //     (線形な局所順序があるだけなら、a,bで a->bを張ればよい)
+  // 3.1 Add edges for same trackId with ascending globalIndex
   for (let i = 0; i < copy.length; i++) {
     for (let j = i + 1; j < copy.length; j++) {
       const a = copy[i],
         b = copy[j];
-      // 同じ局所ID & a< b => a->b
       if (a.trackId === b.trackId && a.globalIndex < b.globalIndex) {
         graph.get(a.id)!.push(b.id);
         indeg.set(b.id, indeg.get(b.id)! + 1);
@@ -43,8 +53,7 @@ export function getGlobalOrder<T extends JsonObject>(
     }
   }
 
-  // 2.2 全体で a.globalIndex < b.globalIndex => a->b (オプション)
-  //     ユーザー要件: "全体順序でも globalIndex 昇順を優先"
+  // 3.2 Add edges for global ordering by globalIndex
   for (let i = 0; i < copy.length; i++) {
     for (let j = i + 1; j < copy.length; j++) {
       const a = copy[i],
@@ -56,7 +65,7 @@ export function getGlobalOrder<T extends JsonObject>(
     }
   }
 
-  // 3. トポロジカルソート
+  // 4. Topological sort
   const queue: string[] = [];
   for (const [id, deg] of indeg) {
     if (deg === 0) queue.push(id);
@@ -74,10 +83,10 @@ export function getGlobalOrder<T extends JsonObject>(
     }
   }
   if (sorted.length < copy.length) {
-    throw new Error("Cycle or conflict in getGlobalOrder");
+    throw new Error("Cycle or conflict: topological sort failed");
   }
 
-  // 4. globalIndex毎にまとめ
+  // 5. Group by globalIndex
   const byId = new Map<string, Keyframe<T>>();
   for (const c of copy) byId.set(c.id, c);
 

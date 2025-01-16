@@ -93,13 +93,21 @@ describe("Keyframe Implementation Tests", () => {
       expect(res[3][0].id).toBe("k2");
     });
 
-    it.skip("should detect a conflict if two Keyframes have the same trackId and the same globalIndex", () => {
+    it("should detect a conflict if two Keyframes have the same trackId and the same globalIndex", () => {
       // Same track => must form a strictly ascending chain by globalIndex
       // But here we have two Keyframes in track "A" both at globalIndex=2 => conflict
       const ks = [makeKF("k1", 2, "A"), makeKF("k2", 2, "A")];
-      // This results in a local-edge a->b for a.globalIndex<b.globalIndex,
-      // but they are equal => can't form an order => cycle or conflict
-      // TODO: Fix this test - currently skipped due to failing assertion
+      expect(() => getGlobalOrder(ks)).toThrowError("Cycle or conflict");
+    });
+
+    it("should detect a conflict in non-adjacent keyframes with same trackId/index", () => {
+      // This test verifies that the conflict detection works even when the conflicting
+      // keyframes are not adjacent after sorting by globalIndex
+      const ks = [
+        makeKF("k1", 2, "A"),
+        makeKF("k3", 3, "B"),
+        makeKF("k2", 2, "A"),
+      ];
       expect(() => getGlobalOrder(ks)).toThrowError("Cycle or conflict");
     });
   });
