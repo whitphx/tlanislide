@@ -17,13 +17,11 @@ export interface Keyframe<T extends JsonObject> {
 export function getGlobalOrder<T extends JsonObject>(
   ks: Keyframe<T>[],
 ): Keyframe<T>[][] {
-  // 1. 複製 & globalIndex昇順でソート
+  // 1. Copy & sort by globalIndex
   const copy = ks.map((k) => ({ ...k }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
-  // 1.5 Check for conflicts (same trackId and globalIndex)
-  // Use double nested loop to check all combinations of keyframes
-  // This catches conflicts even if the keyframes aren't adjacent after sorting
+  // 2. Early conflict detection using double nested loop
   for (let i = 0; i < copy.length; i++) {
     for (let j = i + 1; j < copy.length; j++) {
       if (
@@ -35,19 +33,85 @@ export function getGlobalOrder<T extends JsonObject>(
     }
   }
 
-  // 2. Group by globalIndex
+  // 3. DAG construction for topological sort
+  const graph = new Map<string, string[]>();
+  const indeg = new Map<string, number>();
+  for (const kf of copy) {
+    graph.set(kf.id, []);
+    indeg.set(kf.id, 0);
+  }
+
+  // 3.1 Add edges for same trackId with ascending globalIndex
+  for (let i = 0; i < copy.length; i++) {
+    for (let j = i + 1; j < copy.length; j++) {
+      const a = copy[i],
+        b = copy[j];
+      if (a.trackId === b.trackId && a.globalIndex < b.globalIndex) {
+        graph.get(a.id)!.push(b.id);
+        indeg.set(b.id, indeg.get(b.id)! + 1);
+      }
+    }
+  }
+
+  // 3.2 Add edges for global ordering by globalIndex
+  for (let i = 0; i < copy.length; i++) {
+    for (let j = i + 1; j < copy.length; j++) {
+      const a = copy[i],
+        b = copy[j];
+      if (a.globalIndex < b.globalIndex) {
+        graph.get(a.id)!.push(b.id);
+        indeg.set(b.id, indeg.get(b.id)! + 1);
+      }
+    }
+  }
+
+  // 4. Topological sort
+  const queue: string[] = [];
+  for (const [id, deg] of indeg) {
+    if (deg === 0) queue.push(id);
+  }
+  const sorted: string[] = [];
+  while (queue.length) {
+    const u = queue.shift()!;
+    sorted.push(u);
+    for (const v of graph.get(u)!) {
+      const d = indeg.get(v)! - 1;
+      indeg.set(v, d);
+      if (d === 0) {
+        queue.push(v);
+      }
+    }
+  }
+  if (sorted.length < copy.length) {
+    throw new Error("Cycle or conflict: topological sort failed");
+  }
+
+  // 5. Group by globalIndex
+  const byId = new Map<string, Keyframe<T>>();
+  for (const c of copy) byId.set(c.id, c);
+
+  const visited = new Set<string>();
   const result: Keyframe<T>[][] = [];
   let currentGroup: Keyframe<T>[] = [];
   let currentIndex = -1;
 
-  for (const kf of copy) {
+  for (const id of sorted) {
+    if (visited.has(id)) continue;
+    visited.add(id);
+    const kf = byId.get(id)!;
     if (kf.globalIndex !== currentIndex) {
+      if (currentGroup.length > 0) {
+        result.push(currentGroup);
+      }
       currentGroup = [];
-      result.push(currentGroup);
       currentIndex = kf.globalIndex;
     }
     currentGroup.push(kf);
   }
+  if (currentGroup.length > 0) {
+    result.push(currentGroup);
+  }
+
   return result;
 }
 
