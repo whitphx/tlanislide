@@ -21,85 +21,26 @@ export function getGlobalOrder<T extends JsonObject>(
   const copy = ks.map((k) => ({ ...k }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
-  // 2. DAG構築
-  const graph = new Map<string, string[]>();
-  const indeg = new Map<string, number>();
-  for (const kf of copy) {
-    graph.set(kf.id, []);
-    indeg.set(kf.id, 0);
-  }
-
-  // 2.1 同じ trackId で a.globalIndex < b.globalIndex => a->b
-  //     (線形な局所順序があるだけなら、a,bで a->bを張ればよい)
+  // 1.5 Check for conflicts (same trackId and globalIndex)
+  // Use double nested loop to check all combinations of keyframes
+  // This catches conflicts even if the keyframes aren't adjacent after sorting
   for (let i = 0; i < copy.length; i++) {
     for (let j = i + 1; j < copy.length; j++) {
-      const a = copy[i],
-        b = copy[j];
-      // Handle same trackId cases:
-      // 1. If a.globalIndex < b.globalIndex => a->b (normal case)
-      // 2. If a.globalIndex === b.globalIndex => create cycle (a->b and b->a)
-      if (a.trackId === b.trackId) {
-        if (a.globalIndex < b.globalIndex) {
-          graph.get(a.id)!.push(b.id);
-          indeg.set(b.id, indeg.get(b.id)! + 1);
-        } else if (a.globalIndex === b.globalIndex) {
-          // Create a cycle to represent the conflict
-          graph.get(a.id)!.push(b.id);
-          graph.get(b.id)!.push(a.id);
-          indeg.set(b.id, indeg.get(b.id)! + 1);
-          indeg.set(a.id, indeg.get(a.id)! + 1);
-        }
+      if (
+        copy[i].trackId === copy[j].trackId &&
+        copy[i].globalIndex === copy[j].globalIndex
+      ) {
+        throw new Error("Cycle or conflict: same trackId and globalIndex");
       }
     }
   }
 
-  // 2.2 全体で a.globalIndex < b.globalIndex => a->b (オプション)
-  //     ユーザー要件: "全体順序でも globalIndex 昇順を優先"
-  for (let i = 0; i < copy.length; i++) {
-    for (let j = i + 1; j < copy.length; j++) {
-      const a = copy[i],
-        b = copy[j];
-      if (a.globalIndex < b.globalIndex) {
-        graph.get(a.id)!.push(b.id);
-        indeg.set(b.id, indeg.get(b.id)! + 1);
-      }
-    }
-  }
-
-  // 3. トポロジカルソート
-  const queue: string[] = [];
-  for (const [id, deg] of indeg) {
-    if (deg === 0) queue.push(id);
-  }
-  const sorted: string[] = [];
-  while (queue.length) {
-    const u = queue.shift()!;
-    sorted.push(u);
-    for (const v of graph.get(u)!) {
-      const d = indeg.get(v)! - 1;
-      indeg.set(v, d);
-      if (d === 0) {
-        queue.push(v);
-      }
-    }
-  }
-  if (sorted.length < copy.length) {
-    throw new Error("Cycle or conflict in getGlobalOrder");
-  }
-
-  // 4. globalIndex毎にまとめ
-  const byId = new Map<string, Keyframe<T>>();
-  for (const c of copy) byId.set(c.id, c);
-
-  const visited = new Set<string>();
+  // 2. Group by globalIndex
   const result: Keyframe<T>[][] = [];
   let currentGroup: Keyframe<T>[] = [];
   let currentIndex = -1;
 
-  for (const id of sorted) {
-    if (visited.has(id)) continue;
-    visited.add(id);
-    const kf = byId.get(id)!;
+  for (const kf of copy) {
     if (kf.globalIndex !== currentIndex) {
       currentGroup = [];
       result.push(currentGroup);
