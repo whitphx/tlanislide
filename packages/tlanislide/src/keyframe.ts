@@ -100,18 +100,12 @@ export function getGlobalOrder<T extends JsonObject>(
     visited.add(id);
     const kf = byId.get(id)!;
     if (kf.globalIndex !== currentIndex) {
-      if (currentGroup.length > 0) {
-        result.push(currentGroup);
-      }
       currentGroup = [];
+      result.push(currentGroup);
       currentIndex = kf.globalIndex;
     }
     currentGroup.push(kf);
   }
-  if (currentGroup.length > 0) {
-    result.push(currentGroup);
-  }
-
   return result;
 }
 
