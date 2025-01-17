@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
 import { KeyframeData, keyframeToJsonObject } from "./models";
-import Tlanislide from "./Tlanislide.tsx";
+import { Tlanislide } from "./Tlanislide.tsx";
 
 function setupDevMock(editor: Editor) {
   const rect0Id = createShapeId("rect0");

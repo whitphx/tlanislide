@@ -37,7 +37,13 @@ import {
   CameraZoomKeyframeData,
   keyframeToJsonObject,
 } from "./models";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 import { Keyframe } from "./keyframe";
 
 const customShapeUtils = [SlideShapeUtil];
@@ -363,84 +369,104 @@ const Inner = track((props: InnerProps) => {
 // IMPORTANT: Memoization is necessary to prevent re-rendering of the entire Tldraw component tree and recreating the editor instance when the most outer `Tlanislide` component's props change, which typically happens when the current frame index changes in the parent component.
 const MemoizedInner = React.memo(Inner);
 
-interface TlanislideProps {
+export interface TlanislideProps {
   step?: number;
   onStepChange?: (newStep: number) => void;
   presentationMode?: boolean;
   onMount?: InnerProps["onMount"];
   snapshot?: InnerProps["snapshot"];
 }
-function Tlanislide(props: TlanislideProps) {
-  const { step, onStepChange, presentationMode, onMount, snapshot } = props;
-
-  const tlanislideAtoms = usePerInstanceAtoms();
-  const {
-    $currentStepIndex,
-    $presentationMode,
-    $stepHotkeyEnabled,
-    $presentationModeHotkeyEnabled,
-  } = tlanislideAtoms;
-
-  useEffect(() => {
-    $stepHotkeyEnabled.set(step == null);
-  }, [$stepHotkeyEnabled, step]);
-  useEffect(() => {
-    $presentationModeHotkeyEnabled.set(presentationMode == null);
-  }, [$presentationModeHotkeyEnabled, presentationMode]);
-
-  const editorRef = useRef<Editor | null>(null);
-
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      editorRef.current = editor;
-      onMount?.(editor);
-    },
-    [onMount],
-  );
-
-  useEffect(() => {
-    if (presentationMode != null) {
-      $presentationMode.set(presentationMode);
-    }
-  }, [$presentationMode, presentationMode]);
-
-  useEffect(() => {
-    if (step == null) {
-      return;
-    }
-    if ($currentStepIndex.get() === step) {
-      return;
-    }
-
-    const editor = editorRef.current;
-    if (editor == null) {
-      return;
-    }
-
-    const orderedSteps = getOrderedSteps(editor);
-    const res = runStep(editor, orderedSteps, step);
-    if (!res) {
-      return;
-    }
-    $currentStepIndex.set(step);
-  }, [$currentStepIndex, step]);
-  useEffect(() => {
-    if (onStepChange == null) {
-      return;
-    }
-
-    return react("current frame index to call onCurrentStepIndexChange", () => {
-      onStepChange($currentStepIndex.get());
-    });
-  }, [$currentStepIndex, onStepChange]);
-
-  return (
-    <MemoizedInner
-      onMount={handleMount}
-      perInstanceAtoms={tlanislideAtoms}
-      snapshot={snapshot}
-    />
-  );
+export interface TlanislideRef {
+  rerunStep: () => void;
 }
+export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
+  (props, ref) => {
+    const { step, onStepChange, presentationMode, onMount, snapshot } = props;
 
-export default Tlanislide;
+    const tlanislideAtoms = usePerInstanceAtoms();
+    const {
+      $currentStepIndex,
+      $presentationMode,
+      $stepHotkeyEnabled,
+      $presentationModeHotkeyEnabled,
+    } = tlanislideAtoms;
+
+    useEffect(() => {
+      $stepHotkeyEnabled.set(step == null);
+    }, [$stepHotkeyEnabled, step]);
+    useEffect(() => {
+      $presentationModeHotkeyEnabled.set(presentationMode == null);
+    }, [$presentationModeHotkeyEnabled, presentationMode]);
+
+    const editorRef = useRef<Editor | null>(null);
+
+    const handleMount = useCallback(
+      (editor: Editor) => {
+        editorRef.current = editor;
+        onMount?.(editor);
+      },
+      [onMount],
+    );
+
+    useEffect(() => {
+      if (presentationMode != null) {
+        $presentationMode.set(presentationMode);
+      }
+    }, [$presentationMode, presentationMode]);
+
+    useEffect(() => {
+      if (step == null) {
+        return;
+      }
+      if ($currentStepIndex.get() === step) {
+        return;
+      }
+
+      const editor = editorRef.current;
+      if (editor == null) {
+        return;
+      }
+
+      const orderedSteps = getOrderedSteps(editor);
+      const res = runStep(editor, orderedSteps, step);
+      if (!res) {
+        return;
+      }
+      $currentStepIndex.set(step);
+    }, [$currentStepIndex, step]);
+    useEffect(() => {
+      if (onStepChange == null) {
+        return;
+      }
+
+      return react(
+        "current frame index to call onCurrentStepIndexChange",
+        () => {
+          onStepChange($currentStepIndex.get());
+        },
+      );
+    }, [$currentStepIndex, onStepChange]);
+
+    useImperativeHandle(ref, () => ({
+      rerunStep: () => {
+        if (editorRef.current == null) {
+          return;
+        }
+        runStep(
+          editorRef.current,
+          getOrderedSteps(editorRef.current),
+          $currentStepIndex.get(),
+        );
+      },
+    }));
+
+    return (
+      <MemoizedInner
+        onMount={handleMount}
+        perInstanceAtoms={tlanislideAtoms}
+        snapshot={snapshot}
+      />
+    );
+  },
+);
+Tlanislide.displayName = "Tlanislide";
