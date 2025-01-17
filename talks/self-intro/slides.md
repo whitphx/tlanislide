@@ -21,10 +21,14 @@ transition: fade-out
 
 Software Developer / Indie Dev / OSS Enthusiast
 
+<v-clicks>
+
 - ML Developer Advocate at Hugging Face
 - Streamlit Creator
 
-<div my-10 w-min flex="~ gap-1" items-center justify-center>
+</v-clicks>
+
+<div my-10 w-min flex="~ gap-1" items-center justify-center v-click>
   <div i-ri-user-3-line op50 ma text-xl />
   <div><a href="https://whitphx.info/" target="_blank" class="border-none! font-300">whitphx.info</a></div>
   <div i-ri-github-line op50 ma text-xl ml4/>
@@ -50,7 +54,7 @@ Software Developer / Indie Dev / OSS Enthusiast
   - Gradio
 
 ---
-clicks: 10
+clicks: 7
 ---
 
 # My OSS history

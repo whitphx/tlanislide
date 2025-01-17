@@ -284,11 +284,11 @@
         "props": {
           "color": "black",
           "size": "m",
-          "w": 98.94921875,
+          "w": 111.47730022612961,
           "text": "2021/02",
           "font": "draw",
           "textAlign": "start",
-          "autoSize": true,
+          "autoSize": false,
           "scale": 1
         },
         "parentId": "page:page",
