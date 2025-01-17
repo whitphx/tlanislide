@@ -36,14 +36,6 @@ Software Developer / Indie Dev / OSS Enthusiast
 </div>
 
 ---
-clicks: 1
----
-
-# My career
-
-<SlidevTlanislide id="career-timeline" />
-
----
 
 # My OSS contributions
 
@@ -56,3 +48,11 @@ clicks: 1
 - Contributed:
   - Streamlit
   - Gradio
+
+---
+clicks: 10
+---
+
+# My OSS history
+
+<SlidevTlanislide id="career-timeline" />
