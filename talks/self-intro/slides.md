@@ -36,9 +36,23 @@ Software Developer / Indie Dev / OSS Enthusiast
 </div>
 
 ---
-clicks: 2
+clicks: 1
 ---
 
 # My career
 
 <SlidevTlanislide id="career-timeline" />
+
+---
+
+# My OSS contributions
+
+- Created:
+  - Stlite: In-browser Streamlit
+  - Gradio-Lite: Serverless Gradio
+  - Awesome Emacs Keymap
+  - Streamlit-WebRTC
+  - Tlanislide
+- Contributed:
+  - Streamlit
+  - Gradio
