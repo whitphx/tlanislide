@@ -12,8 +12,8 @@ addons:
 ---
 
 ---
-
-## transition: fade-out
+transition: fade-out
+---
 
 # Yuichiro Tachibana
 
@@ -22,8 +22,8 @@ Software Developer
 ML Developer Advocate at Hugging Face🤗
 
 ---
-
-## clicks: 2
+clicks: 2
+---
 
 # My career
 
