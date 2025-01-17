@@ -1,1 +1,1 @@
-export { default as Tlanislide } from "./Tlanislide.tsx";
+export * from "./Tlanislide.tsx";

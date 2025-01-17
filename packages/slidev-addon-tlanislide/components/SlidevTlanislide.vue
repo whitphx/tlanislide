@@ -1,7 +1,10 @@
 <script lang="ts">
 import { createRoot } from "react-dom/client";
 import { setVeauryOptions, applyPureReactInVue } from "veaury";
-import { Tlanislide as TlanislideReact } from "tlanislide";
+import {
+  Tlanislide as TlanislideReact,
+  type TlanislideRef as TlanislideReactRef,
+} from "tlanislide";
 
 setVeauryOptions({
   react: {
@@ -28,9 +31,9 @@ import {
   setUserPreferences,
   type TLStoreSnapshot,
 } from "tldraw";
-import { ref, watch } from "vue";
+import { ref, useTemplateRef, watch } from "vue";
 import { useCssVar, onClickOutside } from "@vueuse/core";
-import { useDarkMode, useSlideContext } from "@slidev/client";
+import { onSlideEnter, useDarkMode, useSlideContext } from "@slidev/client";
 import "tlanislide/tlanislide.css";
 // @ts-expect-error virtual import
 import ALL_SNAPSHOT from "/@slidev-tlanislide-snapshot";
@@ -80,6 +83,24 @@ onClickOutside(container, () => {
 // Ref: https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
 const scale = useCssVar("--slide-scale", container);
 
+const tlanislideRef = useTemplateRef<{
+  __veauryReactRef__?: TlanislideReactRef;
+}>("tlanislide");
+function rerender() {
+  if (tlanislideRef.value && tlanislideRef.value.__veauryReactRef__) {
+    tlanislideRef.value.__veauryReactRef__.rerunStep();
+  }
+}
+
+onSlideEnter(() => {
+  rerender();
+  // An immediate rerender is sometimes not enough to make the slide rerender.
+  // So we do a second rerender after a short delay.
+  setTimeout(() => {
+    rerender();
+  }, 100);
+});
+
 const handleMount = (editor: Editor) => {
   function save() {
     if (isEditing.value) {
@@ -97,6 +118,15 @@ const handleMount = (editor: Editor) => {
     $scale,
     (newScale) => {
       scale.value = String(newScale);
+
+      setTimeout(() => {
+        rerender();
+      });
+      // An immediate rerender is sometimes not enough to make the slide rerender.
+      // So we do a second rerender after a short delay.
+      setTimeout(() => {
+        rerender();
+      }, 100);
     },
     { immediate: true },
   );
@@ -110,6 +140,7 @@ const handleMount = (editor: Editor) => {
     @dblclick="onDblclick"
   >
     <Tlanislide
+      ref="tlanislide"
       @mount="handleMount"
       :step="$clicks"
       @stepChange="$clicks = $event"
