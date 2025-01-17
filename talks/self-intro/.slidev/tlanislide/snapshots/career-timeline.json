@@ -62,11 +62,11 @@
         "props": {
           "color": "black",
           "size": "m",
-          "w": 100.580078125,
+          "w": 108.66799289159388,
           "text": "2023/01",
           "font": "draw",
           "textAlign": "start",
-          "autoSize": true,
+          "autoSize": false,
           "scale": 1
         },
         "parentId": "page:page",
@@ -146,11 +146,11 @@
         "props": {
           "color": "black",
           "size": "m",
-          "w": 92.728515625,
+          "w": 102.15171003741332,
           "text": "2021/01",
           "font": "draw",
           "textAlign": "start",
-          "autoSize": true,
+          "autoSize": false,
           "scale": 1
         },
         "parentId": "page:page",
