@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
-import { Keyframe } from "./models";
+import { Keyframe, SubFrame } from "./models";
 import { Tlanislide } from "./Tlanislide.tsx";
 
 function setupDevMock(editor: Editor) {
@@ -28,6 +28,7 @@ function setupDevMock(editor: Editor) {
   });
 
   const rect1Id = createShapeId("rect1");
+  const rect1FrameId = uniqueId();
   editor.createShape({
     id: rect1Id,
     type: "geo",
@@ -39,7 +40,7 @@ function setupDevMock(editor: Editor) {
     },
     meta: {
       keyframe: {
-        id: uniqueId(),
+        id: rect1FrameId,
         globalIndex: 1,
         trackId: rectTrackId,
         data: {
@@ -47,6 +48,28 @@ function setupDevMock(editor: Editor) {
           duration: 1000,
         },
       } satisfies Keyframe,
+    },
+  });
+
+  const rect2Id = createShapeId("rect2");
+  editor.createShape({
+    id: rect2Id,
+    type: "geo",
+    x: 300,
+    y: 0,
+    props: {
+      w: 100,
+      h: 150,
+    },
+    meta: {
+      subFrame: {
+        id: uniqueId(),
+        prevFrameId: rect1FrameId,
+        data: {
+          type: "shapeAnimation",
+          duration: 2000,
+        },
+      } satisfies SubFrame,
     },
   });
 
