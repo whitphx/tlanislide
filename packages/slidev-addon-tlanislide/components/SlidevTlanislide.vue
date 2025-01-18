@@ -46,9 +46,11 @@ const props = withDefaults(
   defineProps<{
     id: string;
     editable?: boolean;
+    start?: number;
   }>(),
   {
     editable: true,
+    start: 0,
   },
 );
 
@@ -146,6 +148,7 @@ const handleMount = (editor: Editor) => {
       @stepChange="$clicks = $event"
       :presentationMode="!isEditing"
       :snapshot="savedSnapshot"
+      :startStep="props.start"
     />
   </div>
 </template>

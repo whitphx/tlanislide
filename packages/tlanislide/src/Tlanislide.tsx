@@ -61,6 +61,7 @@ function usePerInstanceAtoms() {
   );
   const $presentationMode = useAtom<boolean>("presentation mode", false);
   const $currentStepIndex = useAtom<number>("current step index", 0);
+  const $startStepIndex = useAtom<number>("start step index", 0);
 
   return useMemo(() => {
     return {
@@ -68,12 +69,14 @@ function usePerInstanceAtoms() {
       $presentationModeHotkeyEnabled,
       $presentationMode,
       $currentStepIndex,
+      $startStepIndex,
     };
   }, [
     $stepHotkeyEnabled,
     $presentationModeHotkeyEnabled,
     $presentationMode,
     $currentStepIndex,
+    $startStepIndex,
   ]);
 }
 type PerInstanceAtoms = ReturnType<typeof usePerInstanceAtoms>;
@@ -82,11 +85,14 @@ const makeUiOverrides = ({
   $stepHotkeyEnabled,
   $presentationModeHotkeyEnabled,
   $currentStepIndex,
+  $startStepIndex,
   $presentationMode,
 }: PerInstanceAtoms): TLUiOverrides => {
   return {
     actions(editor, actions) {
-      const $steps = computed("ordered steps", () => getOrderedSteps(editor));
+      const $steps = computed("ordered steps", () =>
+        getOrderedSteps(editor, $startStepIndex.get()),
+      );
 
       actions["next-step"] = {
         id: "next-step",
@@ -161,9 +167,14 @@ const makeUiOverrides = ({
 const makeComponents = ({
   $currentStepIndex,
   $presentationMode,
+  $startStepIndex,
 }: PerInstanceAtoms): TLComponents => {
   return {
-    TopPanel: makeControlPanel({ $currentStepIndex, $presentationMode }),
+    TopPanel: makeControlPanel({
+      $currentStepIndex,
+      $presentationMode,
+      $startStepIndex,
+    }),
     Toolbar: (props) => {
       const tools = useTools();
       const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);
@@ -223,7 +234,10 @@ const Inner = track((props: InnerProps) => {
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
       if (shape.type === SlideShapeType && shape.meta?.keyframe == null) {
         // Auto attach camera keyframe to the newly created slide shape
-        const orderedSteps = getOrderedSteps(editor);
+        const orderedSteps = getOrderedSteps(
+          editor,
+          perInstanceAtoms.$startStepIndex.get(),
+        );
         const lastCameraKeyframe = orderedSteps
           .reverse()
           .flat()
@@ -256,10 +270,14 @@ const Inner = track((props: InnerProps) => {
         const allKeyframes = getAllKeyframes(editor);
         const allKeyframeIds = allKeyframes.map((kf) => kf.id);
         if (allKeyframeIds.includes(keyframeId)) {
+          const orderedSteps = getOrderedSteps(
+            editor,
+            perInstanceAtoms.$startStepIndex.get(),
+          );
           shape.meta.keyframe = {
             ...keyframe,
             id: uniqueId(),
-            globalIndex: getOrderedSteps(editor).length,
+            globalIndex: orderedSteps.length,
           };
         }
         return shape;
@@ -299,7 +317,10 @@ const Inner = track((props: InnerProps) => {
       return SHOW;
     }
 
-    const orderedSteps = getOrderedSteps(editor); // TODO: Cache
+    const orderedSteps = getOrderedSteps(
+      editor,
+      perInstanceAtoms.$startStepIndex.get(),
+    ); // TODO: Cache
     const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
     const currentStep = orderedSteps[currentStepIndex];
     if (currentStep == null) {
@@ -375,19 +396,28 @@ export interface TlanislideProps {
   presentationMode?: boolean;
   onMount?: InnerProps["onMount"];
   snapshot?: InnerProps["snapshot"];
+  startStep?: number;
 }
 export interface TlanislideRef {
   rerunStep: () => void;
 }
 export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
   (props, ref) => {
-    const { step, onStepChange, presentationMode, onMount, snapshot } = props;
+    const {
+      step,
+      onStepChange,
+      presentationMode,
+      onMount,
+      snapshot,
+      startStep,
+    } = props;
 
     const tlanislideAtoms = usePerInstanceAtoms();
     const {
       $currentStepIndex,
       $presentationMode,
       $stepHotkeyEnabled,
+      $startStepIndex,
       $presentationModeHotkeyEnabled,
     } = tlanislideAtoms;
 
@@ -402,11 +432,26 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
 
     const handleMount = useCallback(
       (editor: Editor) => {
+        const targetStep = step ?? 0;
+        if ($presentationMode.get()) {
+          const orderedSteps = getOrderedSteps(editor, $startStepIndex.get());
+          const res = runStep(editor, orderedSteps, targetStep);
+          if (res) {
+            $currentStepIndex.set(targetStep);
+          }
+        }
+
         editorRef.current = editor;
         onMount?.(editor);
       },
-      [onMount],
+      [step, onMount, $presentationMode, $startStepIndex, $currentStepIndex],
     );
+
+    useEffect(() => {
+      if (startStep != null) {
+        $startStepIndex.set(startStep);
+      }
+    }, [$startStepIndex, startStep]);
 
     useEffect(() => {
       if (presentationMode != null) {
@@ -427,13 +472,12 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
         return;
       }
 
-      const orderedSteps = getOrderedSteps(editor);
+      const orderedSteps = getOrderedSteps(editor, $startStepIndex.get());
       const res = runStep(editor, orderedSteps, step);
-      if (!res) {
-        return;
+      if (res) {
+        $currentStepIndex.set(step);
       }
-      $currentStepIndex.set(step);
-    }, [$currentStepIndex, step]);
+    }, [$currentStepIndex, $startStepIndex, step]);
     useEffect(() => {
       if (onStepChange == null) {
         return;
@@ -454,7 +498,7 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
         }
         runStep(
           editorRef.current,
-          getOrderedSteps(editorRef.current),
+          getOrderedSteps(editorRef.current, $startStepIndex.get()),
           $currentStepIndex.get(),
         );
       },

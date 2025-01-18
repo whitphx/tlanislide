@@ -60,3 +60,15 @@ clicks: 7
 # My OSS history
 
 <SlidevTlanislide id="career-timeline" />
+
+---
+
+# Awesome Emacs Keymap
+
+<SlidevTlanislide id="career-timeline" :start="0" />
+
+---
+
+# Stlite: In-browser Streamlit
+
+<SlidevTlanislide id="career-timeline" :start="2" />
