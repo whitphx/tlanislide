@@ -143,6 +143,22 @@ const makeUiOverrides = ({
         },
       };
 
+      actions["exit-presentation-mode"] = {
+        id: "exit-presentation-mode",
+        label: "Exit Presentation Mode",
+        kbd: "esc",
+        onSelect() {
+          if (!$presentationModeHotkeyEnabled.get()) {
+            return;
+          }
+
+          // Only exit if we're already in presentation mode
+          if ($presentationMode.get()) {
+            $presentationMode.set(false);
+          }
+        },
+      };
+
       return actions;
     },
     tools(editor, tools) {
