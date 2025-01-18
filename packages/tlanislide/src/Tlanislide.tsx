@@ -163,7 +163,10 @@ const makeComponents = ({
   $presentationMode,
 }: PerInstanceAtoms): TLComponents => {
   return {
-    TopPanel: makeControlPanel({ $currentStepIndex, $presentationMode }),
+    TopPanel: makeControlPanel({
+      $currentStepIndex,
+      $presentationMode,
+    }),
     Toolbar: (props) => {
       const tools = useTools();
       const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);
@@ -256,10 +259,11 @@ const Inner = track((props: InnerProps) => {
         const allKeyframes = getAllKeyframes(editor);
         const allKeyframeIds = allKeyframes.map((kf) => kf.id);
         if (allKeyframeIds.includes(keyframeId)) {
+          const orderedSteps = getOrderedSteps(editor);
           shape.meta.keyframe = {
             ...keyframe,
             id: uniqueId(),
-            globalIndex: getOrderedSteps(editor).length,
+            globalIndex: orderedSteps.length,
           };
         }
         return shape;
@@ -375,13 +379,21 @@ export interface TlanislideProps {
   presentationMode?: boolean;
   onMount?: InnerProps["onMount"];
   snapshot?: InnerProps["snapshot"];
+  startStep?: number;
 }
 export interface TlanislideRef {
   rerunStep: () => void;
 }
 export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
   (props, ref) => {
-    const { step, onStepChange, presentationMode, onMount, snapshot } = props;
+    const {
+      step,
+      onStepChange,
+      presentationMode,
+      onMount,
+      snapshot,
+      startStep = 0,
+    } = props;
 
     const tlanislideAtoms = usePerInstanceAtoms();
     const {
@@ -402,10 +414,19 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
 
     const handleMount = useCallback(
       (editor: Editor) => {
+        const targetStep = (step ?? 0) + startStep;
+        if ($presentationMode.get()) {
+          const orderedSteps = getOrderedSteps(editor);
+          const res = runStep(editor, orderedSteps, targetStep);
+          if (res) {
+            $currentStepIndex.set(targetStep);
+          }
+        }
+
         editorRef.current = editor;
         onMount?.(editor);
       },
-      [onMount],
+      [step, startStep, onMount, $presentationMode, $currentStepIndex],
     );
 
     useEffect(() => {
@@ -427,13 +448,13 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
         return;
       }
 
+      const targetStep = step + startStep;
       const orderedSteps = getOrderedSteps(editor);
-      const res = runStep(editor, orderedSteps, step);
-      if (!res) {
-        return;
+      const res = runStep(editor, orderedSteps, targetStep);
+      if (res) {
+        $currentStepIndex.set(targetStep);
       }
-      $currentStepIndex.set(step);
-    }, [$currentStepIndex, step]);
+    }, [$currentStepIndex, step, startStep]);
     useEffect(() => {
       if (onStepChange == null) {
         return;
