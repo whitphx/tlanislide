@@ -2,21 +2,21 @@ import { EASINGS, createShapeId, uniqueId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
 import { getGlobalOrder, Keyframe } from "./keyframe";
 
-export interface KeyframeDataBase extends JsonObject {
+export interface FrameActionBase extends JsonObject {
   type: string;
 }
-export interface ShapeAnimationKeyframeData extends KeyframeDataBase {
+export interface ShapeAnimationFrameAction extends FrameActionBase {
   type: "shapeAnimation";
   duration?: number;
   easing?: keyof typeof EASINGS;
 }
-export interface CameraZoomKeyframeData extends KeyframeDataBase {
+export interface CameraZoomFrameAction extends FrameActionBase {
   type: "cameraZoom";
   inset?: number;
   duration?: number;
   easing?: keyof typeof EASINGS;
 }
-export type KeyframeData = ShapeAnimationKeyframeData | CameraZoomKeyframeData;
+export type FrameAction = ShapeAnimationFrameAction | CameraZoomFrameAction;
 
 function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -76,13 +76,13 @@ export function getNextGlobalIndex<T extends JsonObject>(
 export function attachKeyframe(
   editor: Editor,
   shapeId: TLShapeId,
-  keyframeData: KeyframeData,
+  frameAction: FrameAction,
 ) {
-  const keyframe: Keyframe<KeyframeData> = {
+  const keyframe: Keyframe<FrameAction> = {
     id: shapeId,
     globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
     trackId: uniqueId(),
-    data: keyframeData,
+    data: frameAction,
   };
 
   const shape = editor.getShape(shapeId);
@@ -112,20 +112,18 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
   });
 }
 
-export function getKeyframe(
-  shape: TLShape,
-): Keyframe<KeyframeData> | undefined {
+export function getKeyframe(shape: TLShape): Keyframe<FrameAction> | undefined {
   return isJsonObject(shape.meta.keyframe)
     ? jsonObjectToKeyframe(shape.meta.keyframe)
     : undefined;
 }
 
-export function getAllKeyframes(editor: Editor): Keyframe<KeyframeData>[] {
+export function getAllKeyframes(editor: Editor): Keyframe<FrameAction>[] {
   const shapes = editor.getCurrentPageShapes();
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
-export function getOrderedSteps(editor: Editor): Keyframe<KeyframeData>[][] {
+export function getOrderedSteps(editor: Editor): Keyframe<FrameAction>[][] {
   const keyframes = getAllKeyframes(editor);
   const globalOrder = getGlobalOrder(keyframes);
   return globalOrder;
@@ -142,7 +140,7 @@ export function getShapeFromKeyframeId(
   });
 }
 
-type Step = Keyframe<KeyframeData>[];
+type Step = Keyframe<FrameAction>[];
 export function runStep(editor: Editor, steps: Step[], index: number): boolean {
   const step = steps[index];
   if (step == null) {

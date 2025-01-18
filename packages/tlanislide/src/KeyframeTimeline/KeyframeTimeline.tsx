@@ -18,7 +18,7 @@ import {
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { KeyframeData } from "../models";
+import type { FrameAction } from "../models";
 import { calcKeyframeUIData, type KeyframeUIData } from "./keyframe-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
@@ -103,8 +103,8 @@ function SelectField<T extends string[]>({
 }
 
 interface KeyframeEditPopoverProps {
-  keyframe: Keyframe<KeyframeData>;
-  onUpdate: (newKf: Keyframe<KeyframeData>) => void;
+  keyframe: Keyframe<FrameAction>;
+  onUpdate: (newKf: Keyframe<FrameAction>) => void;
   children: React.ReactNode;
 }
 function KeyframeEditPopover({
@@ -235,13 +235,13 @@ function DroppableArea({
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps {
-  ks: Keyframe<KeyframeData>[];
-  onKeyframesChange: (newKs: Keyframe<KeyframeData>[]) => void;
+  ks: Keyframe<FrameAction>[];
+  onKeyframesChange: (newKs: Keyframe<FrameAction>[]) => void;
   currentStepIndex: number;
   onStepSelect: (stepIndex: number) => void;
-  selectedKeyframeIds: Keyframe<KeyframeData>["id"][];
+  selectedKeyframeIds: Keyframe<FrameAction>["id"][];
   onKeyframeSelect: (keyframeId: string) => void;
-  requestKeyframeAddAfter: (prevKeyframe: Keyframe<KeyframeData>) => void;
+  requestKeyframeAddAfter: (prevKeyframe: Keyframe<FrameAction>) => void;
   showAttachKeyframeButton: boolean;
   requestAttachKeyframe: () => void;
 }

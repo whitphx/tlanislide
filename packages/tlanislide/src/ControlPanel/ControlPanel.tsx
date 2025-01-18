@@ -11,7 +11,7 @@ import {
   runStep,
   getKeyframe,
   attachKeyframe,
-  KeyframeData,
+  FrameAction,
   getAllKeyframes,
   keyframeToJsonObject,
 } from "../models";
@@ -42,7 +42,7 @@ export function makeControlPanel(atoms: {
       (shape) => getKeyframe(shape) == null && shape.type !== SlideShapeType,
     );
 
-    const handleKeyframesChange = (newKeyframes: Keyframe<KeyframeData>[]) => {
+    const handleKeyframesChange = (newKeyframes: Keyframe<FrameAction>[]) => {
       const allShapes = editor.getCurrentPageShapes();
 
       const updateShapePartials = allShapes.map((shape) => {
@@ -140,7 +140,7 @@ export function makeControlPanel(atoms: {
                 type: prevKeyframe.data.type,
                 duration: 1000,
               },
-            } satisfies Keyframe<KeyframeData>;
+            } satisfies Keyframe<FrameAction>;
 
             const newShapeId = createShapeId();
 

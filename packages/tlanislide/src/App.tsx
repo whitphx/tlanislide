@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
-import { KeyframeData, keyframeToJsonObject } from "./models";
+import { FrameAction, keyframeToJsonObject } from "./models";
 import { Tlanislide } from "./Tlanislide.tsx";
 
 function setupDevMock(editor: Editor) {
@@ -38,7 +38,7 @@ function setupDevMock(editor: Editor) {
       h: 100,
     },
     meta: {
-      keyframe: keyframeToJsonObject<KeyframeData>({
+      keyframe: keyframeToJsonObject<FrameAction>({
         id: uniqueId(),
         globalIndex: 1,
         trackId: rectTrackId,
@@ -96,7 +96,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: keyframeToJsonObject<KeyframeData>({
+      keyframe: keyframeToJsonObject<FrameAction>({
         id: uniqueId(),
         globalIndex: 2,
         trackId: arrowTrackId,
@@ -153,7 +153,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: keyframeToJsonObject<KeyframeData>({
+      keyframe: keyframeToJsonObject<FrameAction>({
         id: uniqueId(),
         globalIndex: 4,
         trackId: arrowTrackId,

@@ -34,7 +34,7 @@ import {
   runStep,
   getAllKeyframes,
   detatchKeyframe,
-  CameraZoomKeyframeData,
+  CameraZoomFrameAction,
   keyframeToJsonObject,
 } from "./models";
 import React, {
@@ -231,7 +231,7 @@ const Inner = track((props: InnerProps) => {
           .reverse()
           .flat()
           .find((kf) => kf.data.type === "cameraZoom");
-        const keyframe: Keyframe<CameraZoomKeyframeData> = {
+        const keyframe: Keyframe<CameraZoomFrameAction> = {
           id: uniqueId(),
           globalIndex: orderedSteps.length,
           trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
