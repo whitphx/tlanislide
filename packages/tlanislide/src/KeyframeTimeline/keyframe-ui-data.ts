@@ -1,15 +1,15 @@
-import { getGlobalOrder, type Keyframe } from "../keyframe";
-import type { FrameAction } from "../models";
+import { getGlobalOrder } from "../ordered-track-item";
+import type { FrameAction, Keyframe } from "../models";
 
 export interface Track {
   id: string;
   type: FrameAction["type"];
 }
 
-export type KeyframeUIData = Keyframe<FrameAction> & { localIndex: number };
+export type KeyframeUIData = Keyframe & { localIndex: number };
 
-export function calcKeyframeUIData(ks: Keyframe<FrameAction>[]) {
-  const orderedSteps = getGlobalOrder(ks);
+export function calcKeyframeUIData(kfs: Keyframe[]) {
+  const orderedSteps = getGlobalOrder(kfs);
   const stepsUIData: KeyframeUIData[][] = [];
   const tracksMap: Record<
     string,

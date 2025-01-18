@@ -1,24 +1,28 @@
 import type { JsonObject } from "tldraw";
 
-export interface Keyframe<T extends JsonObject> {
+export interface OrderedTrackItem<T extends JsonObject = JsonObject> {
   id: string;
   globalIndex: number;
   trackId: string;
   data: T;
 }
 
+// A group of items with the same globalIndex.
+export type ItemGroup<T extends JsonObject = JsonObject> =
+  OrderedTrackItem<T>[];
+
 /**
  * getGlobalOrder:
- * Keyframe[]をコピーし、(1) 同じtrackId内で globalIndex の大小 ⇒ a->b,
+ * OrderedTrackItem[]をコピーし、(1) 同じtrackId内で globalIndex の大小 ⇒ a->b,
  * (2) 全体で a.globalIndex < b.globalIndex ⇒ a->b
  * の2種類のエッジをDAGに追加し、トポロジカルソート。
  * サイクルあれば例外。最後に "globalIndex" ごとにまとめた2次元配列で返す。
  */
 export function getGlobalOrder<T extends JsonObject>(
-  ks: Keyframe<T>[],
-): Keyframe<T>[][] {
+  items: OrderedTrackItem<T>[],
+): ItemGroup<T>[] {
   // 1. Copy & sort by globalIndex
-  const copy = ks.map((k) => ({ ...k }));
+  const copy = items.map((item) => ({ ...item }));
   copy.sort((a, b) => a.globalIndex - b.globalIndex);
 
   // 2. Early conflict detection using double nested loop
@@ -36,9 +40,9 @@ export function getGlobalOrder<T extends JsonObject>(
   // 3. DAG construction for topological sort
   const graph = new Map<string, string[]>();
   const indeg = new Map<string, number>();
-  for (const kf of copy) {
-    graph.set(kf.id, []);
-    indeg.set(kf.id, 0);
+  for (const item of copy) {
+    graph.set(item.id, []);
+    indeg.set(item.id, 0);
   }
 
   // 3.1 Add edges for same trackId with ascending globalIndex
@@ -87,80 +91,80 @@ export function getGlobalOrder<T extends JsonObject>(
   }
 
   // 5. Group by globalIndex
-  const byId = new Map<string, Keyframe<T>>();
+  const byId = new Map<string, OrderedTrackItem<T>>();
   for (const c of copy) byId.set(c.id, c);
 
   const visited = new Set<string>();
-  const result: Keyframe<T>[][] = [];
-  let currentGroup: Keyframe<T>[] = [];
+  const result: ItemGroup<T>[] = [];
+  let currentGroup: ItemGroup<T> = [];
   let currentIndex = -1;
 
   for (const id of sorted) {
     if (visited.has(id)) continue;
     visited.add(id);
-    const kf = byId.get(id)!;
-    if (kf.globalIndex !== currentIndex) {
+    const item = byId.get(id)!;
+    if (item.globalIndex !== currentIndex) {
       currentGroup = [];
       result.push(currentGroup);
-      currentIndex = kf.globalIndex;
+      currentIndex = item.globalIndex;
     }
-    currentGroup.push(kf);
+    currentGroup.push(item);
   }
   return result;
 }
 
 function reassignGlobalIndexInplace<T extends JsonObject>(
-  globalOrder: Keyframe<T>[][],
+  globalOrder: ItemGroup<T>[],
 ) {
   let gIndex = 0;
   for (const group of globalOrder) {
     if (group.length === 0) continue;
-    for (const kf of group) {
-      kf.globalIndex = gIndex;
+    for (const item of group) {
+      item.globalIndex = gIndex;
     }
     gIndex++;
   }
 }
 
-export function moveKeyframePreservingLocalOrder<T extends JsonObject>(
-  ks: Keyframe<T>[],
+export function moveItemPreservingLocalOrder<T extends JsonObject>(
+  items: OrderedTrackItem<T>[],
   targetId: string,
   newIndex: number,
   type: "at" | "after",
-): Keyframe<T>[] {
-  if (ks.length <= 1) return ks;
+): OrderedTrackItem<T>[] {
+  if (items.length <= 1) return items;
 
-  const globalOrder = getGlobalOrder(ks);
+  const globalOrder = getGlobalOrder(items);
 
   const oldIndex = globalOrder.findIndex((group) =>
     group.some((k) => k.id === targetId),
   );
-  if (oldIndex === -1) return ks;
+  if (oldIndex === -1) return items;
 
   const target = globalOrder[oldIndex].find((k) => k.id === targetId);
-  if (target == null) return ks;
+  if (target == null) return items;
 
-  if (type === "at" && oldIndex === newIndex) return ks;
+  if (type === "at" && oldIndex === newIndex) return items;
 
   const isForward = oldIndex <= newIndex;
 
-  let newGlobalOrder: Keyframe<T>[][] = [];
+  let newGlobalOrder: ItemGroup<T>[] = [];
   if (isForward) {
     newGlobalOrder = globalOrder.slice(0, oldIndex); // [0, oldIndex) are not affected.
 
     newGlobalOrder.push(globalOrder[oldIndex].filter((k) => k.id !== targetId)); // Remove target
 
-    const pushedOutKfs: Keyframe<T>[] = [];
+    const pushedOutItems: OrderedTrackItem<T>[] = [];
     for (let i = oldIndex + 1; i <= newIndex; i++) {
-      const updatedGlobalFrame: Keyframe<T>[] = [];
+      const updatedItemGroup: ItemGroup<T> = [];
       globalOrder[i].forEach((k) => {
         if (k.trackId === target.trackId) {
-          pushedOutKfs.push(k);
+          pushedOutItems.push(k);
         } else {
-          updatedGlobalFrame.push(k);
+          updatedItemGroup.push(k);
         }
       });
-      newGlobalOrder.push(updatedGlobalFrame);
+      newGlobalOrder.push(updatedItemGroup);
     }
 
     if (type === "at") {
@@ -169,7 +173,7 @@ export function moveKeyframePreservingLocalOrder<T extends JsonObject>(
       newGlobalOrder.push([target]);
     }
 
-    pushedOutKfs.forEach((k) => {
+    pushedOutItems.forEach((k) => {
       newGlobalOrder.push([k]);
     });
 
@@ -178,28 +182,28 @@ export function moveKeyframePreservingLocalOrder<T extends JsonObject>(
     const targetIndex = type === "at" ? newIndex : newIndex + 1;
     newGlobalOrder = globalOrder.slice(0, targetIndex); // [0, targetIndex) are not affected.
 
-    const pushedOutKfs: Keyframe<T>[] = [];
-    const affectedGlobalFrames: Keyframe<T>[][] = [];
+    const pushedOutItems: OrderedTrackItem<T>[] = [];
+    const affectedItemGroups: ItemGroup<T>[] = [];
     for (let i = oldIndex - 1; i >= targetIndex; i--) {
-      const updatedGlobalFrame: Keyframe<T>[] = [];
+      const updatedItemGroup: ItemGroup<T> = [];
       globalOrder[i].forEach((k) => {
         if (k.trackId === target.trackId) {
-          pushedOutKfs.unshift(k);
+          pushedOutItems.unshift(k);
         } else {
-          updatedGlobalFrame.push(k);
+          updatedItemGroup.push(k);
         }
       });
-      affectedGlobalFrames.unshift(updatedGlobalFrame);
+      affectedItemGroups.unshift(updatedItemGroup);
     }
 
-    newGlobalOrder.push(...pushedOutKfs.map((k) => [k]));
+    newGlobalOrder.push(...pushedOutItems.map((k) => [k]));
 
     if (type === "at") {
-      affectedGlobalFrames[0].push(target);
+      affectedItemGroups[0].push(target);
     } else if (type === "after") {
-      affectedGlobalFrames.unshift([target]);
+      affectedItemGroups.unshift([target]);
     }
-    newGlobalOrder.push(...affectedGlobalFrames);
+    newGlobalOrder.push(...affectedItemGroups);
 
     newGlobalOrder.push(globalOrder[oldIndex].filter((k) => k.id !== targetId));
 
@@ -210,16 +214,16 @@ export function moveKeyframePreservingLocalOrder<T extends JsonObject>(
   return newGlobalOrder.flat();
 }
 
-export function insertKeyframe<T extends JsonObject>(
-  ks: Keyframe<T>[],
-  newKeyframe: Keyframe<T>,
+export function insertOrderedTrackItem<T extends JsonObject>(
+  items: OrderedTrackItem<T>[],
+  newItem: OrderedTrackItem<T>,
   globalIndex: number,
-): Keyframe<T>[] {
-  const globalOrder = getGlobalOrder(ks);
+): OrderedTrackItem<T>[] {
+  const globalOrder = getGlobalOrder(items);
 
   const newGlobalOrder = [
     ...globalOrder.slice(0, globalIndex),
-    [newKeyframe],
+    [newItem],
     ...globalOrder.slice(globalIndex),
   ];
   reassignGlobalIndexInplace(newGlobalOrder);

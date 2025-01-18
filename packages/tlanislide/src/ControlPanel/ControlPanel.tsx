@@ -11,11 +11,11 @@ import {
   runStep,
   getKeyframe,
   attachKeyframe,
-  FrameAction,
   getAllKeyframes,
   keyframeToJsonObject,
+  type Keyframe,
 } from "../models";
-import { insertKeyframe, Keyframe } from "../keyframe";
+import { insertOrderedTrackItem } from "../ordered-track-item";
 import { KeyframeTimeline } from "../KeyframeTimeline";
 import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";
@@ -42,7 +42,7 @@ export function makeControlPanel(atoms: {
       (shape) => getKeyframe(shape) == null && shape.type !== SlideShapeType,
     );
 
-    const handleKeyframesChange = (newKeyframes: Keyframe<FrameAction>[]) => {
+    const handleKeyframesChange = (newKeyframes: Keyframe[]) => {
       const allShapes = editor.getCurrentPageShapes();
 
       const updateShapePartials = allShapes.map((shape) => {
@@ -140,7 +140,7 @@ export function makeControlPanel(atoms: {
                 type: prevKeyframe.data.type,
                 duration: 1000,
               },
-            } satisfies Keyframe<FrameAction>;
+            } satisfies Keyframe;
 
             const newShapeId = createShapeId();
 
@@ -157,7 +157,7 @@ export function makeControlPanel(atoms: {
                 });
                 editor.select(newShapeId);
 
-                const newKeyframes = insertKeyframe(
+                const newKeyframes = insertOrderedTrackItem(
                   allKeyframes,
                   newKeyframe,
                   prevKeyframe.globalIndex + 1,

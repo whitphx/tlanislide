@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
-import { FrameAction, keyframeToJsonObject } from "./models";
+import { Keyframe } from "./models";
 import { Tlanislide } from "./Tlanislide.tsx";
 
 function setupDevMock(editor: Editor) {
@@ -16,14 +16,14 @@ function setupDevMock(editor: Editor) {
       h: 50,
     },
     meta: {
-      keyframe: keyframeToJsonObject({
+      keyframe: {
         id: uniqueId(),
         globalIndex: 0,
         trackId: rectTrackId,
         data: {
           type: "shapeAnimation",
         },
-      }),
+      } satisfies Keyframe,
     },
   });
 
@@ -38,7 +38,7 @@ function setupDevMock(editor: Editor) {
       h: 100,
     },
     meta: {
-      keyframe: keyframeToJsonObject<FrameAction>({
+      keyframe: {
         id: uniqueId(),
         globalIndex: 1,
         trackId: rectTrackId,
@@ -46,7 +46,7 @@ function setupDevMock(editor: Editor) {
           type: "shapeAnimation",
           duration: 1000,
         },
-      }),
+      } satisfies Keyframe,
     },
   });
 
@@ -68,14 +68,14 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: keyframeToJsonObject({
+      keyframe: {
         id: uniqueId(),
         globalIndex: 1,
         trackId: arrowTrackId,
         data: {
           type: "shapeAnimation",
         },
-      }),
+      } satisfies Keyframe,
     },
   });
 
@@ -96,7 +96,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: keyframeToJsonObject<FrameAction>({
+      keyframe: {
         id: uniqueId(),
         globalIndex: 2,
         trackId: arrowTrackId,
@@ -104,7 +104,7 @@ function setupDevMock(editor: Editor) {
           type: "shapeAnimation",
           duration: 1000,
         },
-      }),
+      } satisfies Keyframe,
     },
   });
 
@@ -125,14 +125,14 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: keyframeToJsonObject({
+      keyframe: {
         id: uniqueId(),
         globalIndex: 3,
         trackId: arrowTrackId,
         data: {
           type: "shapeAnimation",
         },
-      }),
+      } satisfies Keyframe,
     },
   });
 
@@ -153,7 +153,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: keyframeToJsonObject<FrameAction>({
+      keyframe: {
         id: uniqueId(),
         globalIndex: 4,
         trackId: arrowTrackId,
@@ -161,7 +161,7 @@ function setupDevMock(editor: Editor) {
           type: "shapeAnimation",
           duration: 1000,
         },
-      }),
+      } satisfies Keyframe,
     },
   });
 }

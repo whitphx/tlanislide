@@ -36,6 +36,7 @@ import {
   detatchKeyframe,
   CameraZoomFrameAction,
   keyframeToJsonObject,
+  type Keyframe,
 } from "./models";
 import React, {
   useCallback,
@@ -44,7 +45,6 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { Keyframe } from "./keyframe";
 
 const customShapeUtils = [SlideShapeUtil];
 const customTools = [SlideShapeTool];
