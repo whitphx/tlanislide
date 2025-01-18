@@ -1,6 +1,4 @@
-import type { JsonObject } from "tldraw";
-
-export interface OrderedTrackItem<T extends JsonObject = JsonObject> {
+export interface OrderedTrackItem<T = unknown> {
   id: string;
   globalIndex: number;
   trackId: string;
@@ -8,8 +6,7 @@ export interface OrderedTrackItem<T extends JsonObject = JsonObject> {
 }
 
 // A group of items with the same globalIndex.
-export type ItemGroup<T extends JsonObject = JsonObject> =
-  OrderedTrackItem<T>[];
+export type ItemGroup<T> = OrderedTrackItem<T>[];
 
 /**
  * getGlobalOrder:
@@ -18,7 +15,7 @@ export type ItemGroup<T extends JsonObject = JsonObject> =
  * の2種類のエッジをDAGに追加し、トポロジカルソート。
  * サイクルあれば例外。最後に "globalIndex" ごとにまとめた2次元配列で返す。
  */
-export function getGlobalOrder<T extends JsonObject>(
+export function getGlobalOrder<T>(
   items: OrderedTrackItem<T>[],
 ): ItemGroup<T>[] {
   // 1. Copy & sort by globalIndex
@@ -113,9 +110,7 @@ export function getGlobalOrder<T extends JsonObject>(
   return result;
 }
 
-function reassignGlobalIndexInplace<T extends JsonObject>(
-  globalOrder: ItemGroup<T>[],
-) {
+function reassignGlobalIndexInplace<T>(globalOrder: ItemGroup<T>[]) {
   let gIndex = 0;
   for (const group of globalOrder) {
     if (group.length === 0) continue;
@@ -126,7 +121,7 @@ function reassignGlobalIndexInplace<T extends JsonObject>(
   }
 }
 
-export function moveItemPreservingLocalOrder<T extends JsonObject>(
+export function moveItemPreservingLocalOrder<T>(
   items: OrderedTrackItem<T>[],
   targetId: string,
   newIndex: number,
@@ -214,7 +209,7 @@ export function moveItemPreservingLocalOrder<T extends JsonObject>(
   return newGlobalOrder.flat();
 }
 
-export function insertOrderedTrackItem<T extends JsonObject>(
+export function insertOrderedTrackItem<T>(
   items: OrderedTrackItem<T>[],
   newItem: OrderedTrackItem<T>,
   globalIndex: number,
