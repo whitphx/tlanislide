@@ -11,14 +11,14 @@ import {
   type DndContextProps,
 } from "@dnd-kit/core";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import { Keyframe, moveKeyframePreservingLocalOrder } from "../keyframe";
+import { moveItemPreservingLocalOrder } from "../keyframe";
 import {
   EASINGS,
   TldrawUiPopover,
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { FrameAction } from "../models";
+import type { Keyframe } from "../models";
 import { calcKeyframeUIData, type KeyframeUIData } from "./keyframe-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
@@ -103,8 +103,8 @@ function SelectField<T extends string[]>({
 }
 
 interface KeyframeEditPopoverProps {
-  keyframe: Keyframe<FrameAction>;
-  onUpdate: (newKf: Keyframe<FrameAction>) => void;
+  keyframe: Keyframe;
+  onUpdate: (newKf: Keyframe) => void;
   children: React.ReactNode;
 }
 function KeyframeEditPopover({
@@ -235,13 +235,13 @@ function DroppableArea({
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps {
-  ks: Keyframe<FrameAction>[];
-  onKeyframesChange: (newKs: Keyframe<FrameAction>[]) => void;
+  ks: Keyframe[];
+  onKeyframesChange: (newKs: Keyframe[]) => void;
   currentStepIndex: number;
   onStepSelect: (stepIndex: number) => void;
-  selectedKeyframeIds: Keyframe<FrameAction>["id"][];
+  selectedKeyframeIds: Keyframe["id"][];
   onKeyframeSelect: (keyframeId: string) => void;
-  requestKeyframeAddAfter: (prevKeyframe: Keyframe<FrameAction>) => void;
+  requestKeyframeAddAfter: (prevKeyframe: Keyframe) => void;
   showAttachKeyframeButton: boolean;
   requestAttachKeyframe: () => void;
 }
@@ -276,7 +276,7 @@ export function KeyframeTimeline({
         const activeId = active.id;
         // moveKeyframeでKeyframeを全体順序で移動
 
-        const newKs = moveKeyframePreservingLocalOrder(
+        const newKs = moveItemPreservingLocalOrder(
           ks,
           activeId as KeyframeUIData["id"],
           overGlobalIndex,

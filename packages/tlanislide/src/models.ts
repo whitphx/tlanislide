@@ -1,6 +1,6 @@
 import { EASINGS, createShapeId, uniqueId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
-import { getGlobalOrder, Keyframe } from "./keyframe";
+import { getGlobalOrder, OrderedTrackItem } from "./keyframe";
 
 export interface FrameActionBase extends JsonObject {
   type: string;
@@ -22,53 +22,51 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Keyframe -> JsonObject
-export function keyframeToJsonObject<T extends JsonObject>(
-  kf: Keyframe<T>,
-): JsonObject {
+export type Keyframe<T extends FrameAction = FrameAction> = OrderedTrackItem<T>;
+
+export function keyframeToJsonObject(kf: Keyframe): JsonObject {
   const { id, globalIndex, trackId, data } = kf;
   const obj = { id, globalIndex, trackId, data } satisfies JsonObject;
   return obj;
 }
 
-// unknown -> Keyframe<JsonObject>
-function isKeyframe(obj: unknown): obj is Keyframe<JsonObject> {
-  if (typeof obj === "object" && obj !== null && !Array.isArray(obj)) {
-    const o = obj as { [key: string]: unknown };
-    return (
-      typeof o.id === "string" &&
-      typeof o.globalIndex === "number" &&
-      typeof o.trackId === "string" &&
-      typeof o.data === "object" &&
-      o.data !== null &&
-      !Array.isArray(o.data)
-    );
-  }
-  return false;
+function isOrderedTrackItem<T extends JsonObject>(
+  obj: unknown,
+): obj is OrderedTrackItem<T> {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    !Array.isArray(obj) &&
+    "id" in obj &&
+    "globalIndex" in obj &&
+    "trackId" in obj &&
+    "data" in obj
+  );
 }
 
-// JsonObject -> Keyframe<T>
-export function jsonObjectToKeyframe<T extends JsonObject>(
-  obj: unknown,
-  validateData?: (data: JsonObject) => data is T,
-): Keyframe<T> {
+function isFrameAction(obj: unknown): obj is FrameAction {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    !Array.isArray(obj) &&
+    "type" in obj
+  );
+}
+
+function isKeyframe(obj: unknown): obj is Keyframe {
+  return isOrderedTrackItem(obj) && isFrameAction(obj.data);
+}
+
+export function jsonObjectToKeyframe(obj: unknown): Keyframe {
   if (isKeyframe(obj)) {
-    // objはKeyframe<JsonObject> まで絞り込まれた
-    const data = obj.data;
-    if (validateData && !validateData(data)) {
-      throw new Error("`data` does not match the expected shape.");
-    }
-    // validateDataがない場合はT=JsonObjectとして返す
-    return obj as Keyframe<T>;
+    return obj;
   }
   throw new Error(
     `Given input is not a valid Keyframe. ${JSON.stringify(obj)}`,
   );
 }
 
-export function getNextGlobalIndex<T extends JsonObject>(
-  keyframes: Keyframe<T>[],
-): number {
+export function getNextGlobalIndex(keyframes: Keyframe[]): number {
   const globalIndexes = keyframes.map((kf) => kf.globalIndex);
   return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
 }
@@ -78,7 +76,7 @@ export function attachKeyframe(
   shapeId: TLShapeId,
   frameAction: FrameAction,
 ) {
-  const keyframe: Keyframe<FrameAction> = {
+  const keyframe: Keyframe = {
     id: shapeId,
     globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
     trackId: uniqueId(),
@@ -112,18 +110,18 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
   });
 }
 
-export function getKeyframe(shape: TLShape): Keyframe<FrameAction> | undefined {
+export function getKeyframe(shape: TLShape): Keyframe | undefined {
   return isJsonObject(shape.meta.keyframe)
     ? jsonObjectToKeyframe(shape.meta.keyframe)
     : undefined;
 }
 
-export function getAllKeyframes(editor: Editor): Keyframe<FrameAction>[] {
+export function getAllKeyframes(editor: Editor): Keyframe[] {
   const shapes = editor.getCurrentPageShapes();
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
-export function getOrderedSteps(editor: Editor): Keyframe<FrameAction>[][] {
+export function getOrderedSteps(editor: Editor): Keyframe[][] {
   const keyframes = getAllKeyframes(editor);
   const globalOrder = getGlobalOrder(keyframes);
   return globalOrder;
@@ -140,7 +138,7 @@ export function getShapeFromKeyframeId(
   });
 }
 
-type Step = Keyframe<FrameAction>[];
+type Step = Keyframe[];
 export function runStep(editor: Editor, steps: Step[], index: number): boolean {
   const step = steps[index];
   if (step == null) {
