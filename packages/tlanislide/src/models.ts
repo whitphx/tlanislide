@@ -125,13 +125,10 @@ export function getAllKeyframes(editor: Editor): Keyframe<KeyframeData>[] {
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
-export function getOrderedSteps(
-  editor: Editor,
-  startStep: number,
-): Keyframe<KeyframeData>[][] {
+export function getOrderedSteps(editor: Editor): Keyframe<KeyframeData>[][] {
   const keyframes = getAllKeyframes(editor);
   const globalOrder = getGlobalOrder(keyframes);
-  return globalOrder.slice(startStep);
+  return globalOrder;
 }
 
 export function getShapeFromKeyframeId(

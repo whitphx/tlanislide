@@ -23,16 +23,14 @@ import { SlideShapeType } from "../SlideShapeUtil";
 export function makeControlPanel(atoms: {
   $currentStepIndex: Atom<number>;
   $presentationMode: Atom<boolean>;
-  $startStepIndex: Atom<number>;
 }) {
   const ControlPanel = track(() => {
-    const { $currentStepIndex, $presentationMode, $startStepIndex } = atoms;
+    const { $currentStepIndex, $presentationMode } = atoms;
 
     const currentStepIndex = $currentStepIndex.get();
-    const startStepIndex = $startStepIndex.get();
 
     const editor = useEditor();
-    const steps = getOrderedSteps(editor, startStepIndex);
+    const steps = getOrderedSteps(editor);
 
     const allKeyframes = getAllKeyframes(editor);
 
