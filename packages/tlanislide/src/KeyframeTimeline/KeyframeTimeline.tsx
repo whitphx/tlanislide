@@ -11,7 +11,7 @@ import {
   type DndContextProps,
 } from "@dnd-kit/core";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import { moveItemPreservingLocalOrder } from "../keyframe";
+import { moveItemPreservingLocalOrder } from "../ordered-track-item";
 import {
   EASINGS,
   TldrawUiPopover,

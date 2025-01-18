@@ -4,7 +4,7 @@ import {
   getGlobalOrder,
   moveItemPreservingLocalOrder,
   insertOrderedTrackItem,
-} from "./keyframe";
+} from "./ordered-track-item";
 
 /**
  * Creates an OrderedTrackItem for testing.

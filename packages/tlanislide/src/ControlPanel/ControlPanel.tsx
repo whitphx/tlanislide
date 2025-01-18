@@ -15,7 +15,7 @@ import {
   keyframeToJsonObject,
   type Keyframe,
 } from "../models";
-import { insertOrderedTrackItem } from "../keyframe";
+import { insertOrderedTrackItem } from "../ordered-track-item";
 import { KeyframeTimeline } from "../KeyframeTimeline";
 import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";

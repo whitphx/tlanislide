@@ -1,6 +1,6 @@
 import { EASINGS, createShapeId, uniqueId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
-import { getGlobalOrder, OrderedTrackItem } from "./keyframe";
+import { getGlobalOrder, OrderedTrackItem } from "./ordered-track-item";
 
 export interface FrameActionBase extends JsonObject {
   type: string;

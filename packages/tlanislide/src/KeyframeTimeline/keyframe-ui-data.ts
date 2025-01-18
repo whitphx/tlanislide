@@ -1,4 +1,4 @@
-import { getGlobalOrder } from "../keyframe";
+import { getGlobalOrder } from "../ordered-track-item";
 import type { FrameAction, Keyframe } from "../models";
 
 export interface Track {
