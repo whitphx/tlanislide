@@ -244,13 +244,12 @@ export function getShapeByFrameId(
 
 type NonEmptyArray<T> = [T, ...T[]];
 
-const runFrames = (
+async function runFrames(
   editor: Editor,
   frames: NonEmptyArray<Frame>,
   predecessorShape: TLShape | null,
-): Promise<void> =>
-  new Promise((resolve, reject) => {
-    const frame = frames[0];
+): Promise<void> {
+  for (const frame of frames) {
     const action = frame.data;
 
     const { duration = 0, easing = "easeInCubic" } = action;
@@ -258,8 +257,7 @@ const runFrames = (
 
     const shape = getShapeByFrameId(editor, frame.id);
     if (shape == null) {
-      reject(`Shape not found for frame ${frame.id}`);
-      return;
+      throw new Error(`Shape not found for frame ${frame.id}`);
     }
 
     if (action.type === "cameraZoom") {
@@ -268,8 +266,7 @@ const runFrames = (
       editor.stopCameraAnimation();
       const bounds = editor.getShapePageBounds(shape);
       if (!bounds) {
-        reject(`Bounds not found for shape ${shape.id}`);
-        return;
+        throw new Error(`Bounds not found for shape ${shape.id}`);
       }
       editor.selectNone();
       editor.zoomToBounds(bounds, {
@@ -281,8 +278,7 @@ const runFrames = (
       editor.selectNone();
 
       if (predecessorShape == null) {
-        resolve();
-        return;
+        continue;
       }
 
       // Create and manipulate a temporary shape for animation
@@ -323,15 +319,11 @@ const runFrames = (
       }, duration);
     }
 
-    setTimeout(() => {
-      const nextFrame = frames.at(1);
-      if (nextFrame) {
-        runFrames(editor, [nextFrame, ...frames.slice(2)], shape).then(resolve);
-      } else {
-        resolve();
-      }
-    }, duration);
-  });
+    await new Promise((resolve) => setTimeout(resolve, duration));
+
+    predecessorShape = shape;
+  }
+}
 
 type Step = FrameBatch[];
 export function runStep(editor: Editor, steps: Step[], index: number): boolean {
