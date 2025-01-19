@@ -252,15 +252,18 @@ const runFrames = (
   new Promise((resolve, reject) => {
     const frame = frames[0];
     const action = frame.data;
-    if (action.type === "cameraZoom") {
-      const shape = getShapeByFrameId(editor, frame.id);
-      if (shape == null) {
-        resolve();
-        return;
-      }
 
-      const { inset = 0, duration = 0, easing = "easeInCubic" } = action;
-      const immediate = duration === 0;
+    const { duration = 0, easing = "easeInCubic" } = action;
+    const immediate = duration === 0;
+
+    const shape = getShapeByFrameId(editor, frame.id);
+    if (shape == null) {
+      reject(`Shape not found for frame ${frame.id}`);
+      return;
+    }
+
+    if (action.type === "cameraZoom") {
+      const { inset = 0 } = action;
 
       editor.stopCameraAnimation();
       const bounds = editor.getShapePageBounds(shape);
@@ -274,16 +277,6 @@ const runFrames = (
         immediate,
         animation: { duration, easing: EASINGS[easing] },
       });
-      setTimeout(() => {
-        const nextFrame = frames.at(1);
-        if (nextFrame) {
-          runFrames(editor, [nextFrame, ...frames.slice(2)], shape).then(
-            resolve,
-          );
-        } else {
-          resolve();
-        }
-      }, duration);
     } else if (action.type === "shapeAnimation") {
       editor.selectNone();
 
@@ -292,17 +285,8 @@ const runFrames = (
         return;
       }
 
-      const shape = getShapeByFrameId(editor, frame.id);
-      if (shape == null) {
-        reject(`Shape not found for frame ${frame.id}`);
-        return;
-      }
-
       // Create and manipulate a temporary shape for animation
       const animeShapeId = createShapeId();
-      const { duration = 0, easing = "easeInCubic" } = action;
-      const immediate = duration === 0;
-
       editor.run(
         () => {
           editor.createShape({
@@ -336,17 +320,17 @@ const runFrames = (
           },
           { history: "ignore", ignoreShapeLock: true },
         );
-
-        const nextFrame = frames.at(1);
-        if (nextFrame) {
-          runFrames(editor, [nextFrame, ...frames.slice(2)], shape).then(
-            resolve,
-          );
-        } else {
-          resolve();
-        }
       }, duration);
     }
+
+    setTimeout(() => {
+      const nextFrame = frames.at(1);
+      if (nextFrame) {
+        runFrames(editor, [nextFrame, ...frames.slice(2)], shape).then(resolve);
+      } else {
+        resolve();
+      }
+    }, duration);
   });
 
 type Step = FrameBatch[];
