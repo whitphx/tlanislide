@@ -12,6 +12,7 @@ import {
   react,
   track,
   useAtom,
+  useValue,
 } from "tldraw";
 import type {
   TLUiOverrides,
@@ -28,6 +29,7 @@ import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
 import { makeControlPanel } from "./ControlPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
+import { createModeAwareDefaultComponents } from "./mode-aware-components";
 import {
   getOrderedSteps,
   getKeyframe,
@@ -174,7 +176,7 @@ const makeUiOverrides = ({
   };
 };
 
-const makeComponents = ({
+const createComponents = ({
   $currentStepIndex,
   $presentationMode,
 }: PerInstanceAtoms): TLComponents => {
@@ -184,16 +186,19 @@ const makeComponents = ({
       $presentationMode,
     }),
     Toolbar: (props) => {
+      const presentationMode = useValue($presentationMode);
       const tools = useTools();
       const isSlideToolSelected = useIsToolSelected(tools[SlideShapeTool.id]);
       return (
-        <DefaultToolbar {...props}>
-          <TldrawUiMenuItem
-            {...tools[SlideShapeTool.id]}
-            isSelected={isSlideToolSelected}
-          />
-          <DefaultToolbarContent />
-        </DefaultToolbar>
+        !presentationMode && (
+          <DefaultToolbar {...props}>
+            <TldrawUiMenuItem
+              {...tools[SlideShapeTool.id]}
+              isSelected={isSlideToolSelected}
+            />
+            <DefaultToolbarContent />
+          </DefaultToolbar>
+        )
       );
     },
     KeyboardShortcutsDialog: (props) => {
@@ -206,28 +211,6 @@ const makeComponents = ({
       );
     },
   };
-};
-
-const NULL_COMPONENTS_OVERRIDE = {
-  ContextMenu: null,
-  ActionsMenu: null,
-  HelpMenu: null,
-  ZoomMenu: null,
-  MainMenu: null,
-  Minimap: null,
-  StylePanel: null,
-  PageMenu: null,
-  NavigationPanel: null,
-  Toolbar: null,
-  KeyboardShortcutsDialog: null,
-  QuickActions: null,
-  HelperButtons: null,
-  DebugPanel: null,
-  DebugMenu: null,
-  MenuPanel: null,
-  SharePanel: null,
-  CursorChatBubble: null,
-  TopPanel: null,
 };
 
 interface InnerProps {
@@ -360,14 +343,12 @@ const Inner = track((props: InnerProps) => {
     return HIDDEN;
   };
 
-  const presentationMode = perInstanceAtoms.$presentationMode.get();
-
   return (
     <Tldraw
       onMount={handleMount}
       components={{
-        ...makeComponents(perInstanceAtoms),
-        ...(presentationMode ? NULL_COMPONENTS_OVERRIDE : {}), // Hide all UI components in presentation mode. `hideUi` option is not used because it also disables the hotkeys.
+        ...createModeAwareDefaultComponents(perInstanceAtoms.$presentationMode),
+        ...createComponents(perInstanceAtoms),
       }}
       overrides={makeUiOverrides(perInstanceAtoms)}
       shapeUtils={customShapeUtils}
@@ -375,13 +356,12 @@ const Inner = track((props: InnerProps) => {
       isShapeHidden={determineShapeHidden}
       options={{
         maxPages: 1,
-        createTextOnCanvasDoubleClick: !presentationMode,
       }}
       snapshot={snapshot}
     >
-      {
-        presentationMode && <ReadonlyOverlay /> // Prevent interactions with shapes in presentation mode. Tldraw's `readOnly` option is not used because it allows some ops like selecting shapes or editing text.
-      }
+      <ReadonlyOverlay // Prevent interactions with shapes in presentation mode. Tldraw's `readOnly` option is not used because it allows some ops like selecting shapes or editing text.
+        $presentationMode={perInstanceAtoms.$presentationMode}
+      />
     </Tldraw>
   );
 });
