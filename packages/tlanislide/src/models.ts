@@ -278,6 +278,7 @@ async function runFrames(
       editor.selectNone();
 
       if (predecessorShape == null) {
+        predecessorShape = shape;
         continue;
       }
 
@@ -345,14 +346,13 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
         : null;
 
     const frames = frameBatch.data;
+    const frameShapes = frames
+      .map((frame) => getShapeByFrameId(editor, frame.id))
+      .filter((shape) => shape != null);
 
     editor.run(
       () => {
-        for (const frame of frames) {
-          const shape = getShapeByFrameId(editor, frame.id);
-          if (shape == null) {
-            continue;
-          }
+        for (const shape of frameShapes) {
           editor.updateShape({
             id: shape.id,
             type: shape.id,
@@ -369,11 +369,7 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
     runFrames(editor, frames, predecessorShape ?? null).finally(() => {
       editor.run(
         () => {
-          for (const frame of frames) {
-            const shape = getShapeByFrameId(editor, frame.id);
-            if (shape == null) {
-              continue;
-            }
+          for (const shape of frameShapes) {
             editor.updateShape({
               id: shape.id,
               type: shape.id,
