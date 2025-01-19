@@ -39,6 +39,7 @@ import {
   CameraZoomFrameAction,
   keyframeToJsonObject,
   type Keyframe,
+  getSubFrame,
 } from "./models";
 import React, {
   useCallback,
@@ -297,47 +298,64 @@ const Inner = track((props: InnerProps) => {
     }
 
     const keyframe = getKeyframe(shape);
-    if (keyframe == null) {
+    const subFrame = getSubFrame(shape);
+    if (keyframe == null && subFrame == null) {
       // No animation keyframe is attached to this shape, so it should always be visible
       return SHOW;
     }
 
     const orderedSteps = getOrderedSteps(editor); // TODO: Cache
     const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
-    const currentStep = orderedSteps[currentStepIndex];
-    if (currentStep == null) {
-      // Fallback: This should never happen, but if it does, show the shape
-      return SHOW;
-    }
-
-    const isCurrent = currentStep
-      .map((keyframe) => keyframe.id)
-      .includes(keyframe.id);
-    if (isCurrent) {
-      // Current frame should always be visible
-      return SHOW;
-    }
 
     // The last frame of a finished animation should always be visible
-    const isFuture = keyframe.globalIndex > currentStepIndex;
-    if (isFuture) {
-      return HIDDEN;
-    }
-    const keyframes = getAllKeyframes(editor); // TODO: Cache
-    const isLatestPrevInTrack = !keyframes.some((anotherKf) => {
-      const same = anotherKf.id === keyframe.id;
-      if (same) {
-        return false;
+    if (keyframe != null) {
+      const isFuture = keyframe.globalIndex > currentStepIndex;
+      if (isFuture) {
+        return HIDDEN;
       }
 
-      const anotherKfIsLatestInTrack =
-        anotherKf.trackId === keyframe.trackId &&
-        keyframe.globalIndex < anotherKf.globalIndex &&
-        anotherKf.globalIndex <= currentStepIndex;
-      return anotherKfIsLatestInTrack;
-    });
-    if (isLatestPrevInTrack) {
-      return SHOW;
+      const lastBatchIncludingThisTrack = orderedSteps
+        .slice(0, currentStepIndex + 1)
+        .reverse()
+        .flat()
+        .find((ab) => ab.trackId === keyframe.trackId);
+      const isLatestPrevInTrack =
+        lastBatchIncludingThisTrack &&
+        lastBatchIncludingThisTrack.data.findIndex(
+          (frame) => frame.id === keyframe.id,
+        ) ===
+          lastBatchIncludingThisTrack.data.length - 1;
+      if (isLatestPrevInTrack) {
+        return SHOW;
+      }
+    } else if (subFrame != null) {
+      const thisBatch = orderedSteps
+        .flat()
+        .find((ab) => ab.data.some((frame) => frame.id === subFrame.id));
+      if (thisBatch == null) {
+        // This should never happen, but just in case
+        return HIDDEN;
+      }
+
+      const isFuture = thisBatch.globalIndex > currentStepIndex;
+      if (isFuture) {
+        return HIDDEN;
+      }
+
+      const lastBatchIncludingThisTrack = orderedSteps
+        .slice(0, currentStepIndex + 1)
+        .reverse()
+        .flat()
+        .find((ab) => ab.trackId === thisBatch.trackId);
+      const isLatestPrevInTrack =
+        lastBatchIncludingThisTrack &&
+        lastBatchIncludingThisTrack.data.findIndex(
+          (frame) => frame.id === subFrame.id,
+        ) ===
+          lastBatchIncludingThisTrack.data.length - 1;
+      if (isLatestPrevInTrack) {
+        return SHOW;
+      }
     }
 
     return HIDDEN;

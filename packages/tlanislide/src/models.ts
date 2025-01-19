@@ -34,7 +34,9 @@ export interface SubFrame<T extends FrameAction = FrameAction> {
   data: T; // TODO: Rename to `action`
 }
 
-type Frame<T extends FrameAction = FrameAction> = Keyframe<T> | SubFrame<T>;
+export type Frame<T extends FrameAction = FrameAction> =
+  | Keyframe<T>
+  | SubFrame<T>;
 type BatchedFrames<T extends FrameAction = FrameAction> = [
   Keyframe<T>,
   ...SubFrame<T>[],
@@ -152,7 +154,7 @@ export function getKeyframe(shape: TLShape): Keyframe | undefined {
     : undefined;
 }
 
-function getSubFrame(shape: TLShape): SubFrame | undefined {
+export function getSubFrame(shape: TLShape): SubFrame | undefined {
   return isJsonObject(shape.meta.subFrame)
     ? jsonObjectToSubFrame(shape.meta.subFrame)
     : undefined;
@@ -242,7 +244,7 @@ export function getShapeByFrameId(
 
 type NonEmptyArray<T> = [T, ...T[]];
 
-function runAction(
+function runFrames(
   editor: Editor,
   frames: NonEmptyArray<Frame>,
   predecessorShape: TLShape | null,
@@ -270,7 +272,7 @@ function runAction(
     setTimeout(() => {
       const nextFrame = frames.at(1);
       if (nextFrame) {
-        runAction(editor, [nextFrame, ...frames.slice(2)], shape);
+        runFrames(editor, [nextFrame, ...frames.slice(2)], shape);
       }
     }, duration);
   } else if (action.type === "shapeAnimation") {
@@ -340,7 +342,7 @@ function runAction(
 
           const nextFrame = frames.at(1);
           if (nextFrame) {
-            runAction(editor, [nextFrame, ...frames.slice(2)], shape);
+            runFrames(editor, [nextFrame, ...frames.slice(2)], shape);
           }
         }, duration);
       },
@@ -367,7 +369,7 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
       predecessorLastFrame != null
         ? getShapeByFrameId(editor, predecessorLastFrame.id)
         : null;
-    runAction(editor, frameBatch.data, predecessorShape ?? null);
+    runFrames(editor, frameBatch.data, predecessorShape ?? null);
   });
 
   return true;
