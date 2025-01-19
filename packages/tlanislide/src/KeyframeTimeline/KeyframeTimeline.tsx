@@ -105,31 +105,31 @@ function SelectField<T extends string[]>({
   );
 }
 
-interface KeyframeEditPopoverProps {
-  keyframe: Keyframe;
-  onUpdate: (newKf: Keyframe) => void;
+interface FrameEditPopoverProps {
+  frame: Frame;
+  onUpdate: (newFrame: Frame) => void;
   children: React.ReactNode;
 }
-function KeyframeEditPopover({
-  keyframe,
+function FrameEditPopover({
+  frame,
   onUpdate,
   children,
-}: KeyframeEditPopoverProps) {
+}: FrameEditPopoverProps) {
   return (
-    <TldrawUiPopover id={`keyframe-config-${keyframe.id}`}>
+    <TldrawUiPopover id={`frame-config-${frame.id}`}>
       <TldrawUiPopoverTrigger>{children}</TldrawUiPopoverTrigger>
       <TldrawUiPopoverContent side="bottom" sideOffset={6}>
         <div className={styles.popoverContent}>
-          {keyframe.data.type === "cameraZoom" && (
+          {frame.data.type === "cameraZoom" && (
             <NumberField
               label="Inset"
-              value={keyframe.data.inset ?? 0}
+              value={frame.data.inset ?? 0}
               max={1000}
               onChange={(newInset) =>
                 onUpdate({
-                  ...keyframe,
+                  ...frame,
                   data: {
-                    ...keyframe.data,
+                    ...frame.data,
                     inset: newInset,
                   },
                 })
@@ -138,13 +138,13 @@ function KeyframeEditPopover({
           )}
           <NumberField
             label="Duration"
-            value={keyframe.data.duration ?? 0}
+            value={frame.data.duration ?? 0}
             max={10000}
             onChange={(newDuration) =>
               onUpdate({
-                ...keyframe,
+                ...frame,
                 data: {
-                  ...keyframe.data,
+                  ...frame.data,
                   duration: newDuration,
                 },
               })
@@ -152,14 +152,14 @@ function KeyframeEditPopover({
           />
           <SelectField
             label="Easing"
-            value={keyframe.data.easing ?? ""}
+            value={frame.data.easing ?? ""}
             options={EASINGS_OPTIONS}
             onChange={(newEasing) => {
               if (isEasingOption(newEasing)) {
                 onUpdate({
-                  ...keyframe,
+                  ...frame,
                   data: {
-                    ...keyframe.data,
+                    ...frame.data,
                     easing: newEasing,
                   },
                 });
@@ -199,13 +199,16 @@ interface FrameIconProps {
   children?: React.ReactNode;
   as?: React.ElementType;
 }
-function FrameIcon(props: FrameIconProps) {
-  return React.createElement(props.as ?? "div", {
-    className: `${styles.frameIcon} ${props.isSelected ? styles.selected : ""} ${props.subFrame ? styles.subFrame : ""}`,
-    onClick: props.onClick,
-    children: props.children,
-  });
-}
+const FrameIcon = React.forwardRef<HTMLElement, FrameIconProps>(
+  (props, ref) => {
+    return React.createElement(props.as ?? "div", {
+      ref,
+      className: `${styles.frameIcon} ${props.isSelected ? styles.selected : ""} ${props.subFrame ? styles.subFrame : ""}`,
+      onClick: props.onClick,
+      children: props.children,
+    });
+  },
+);
 
 function DroppableArea({
   type,
@@ -240,7 +243,7 @@ const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps {
   frameBatches: FrameBatch[];
-  onKeyframeChange: (newKeyframe: Keyframe) => void;
+  onFrameChange: (newFrame: Frame) => void;
   onFrameBatchesChange: (newFrameBatches: FrameBatch[]) => void;
   currentStepIndex: number;
   onStepSelect: (stepIndex: number) => void;
@@ -252,7 +255,7 @@ interface KeyframeTimelineProps {
 }
 export function KeyframeTimeline({
   frameBatches,
-  onKeyframeChange,
+  onFrameChange,
   onFrameBatchesChange,
   currentStepIndex,
   onStepSelect,
@@ -372,44 +375,47 @@ export function KeyframeTimeline({
                               localIndex={batch.localIndex}
                               className={styles.frameBatchControl}
                             >
-                              <KeyframeEditPopover
-                                keyframe={kf}
+                              <FrameEditPopover
+                                frame={kf}
                                 onUpdate={(newKeyframe) =>
-                                  onKeyframeChange(newKeyframe)
+                                  onFrameChange(newKeyframe)
                                 }
                               >
-                                <div>
-                                  <FrameIcon
-                                    isSelected={selectedFrameIds.includes(
-                                      kf.id,
-                                    )}
-                                    onClick={() => {
-                                      onFrameSelect(kf.id);
-                                    }}
-                                  >
-                                    {kf.data.type === "cameraZoom"
-                                      ? "🎞️"
-                                      : batch.localIndex + 1}
-                                  </FrameIcon>
-                                </div>
-                              </KeyframeEditPopover>
+                                <FrameIcon
+                                  isSelected={selectedFrameIds.includes(kf.id)}
+                                  onClick={() => {
+                                    onFrameSelect(kf.id);
+                                  }}
+                                >
+                                  {kf.data.type === "cameraZoom"
+                                    ? "🎞️"
+                                    : batch.localIndex + 1}
+                                </FrameIcon>
+                              </FrameEditPopover>
 
                               {batch.data
                                 .slice(1)
                                 .map((subFrame, subFrameIdx) => {
                                   return (
-                                    <FrameIcon
+                                    <FrameEditPopover
                                       key={subFrame.id}
-                                      isSelected={selectedFrameIds.includes(
-                                        subFrame.id,
-                                      )}
-                                      subFrame
-                                      onClick={() => {
-                                        onFrameSelect(subFrame.id);
-                                      }}
+                                      frame={subFrame}
+                                      onUpdate={(newFrame) =>
+                                        onFrameChange(newFrame)
+                                      }
                                     >
-                                      {subFrameIdx + 1}
-                                    </FrameIcon>
+                                      <FrameIcon
+                                        isSelected={selectedFrameIds.includes(
+                                          subFrame.id,
+                                        )}
+                                        subFrame
+                                        onClick={() => {
+                                          onFrameSelect(subFrame.id);
+                                        }}
+                                      >
+                                        {subFrameIdx + 1}
+                                      </FrameIcon>
+                                    </FrameEditPopover>
                                   );
                                 })}
                               <div className={styles.frameAddButtonContainer}>

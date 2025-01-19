@@ -19,6 +19,7 @@ import {
   frameToJsonObject,
   getFrameBatches,
   getAllFrames,
+  Frame,
 } from "../models";
 import { insertOrderedTrackItem } from "../ordered-track-item";
 import { KeyframeTimeline } from "../KeyframeTimeline";
@@ -48,10 +49,10 @@ export function makeControlPanel(atoms: {
       (shape) => getFrame(shape) == null && shape.type !== SlideShapeType,
     );
 
-    const handleKeyframeChange = (newKeyframe: Keyframe) => {
+    const handleFrameChange = (newFrame: Frame) => {
       const shape = editor
         .getCurrentPageShapes()
-        .find((shape) => getKeyframe(shape)?.id === newKeyframe.id);
+        .find((shape) => getFrame(shape)?.id === newFrame.id);
       if (shape == null) {
         return;
       }
@@ -59,7 +60,7 @@ export function makeControlPanel(atoms: {
       editor.updateShape({
         ...shape,
         meta: {
-          frame: keyframeToJsonObject(newKeyframe),
+          frame: frameToJsonObject(newFrame),
         },
       });
     };
@@ -132,7 +133,7 @@ export function makeControlPanel(atoms: {
         <KeyframeTimeline
           frameBatches={frameBatches}
           onFrameBatchesChange={handleFrameBatchesChange}
-          onKeyframeChange={handleKeyframeChange}
+          onFrameChange={handleFrameChange}
           currentStepIndex={currentStepIndex}
           onStepSelect={(i) => {
             const res = runStep(editor, steps, i);
