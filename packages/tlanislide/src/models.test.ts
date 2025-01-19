@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getNextGlobalIndex } from "./models";
+import { getNextGlobalIndexFromKeyframes } from "./models";
 import type { Keyframe } from "./models";
 
 function createMockKeyframe(
@@ -21,12 +21,12 @@ function createMockKeyframe(
 
 describe("getNextGlobalIndex", () => {
   it("should return 0 when there are no keyframes", () => {
-    expect(getNextGlobalIndex([])).toBe(0);
+    expect(getNextGlobalIndexFromKeyframes([])).toBe(0);
   });
 
   it("should return the next index when there are keyframes", () => {
     expect(
-      getNextGlobalIndex([
+      getNextGlobalIndexFromKeyframes([
         createMockKeyframe("0", "a", 0),
         createMockKeyframe("1", "a", 1),
         createMockKeyframe("2", "a", 2),

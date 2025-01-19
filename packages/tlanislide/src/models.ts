@@ -130,9 +130,18 @@ function jsonObjectToSubFrame(obj: unknown): SubFrame {
   );
 }
 
-export function getNextGlobalIndex(keyframes: Keyframe[]): number {
+function getAllKeyframes(editor: Editor): Keyframe[] {
+  const shapes = editor.getCurrentPageShapes();
+  return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
+}
+
+export function getNextGlobalIndexFromKeyframes(keyframes: Keyframe[]): number {
   const globalIndexes = keyframes.map((kf) => kf.globalIndex);
   return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
+}
+
+export function getNextGlobalIndex(editor: Editor): number {
+  return getNextGlobalIndexFromKeyframes(getAllKeyframes(editor));
 }
 
 export function attachKeyframe(
@@ -143,7 +152,7 @@ export function attachKeyframe(
   const keyframe: Keyframe = {
     id: shapeId,
     type: "keyframe",
-    globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
+    globalIndex: getNextGlobalIndex(editor),
     trackId: uniqueId(),
     data: frameAction,
   };
@@ -189,11 +198,6 @@ export function getSubFrame(shape: TLShape): SubFrame | undefined {
   return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "subFrame"
     ? jsonObjectToSubFrame(shape.meta.frame)
     : undefined;
-}
-
-export function getAllKeyframes(editor: Editor): Keyframe[] {
-  const shapes = editor.getCurrentPageShapes();
-  return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
 export function getAllFrames(editor: Editor): Frame[] {

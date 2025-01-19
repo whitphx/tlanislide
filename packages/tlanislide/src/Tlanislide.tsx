@@ -34,11 +34,13 @@ import {
   getOrderedSteps,
   runStep,
   detatchKeyframe,
-  CameraZoomFrameAction,
   keyframeToJsonObject,
-  type Keyframe,
   getFrame,
   getAllFrames,
+  getNextGlobalIndex,
+  type CameraZoomFrameAction,
+  type Keyframe,
+  type SubFrame,
 } from "./models";
 import React, {
   useCallback,
@@ -251,20 +253,26 @@ const Inner = track((props: InnerProps) => {
         // If the shape contains a frame, ensure that the frame is unique.
         // This is necessary e.g. when a shape is duplicated, the frame should not be duplicated.
         const frame = getFrame(shape);
-        const frameId = frame?.id;
-        if (frameId == null) {
+        if (frame == null) {
           return shape;
         }
 
         const allFrames = getAllFrames(editor);
         const allFrameIds = allFrames.map((frame) => frame.id);
-        if (allFrameIds.includes(frameId)) {
-          const orderedSteps = getOrderedSteps(editor);
-          shape.meta.frame = {
-            ...frame,
-            id: uniqueId(),
-            globalIndex: orderedSteps.length,
-          };
+        if (allFrameIds.includes(frame.id)) {
+          if (frame.type === "keyframe") {
+            shape.meta.frame = {
+              ...frame,
+              id: uniqueId(),
+              globalIndex: getNextGlobalIndex(editor),
+            } satisfies Keyframe;
+          } else if (frame.type === "subFrame") {
+            shape.meta.frame = {
+              ...frame,
+              id: uniqueId(),
+              prevFrameId: frame.id,
+            } satisfies SubFrame;
+          }
         }
         return shape;
       }
