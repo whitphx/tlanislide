@@ -19,7 +19,7 @@ export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
     const frameBatchUIData: FrameBatchUIData[] = [];
     for (const batch of step) {
       tracksMap[batch.trackId] = tracksMap[batch.trackId] ?? {
-        type: batch.data[0].type,
+        type: batch.data[0].action.type,
         batchCount: 0,
       };
       frameBatchUIData.push({
