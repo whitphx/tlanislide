@@ -121,16 +121,16 @@ function FrameEditPopover({
           className={styles.popoverContent}
           data-no-dnd="true" // Prevent DnD event propagation to parent elements. See `dnd-sensors.ts` for more details.
         >
-          {frame.data.type === "cameraZoom" && (
+          {frame.action.type === "cameraZoom" && (
             <NumberField
               label="Inset"
-              value={frame.data.inset ?? 0}
+              value={frame.action.inset ?? 0}
               max={1000}
               onChange={(newInset) =>
                 onUpdate({
                   ...frame,
-                  data: {
-                    ...frame.data,
+                  action: {
+                    ...frame.action,
                     inset: newInset,
                   },
                 })
@@ -139,13 +139,13 @@ function FrameEditPopover({
           )}
           <NumberField
             label="Duration"
-            value={frame.data.duration ?? 0}
+            value={frame.action.duration ?? 0}
             max={10000}
             onChange={(newDuration) =>
               onUpdate({
                 ...frame,
-                data: {
-                  ...frame.data,
+                action: {
+                  ...frame.action,
                   duration: newDuration,
                 },
               })
@@ -153,14 +153,14 @@ function FrameEditPopover({
           />
           <SelectField
             label="Easing"
-            value={frame.data.easing ?? ""}
+            value={frame.action.easing ?? ""}
             options={EASINGS_OPTIONS}
             onChange={(newEasing) => {
               if (isEasingOption(newEasing)) {
                 onUpdate({
                   ...frame,
-                  data: {
-                    ...frame.data,
+                  action: {
+                    ...frame.action,
                     easing: newEasing,
                   },
                 });
@@ -388,7 +388,7 @@ export function KeyframeTimeline({
                                     onFrameSelect(kf.id);
                                   }}
                                 >
-                                  {kf.data.type === "cameraZoom"
+                                  {kf.action.type === "cameraZoom"
                                     ? "🎞️"
                                     : batch.localIndex + 1}
                                 </FrameIcon>

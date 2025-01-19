@@ -167,8 +167,8 @@ export function makeControlPanel(atoms: {
               type: "keyframe",
               globalIndex: 0, // NOTE: This will be recalculated later.
               trackId: prevKeyframe.trackId,
-              data: {
-                type: prevKeyframe.data.type,
+              action: {
+                type: prevKeyframe.action.type,
                 duration: 1000,
               },
             } satisfies Keyframe;

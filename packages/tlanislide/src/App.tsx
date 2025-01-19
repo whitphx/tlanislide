@@ -21,7 +21,7 @@ function setupDevMock(editor: Editor) {
         type: "keyframe",
         globalIndex: 0,
         trackId: rectTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
         },
       } satisfies Keyframe,
@@ -45,7 +45,7 @@ function setupDevMock(editor: Editor) {
         type: "keyframe",
         globalIndex: 1,
         trackId: rectTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 1000,
         },
@@ -68,7 +68,7 @@ function setupDevMock(editor: Editor) {
         id: uniqueId(),
         type: "subFrame",
         prevFrameId: rect1FrameId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 2000,
         },
@@ -99,7 +99,7 @@ function setupDevMock(editor: Editor) {
         type: "keyframe",
         globalIndex: 1,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
         },
       } satisfies Keyframe,
@@ -128,7 +128,7 @@ function setupDevMock(editor: Editor) {
         type: "keyframe",
         globalIndex: 2,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 1000,
         },
@@ -158,7 +158,7 @@ function setupDevMock(editor: Editor) {
         type: "keyframe",
         globalIndex: 3,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
         },
       } satisfies Keyframe,
@@ -187,7 +187,7 @@ function setupDevMock(editor: Editor) {
         type: "keyframe",
         globalIndex: 4,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 1000,
         },

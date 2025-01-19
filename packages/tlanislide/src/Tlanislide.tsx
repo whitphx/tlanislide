@@ -231,13 +231,13 @@ const Inner = track((props: InnerProps) => {
         const lastCameraKeyframe = orderedSteps
           .reverse()
           .flat()
-          .find((ab) => ab.data[0].data.type === "cameraZoom");
+          .find((ab) => ab.data[0].action.type === "cameraZoom");
         const keyframe: Keyframe<CameraZoomFrameAction> = {
           id: uniqueId(),
           type: "keyframe",
           globalIndex: orderedSteps.length,
           trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
-          data: {
+          action: {
             type: "cameraZoom",
             duration: lastCameraKeyframe ? 1000 : 0,
           },

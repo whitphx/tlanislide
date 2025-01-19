@@ -12,7 +12,7 @@ function createMockKeyframe(
     type: "keyframe",
     trackId,
     globalIndex,
-    data: {
+    action: {
       type: "shapeAnimation",
       duration: 1000,
     },

@@ -31,13 +31,13 @@ export interface Keyframe<T extends FrameAction = FrameAction>
   type: "keyframe";
   globalIndex: OrderedTrackItem["globalIndex"];
   trackId: OrderedTrackItem["trackId"];
-  data: T; // TODO: Rename to `action`
+  action: T;
 }
 export interface SubFrame<T extends FrameAction = FrameAction>
   extends FrameBase {
   type: "subFrame";
   prevFrameId: Frame["id"];
-  data: T; // TODO: Rename to `action`
+  action: T;
 }
 export type Frame<T extends FrameAction = FrameAction> =
   | Keyframe<T>
@@ -53,14 +53,14 @@ export type FrameBatch<T extends FrameAction = FrameAction> = OrderedTrackItem<
 >;
 
 export function keyframeToJsonObject(kf: Keyframe): JsonObject {
-  const { id, type, globalIndex, trackId, data } = kf;
-  const obj = { id, type, globalIndex, trackId, data } satisfies JsonObject;
+  const { id, type, globalIndex, trackId, action } = kf;
+  const obj = { id, type, globalIndex, trackId, action } satisfies JsonObject;
   return obj;
 }
 
 export function subFrameToJsonObject(sf: SubFrame): JsonObject {
-  const { id, type, prevFrameId, data } = sf;
-  const obj = { id, type, prevFrameId, data } satisfies JsonObject;
+  const { id, type, prevFrameId, action } = sf;
+  const obj = { id, type, prevFrameId, action } satisfies JsonObject;
   return obj;
 }
 
@@ -93,8 +93,8 @@ function isKeyframe(obj: unknown): obj is Keyframe {
     obj.type === "keyframe" &&
     "globalIndex" in obj &&
     "trackId" in obj &&
-    "data" in obj &&
-    isFrameAction(obj.data)
+    "action" in obj &&
+    isFrameAction(obj.action)
   );
 }
 
@@ -116,8 +116,8 @@ function isSubFrame(obj: unknown): obj is SubFrame {
     "type" in obj &&
     obj.type === "subFrame" &&
     "prevFrameId" in obj &&
-    "data" in obj &&
-    isFrameAction(obj.data)
+    "action" in obj &&
+    isFrameAction(obj.action)
   );
 }
 
@@ -154,7 +154,7 @@ export function attachKeyframe(
     type: "keyframe",
     globalIndex: getNextGlobalIndex(editor),
     trackId: uniqueId(),
-    data: frameAction,
+    action: frameAction,
   };
 
   const shape = editor.getShape(shapeId);
@@ -290,7 +290,7 @@ async function runFrames(
   predecessorShape: TLShape | null,
 ): Promise<void> {
   for (const frame of frames) {
-    const action = frame.data;
+    const action = frame.action;
 
     const { duration = 0, easing = "easeInCubic" } = action;
     const immediate = duration === 0;
