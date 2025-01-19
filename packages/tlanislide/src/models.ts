@@ -267,19 +267,10 @@ export function getShapeByFrameId(
   frameId: Frame["id"],
 ): TLShape | undefined {
   const shapes = editor.getCurrentPageShapes();
-  // TODO: フィールド名を統一
-  const shapeWithKeyframe = shapes.find((shape) => {
+  return shapes.find((shape) => {
     const frame = getFrame(shape);
     return frame != null && frame.id === frameId;
   });
-  if (shapeWithKeyframe != null) {
-    return shapeWithKeyframe;
-  }
-  const shapeWithSubFrame = shapes.find((shape) => {
-    const subFrame = getSubFrame(shape);
-    return subFrame != null && subFrame.id === frameId;
-  });
-  return shapeWithSubFrame;
 }
 
 type NonEmptyArray<T> = [T, ...T[]];
