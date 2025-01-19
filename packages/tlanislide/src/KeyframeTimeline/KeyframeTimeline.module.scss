@@ -46,12 +46,11 @@ $inbetween-droppable-cell-width: 16px;
     height: $row-height;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
   }
 
   .frameBatchControl {
     position: relative;
-    width: 100%;
     display: flex;
     align-items: center;
     justify-content: left;
