@@ -8,11 +8,13 @@ export function DraggableKeyframeUI({
   trackId,
   localIndex,
   children,
+  className,
 }: {
   kf: FrameBatchUIData;
   trackId: string;
   localIndex: number;
   children: React.ReactNode;
+  className?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging, active } =
     useDraggable({
@@ -44,6 +46,7 @@ export function DraggableKeyframeUI({
       {...attributes}
       {...listeners}
       style={style}
+      className={className}
     >
       {children}
     </div>
