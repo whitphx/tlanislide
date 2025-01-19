@@ -59,7 +59,7 @@ export function makeControlPanel(atoms: {
       editor.updateShape({
         ...shape,
         meta: {
-          keyframe: keyframeToJsonObject(newKeyframe),
+          frame: keyframeToJsonObject(newKeyframe),
         },
       });
     };
@@ -78,7 +78,7 @@ export function makeControlPanel(atoms: {
             ...shape,
             meta: {
               ...shape.meta,
-              keyframe: undefined,
+              frame: undefined,
             },
           };
         }
@@ -87,7 +87,7 @@ export function makeControlPanel(atoms: {
           ...shape,
           meta: {
             ...shape.meta,
-            keyframe: frameToJsonObject(newFrame),
+            frame: frameToJsonObject(newFrame),
           },
         };
       });
@@ -188,7 +188,7 @@ export function makeControlPanel(atoms: {
                   x: prevShape.x + 100,
                   y: prevShape.y + 100,
                   meta: {
-                    keyframe: keyframeToJsonObject(newKeyframe),
+                    frame: keyframeToJsonObject(newKeyframe),
                   },
                 });
                 editor.select(newShapeId);

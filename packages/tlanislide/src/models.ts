@@ -156,7 +156,7 @@ export function attachKeyframe(
     id: shapeId,
     type: shape.type,
     meta: {
-      keyframe: keyframeToJsonObject(keyframe),
+      frame: keyframeToJsonObject(keyframe),
     },
   });
 }
@@ -170,7 +170,7 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
     id: shape.id,
     type: shape.type,
     meta: {
-      keyframe: undefined,
+      frame: undefined,
     },
   });
 }
@@ -180,16 +180,14 @@ export function getFrame(shape: TLShape): Frame | undefined {
 }
 
 export function getKeyframe(shape: TLShape): Keyframe | undefined {
-  return isJsonObject(shape.meta.keyframe) &&
-    shape.meta.keyframe.type === "keyframe"
-    ? jsonObjectToKeyframe(shape.meta.keyframe)
+  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "keyframe"
+    ? jsonObjectToKeyframe(shape.meta.frame)
     : undefined;
 }
 
 export function getSubFrame(shape: TLShape): SubFrame | undefined {
-  return isJsonObject(shape.meta.keyframe) &&
-    shape.meta.keyframe.type === "subFrame"
-    ? jsonObjectToSubFrame(shape.meta.keyframe)
+  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "subFrame"
+    ? jsonObjectToSubFrame(shape.meta.frame)
     : undefined;
 }
 

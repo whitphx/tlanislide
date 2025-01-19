@@ -223,7 +223,7 @@ const Inner = track((props: InnerProps) => {
 
   const handleMount = (editor: Editor) => {
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
-      if (shape.type === SlideShapeType && shape.meta?.keyframe == null) {
+      if (shape.type === SlideShapeType && shape.meta?.frame == null) {
         // Auto attach camera keyframe to the newly created slide shape
         const orderedSteps = getOrderedSteps(editor);
         const lastCameraKeyframe = orderedSteps
@@ -244,7 +244,7 @@ const Inner = track((props: InnerProps) => {
           ...shape,
           meta: {
             ...shape.meta,
-            keyframe: keyframeToJsonObject(keyframe),
+            frame: keyframeToJsonObject(keyframe),
           },
         };
       } else {
@@ -260,7 +260,7 @@ const Inner = track((props: InnerProps) => {
         const allFrameIds = allFrames.map((frame) => frame.id);
         if (allFrameIds.includes(frameId)) {
           const orderedSteps = getOrderedSteps(editor);
-          shape.meta.keyframe = {
+          shape.meta.frame = {
             ...frame,
             id: uniqueId(),
             globalIndex: orderedSteps.length,

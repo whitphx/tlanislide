@@ -16,7 +16,7 @@ function setupDevMock(editor: Editor) {
       h: 50,
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
         type: "keyframe",
         globalIndex: 0,
@@ -40,7 +40,7 @@ function setupDevMock(editor: Editor) {
       h: 100,
     },
     meta: {
-      keyframe: {
+      frame: {
         id: rect1FrameId,
         type: "keyframe",
         globalIndex: 1,
@@ -64,7 +64,7 @@ function setupDevMock(editor: Editor) {
       h: 150,
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
         type: "subFrame",
         prevFrameId: rect1FrameId,
@@ -94,7 +94,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
         type: "keyframe",
         globalIndex: 1,
@@ -123,7 +123,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
         type: "keyframe",
         globalIndex: 2,
@@ -153,7 +153,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
         type: "keyframe",
         globalIndex: 3,
@@ -182,7 +182,7 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
         type: "keyframe",
         globalIndex: 4,
