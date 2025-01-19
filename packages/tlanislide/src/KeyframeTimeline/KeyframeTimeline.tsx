@@ -4,12 +4,10 @@ import {
   useDndContext,
   useSensors,
   useSensor,
-  PointerSensor,
-  MouseSensor,
-  TouchSensor,
   KeyboardSensor,
   type DndContextProps,
 } from "@dnd-kit/core";
+import { PointerSensor, MouseSensor, TouchSensor } from "./dnd-sensors";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { moveItemPreservingLocalOrder } from "../ordered-track-item";
 import {
@@ -119,7 +117,10 @@ function FrameEditPopover({
     <TldrawUiPopover id={`frame-config-${frame.id}`}>
       <TldrawUiPopoverTrigger>{children}</TldrawUiPopoverTrigger>
       <TldrawUiPopoverContent side="bottom" sideOffset={6}>
-        <div className={styles.popoverContent}>
+        <div
+          className={styles.popoverContent}
+          data-no-dnd="true" // Prevent DnD event propagation to parent elements. See `dnd-sensors.ts` for more details.
+        >
           {frame.data.type === "cameraZoom" && (
             <NumberField
               label="Inset"
