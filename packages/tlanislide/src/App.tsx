@@ -18,6 +18,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       keyframe: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 0,
         trackId: rectTrackId,
         data: {
@@ -41,6 +42,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       keyframe: {
         id: rect1FrameId,
+        type: "keyframe",
         globalIndex: 1,
         trackId: rectTrackId,
         data: {
@@ -62,8 +64,9 @@ function setupDevMock(editor: Editor) {
       h: 150,
     },
     meta: {
-      subFrame: {
+      keyframe: {
         id: uniqueId(),
+        type: "subFrame",
         prevFrameId: rect1FrameId,
         data: {
           type: "shapeAnimation",
@@ -93,6 +96,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       keyframe: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 1,
         trackId: arrowTrackId,
         data: {
@@ -121,6 +125,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       keyframe: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 2,
         trackId: arrowTrackId,
         data: {
@@ -150,6 +155,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       keyframe: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 3,
         trackId: arrowTrackId,
         data: {
@@ -178,6 +184,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       keyframe: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 4,
         trackId: arrowTrackId,
         data: {

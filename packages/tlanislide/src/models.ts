@@ -22,21 +22,27 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export interface Keyframe<T extends FrameAction = FrameAction> {
+export interface FrameBase {
   id: string;
+  type: string;
+}
+export interface Keyframe<T extends FrameAction = FrameAction>
+  extends FrameBase {
+  type: "keyframe";
   globalIndex: OrderedTrackItem["globalIndex"];
   trackId: OrderedTrackItem["trackId"];
   data: T; // TODO: Rename to `action`
 }
-export interface SubFrame<T extends FrameAction = FrameAction> {
-  id: string;
+export interface SubFrame<T extends FrameAction = FrameAction>
+  extends FrameBase {
+  type: "subFrame";
   prevFrameId: Frame["id"];
   data: T; // TODO: Rename to `action`
 }
-
 export type Frame<T extends FrameAction = FrameAction> =
   | Keyframe<T>
   | SubFrame<T>;
+
 type BatchedFrames<T extends FrameAction = FrameAction> = [
   Keyframe<T>,
   ...SubFrame<T>[],
@@ -47,9 +53,25 @@ export type FrameBatch<T extends FrameAction = FrameAction> = OrderedTrackItem<
 >;
 
 export function keyframeToJsonObject(kf: Keyframe): JsonObject {
-  const { id, globalIndex, trackId, data } = kf;
-  const obj = { id, globalIndex, trackId, data } satisfies JsonObject;
+  const { id, type, globalIndex, trackId, data } = kf;
+  const obj = { id, type, globalIndex, trackId, data } satisfies JsonObject;
   return obj;
+}
+
+export function subFrameToJsonObject(sf: SubFrame): JsonObject {
+  const { id, type, prevFrameId, data } = sf;
+  const obj = { id, type, prevFrameId, data } satisfies JsonObject;
+  return obj;
+}
+
+export function frameToJsonObject(frame: Frame): JsonObject {
+  if (frame.type === "keyframe") {
+    return keyframeToJsonObject(frame);
+  } else if (frame.type === "subFrame") {
+    return subFrameToJsonObject(frame);
+  }
+  // @ts-expect-error This should never happen
+  throw new Error(`Invalid frame type: ${frame.type}`);
 }
 
 function isFrameAction(obj: unknown): obj is FrameAction {
@@ -67,6 +89,8 @@ function isKeyframe(obj: unknown): obj is Keyframe {
     obj !== null &&
     !Array.isArray(obj) &&
     "id" in obj &&
+    "type" in obj &&
+    obj.type === "keyframe" &&
     "globalIndex" in obj &&
     "trackId" in obj &&
     "data" in obj &&
@@ -76,7 +100,7 @@ function isKeyframe(obj: unknown): obj is Keyframe {
 
 export function jsonObjectToKeyframe(obj: unknown): Keyframe {
   if (isKeyframe(obj)) {
-    return obj;
+    return { ...obj };
   }
   throw new Error(
     `Given input is not a valid Keyframe. ${JSON.stringify(obj)}`,
@@ -89,6 +113,8 @@ function isSubFrame(obj: unknown): obj is SubFrame {
     obj !== null &&
     !Array.isArray(obj) &&
     "id" in obj &&
+    "type" in obj &&
+    obj.type === "subFrame" &&
     "prevFrameId" in obj &&
     "data" in obj &&
     isFrameAction(obj.data)
@@ -97,7 +123,7 @@ function isSubFrame(obj: unknown): obj is SubFrame {
 
 function jsonObjectToSubFrame(obj: unknown): SubFrame {
   if (isSubFrame(obj)) {
-    return obj;
+    return { ...obj };
   }
   throw new Error(
     `Given input is not a valid SubFrame. ${JSON.stringify(obj)}`,
@@ -116,6 +142,7 @@ export function attachKeyframe(
 ) {
   const keyframe: Keyframe = {
     id: shapeId,
+    type: "keyframe",
     globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
     trackId: uniqueId(),
     data: frameAction,
@@ -148,15 +175,21 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
   });
 }
 
+export function getFrame(shape: TLShape): Frame | undefined {
+  return getKeyframe(shape) ?? getSubFrame(shape);
+}
+
 export function getKeyframe(shape: TLShape): Keyframe | undefined {
-  return isJsonObject(shape.meta.keyframe)
+  return isJsonObject(shape.meta.keyframe) &&
+    shape.meta.keyframe.type === "keyframe"
     ? jsonObjectToKeyframe(shape.meta.keyframe)
     : undefined;
 }
 
 export function getSubFrame(shape: TLShape): SubFrame | undefined {
-  return isJsonObject(shape.meta.subFrame)
-    ? jsonObjectToSubFrame(shape.meta.subFrame)
+  return isJsonObject(shape.meta.keyframe) &&
+    shape.meta.keyframe.type === "subFrame"
+    ? jsonObjectToSubFrame(shape.meta.keyframe)
     : undefined;
 }
 
@@ -165,19 +198,19 @@ export function getAllKeyframes(editor: Editor): Keyframe[] {
   return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
 }
 
-export function getAllFrameBatches(editor: Editor): FrameBatch[] {
+export function getAllFrames(editor: Editor): Frame[] {
   const shapes = editor.getCurrentPageShapes();
+  return shapes.map(getFrame).filter((frame) => frame != null);
+}
 
+export function getFrameBatches(frames: Frame[]): FrameBatch[] {
   const keyframes: Keyframe[] = [];
   const subFrameConnections: Record<string, SubFrame> = {};
-  for (const shape of shapes) {
-    const keyframe = getKeyframe(shape);
-    const subFrame = getSubFrame(shape);
-    if (keyframe != null) {
-      keyframes.push(keyframe);
-    }
-    if (subFrame != null) {
-      subFrameConnections[subFrame.prevFrameId] = subFrame;
+  for (const frame of frames) {
+    if (frame.type === "keyframe") {
+      keyframes.push(frame);
+    } else if (frame.type === "subFrame") {
+      subFrameConnections[frame.prevFrameId] = frame;
     }
   }
 
@@ -206,8 +239,13 @@ export function getAllFrameBatches(editor: Editor): FrameBatch[] {
   return frameBatches;
 }
 
+export function getFramesFromFrameBatches(frameBatches: FrameBatch[]): Frame[] {
+  return frameBatches.flatMap((batch) => batch.data);
+}
+
 export function getOrderedSteps(editor: Editor): Step[] {
-  const frameBatches = getAllFrameBatches(editor);
+  const frames = getAllFrames(editor);
+  const frameBatches = getFrameBatches(frames);
   return getGlobalOrder(frameBatches);
 }
 
@@ -229,8 +267,8 @@ export function getShapeByFrameId(
   const shapes = editor.getCurrentPageShapes();
   // TODO: フィールド名を統一
   const shapeWithKeyframe = shapes.find((shape) => {
-    const keyframe = getKeyframe(shape);
-    return keyframe != null && keyframe.id === frameId;
+    const frame = getFrame(shape);
+    return frame != null && frame.id === frameId;
   });
   if (shapeWithKeyframe != null) {
     return shapeWithKeyframe;

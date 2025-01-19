@@ -1,6 +1,6 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import type { KeyframeUIData } from "./keyframe-ui-data";
+import type { FrameBatchUIData } from "./keyframe-ui-data";
 import { useDraggableKeyframeDelta } from "./KeyframeMoveTogetherDndContext";
 
 export function DraggableKeyframeUI({
@@ -9,7 +9,7 @@ export function DraggableKeyframeUI({
   localIndex,
   children,
 }: {
-  kf: KeyframeUIData;
+  kf: FrameBatchUIData;
   trackId: string;
   localIndex: number;
   children: React.ReactNode;

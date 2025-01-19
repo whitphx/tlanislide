@@ -11,9 +11,14 @@ import {
   runStep,
   getKeyframe,
   attachKeyframe,
-  getAllKeyframes,
   keyframeToJsonObject,
   type Keyframe,
+  FrameBatch,
+  getFramesFromFrameBatches,
+  getFrame,
+  frameToJsonObject,
+  getFrameBatches,
+  getAllFrames,
 } from "../models";
 import { insertOrderedTrackItem } from "../ordered-track-item";
 import { KeyframeTimeline } from "../KeyframeTimeline";
@@ -32,24 +37,43 @@ export function makeControlPanel(atoms: {
     const editor = useEditor();
     const steps = getOrderedSteps(editor);
 
-    const allKeyframes = getAllKeyframes(editor);
+    const frames = getAllFrames(editor);
+    const frameBatches = getFrameBatches(frames);
 
     const selectedShapes = editor.getSelectedShapes();
-    const selectedKeyframeShapes = selectedShapes.filter(
-      (shape) => getKeyframe(shape) != null,
+    const selectedFrameShapes = selectedShapes.filter(
+      (shape) => getFrame(shape) != null,
     );
-    const selectedNotKeyframeShapes = selectedShapes.filter(
-      (shape) => getKeyframe(shape) == null && shape.type !== SlideShapeType,
+    const selectedNotFrameShapes = selectedShapes.filter(
+      (shape) => getFrame(shape) == null && shape.type !== SlideShapeType,
     );
 
-    const handleKeyframesChange = (newKeyframes: Keyframe[]) => {
+    const handleKeyframeChange = (newKeyframe: Keyframe) => {
+      const shape = editor
+        .getCurrentPageShapes()
+        .find((shape) => getKeyframe(shape)?.id === newKeyframe.id);
+      if (shape == null) {
+        return;
+      }
+
+      editor.updateShape({
+        ...shape,
+        meta: {
+          keyframe: keyframeToJsonObject(newKeyframe),
+        },
+      });
+    };
+
+    const handleFrameBatchesChange = (newFrameBatches: FrameBatch[]) => {
+      const newFrames = getFramesFromFrameBatches(newFrameBatches);
+
       const allShapes = editor.getCurrentPageShapes();
 
       const updateShapePartials = allShapes.map((shape) => {
-        const newKeyframe = newKeyframes.find(
-          (kf) => kf.id === getKeyframe(shape)?.id,
+        const newFrame = newFrames.find(
+          (newFrame) => newFrame.id === getFrame(shape)?.id,
         );
-        if (newKeyframe == null) {
+        if (newFrame == null) {
           return {
             ...shape,
             meta: {
@@ -63,7 +87,7 @@ export function makeControlPanel(atoms: {
           ...shape,
           meta: {
             ...shape.meta,
-            keyframe: keyframeToJsonObject(newKeyframe),
+            keyframe: frameToJsonObject(newFrame),
           },
         };
       });
@@ -71,10 +95,10 @@ export function makeControlPanel(atoms: {
       editor.updateShapes(updateShapePartials);
     };
 
-    const handleKeyframeSelect = (keyframeId: string) => {
+    const handleFrameSelect = (frameId: string) => {
       const allShapes = editor.getCurrentPageShapes();
       const targetShapes = allShapes.filter(
-        (shape) => getKeyframe(shape)?.id === keyframeId,
+        (shape) => getFrame(shape)?.id === frameId,
       );
       editor.select(...targetShapes);
     };
@@ -106,8 +130,9 @@ export function makeControlPanel(atoms: {
         </div>
 
         <KeyframeTimeline
-          ks={allKeyframes}
-          onKeyframesChange={handleKeyframesChange}
+          frameBatches={frameBatches}
+          onFrameBatchesChange={handleFrameBatchesChange}
+          onKeyframeChange={handleKeyframeChange}
           currentStepIndex={currentStepIndex}
           onStepSelect={(i) => {
             const res = runStep(editor, steps, i);
@@ -115,13 +140,13 @@ export function makeControlPanel(atoms: {
               $currentStepIndex.set(i);
             }
           }}
-          selectedKeyframeIds={selectedKeyframeShapes.map(
-            (kf) => getKeyframe(kf)!.id,
+          selectedFrameIds={selectedFrameShapes.map(
+            (shape) => getFrame(shape)!.id,
           )}
-          onKeyframeSelect={handleKeyframeSelect}
-          showAttachKeyframeButton={selectedNotKeyframeShapes.length > 0}
+          onFrameSelect={handleFrameSelect}
+          showAttachKeyframeButton={selectedNotFrameShapes.length > 0}
           requestAttachKeyframe={() => {
-            selectedNotKeyframeShapes.forEach((shape) => {
+            selectedNotFrameShapes.forEach((shape) => {
               if (shape.type !== SlideShapeType) {
                 attachKeyframe(editor, shape.id, { type: "shapeAnimation" });
               }
@@ -138,6 +163,7 @@ export function makeControlPanel(atoms: {
 
             const newKeyframe = {
               id: uniqueId(),
+              type: "keyframe",
               globalIndex: 0, // NOTE: This will be recalculated later.
               trackId: prevKeyframe.trackId,
               data: {
@@ -145,6 +171,12 @@ export function makeControlPanel(atoms: {
                 duration: 1000,
               },
             } satisfies Keyframe;
+            const newFrameBatch: FrameBatch = {
+              id: newKeyframe.id,
+              globalIndex: newKeyframe.globalIndex,
+              trackId: newKeyframe.trackId,
+              data: [newKeyframe],
+            };
 
             const newShapeId = createShapeId();
 
@@ -161,12 +193,12 @@ export function makeControlPanel(atoms: {
                 });
                 editor.select(newShapeId);
 
-                const newKeyframes = insertOrderedTrackItem(
-                  allKeyframes,
-                  newKeyframe,
+                const newFrameBatches = insertOrderedTrackItem(
+                  frameBatches,
+                  newFrameBatch,
                   prevKeyframe.globalIndex + 1,
                 );
-                handleKeyframesChange(newKeyframes);
+                handleFrameBatchesChange(newFrameBatches);
               },
               { history: "ignore" },
             );

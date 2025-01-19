@@ -32,14 +32,13 @@ import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import { createModeAwareDefaultComponents } from "./mode-aware-components";
 import {
   getOrderedSteps,
-  getKeyframe,
   runStep,
-  getAllKeyframes,
   detatchKeyframe,
   CameraZoomFrameAction,
   keyframeToJsonObject,
   type Keyframe,
-  getSubFrame,
+  getFrame,
+  getAllFrames,
 } from "./models";
 import React, {
   useCallback,
@@ -233,6 +232,7 @@ const Inner = track((props: InnerProps) => {
           .find((ab) => ab.data[0].data.type === "cameraZoom");
         const keyframe: Keyframe<CameraZoomFrameAction> = {
           id: uniqueId(),
+          type: "keyframe",
           globalIndex: orderedSteps.length,
           trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
           data: {
@@ -248,20 +248,20 @@ const Inner = track((props: InnerProps) => {
           },
         };
       } else {
-        // If the shape contains a keyframe, ensure that the keyframe is unique.
-        // This is necessary e.g. when a shape is duplicated, the keyframe should not be duplicated.
-        const keyframe = getKeyframe(shape);
-        const keyframeId = keyframe?.id;
-        if (keyframeId == null) {
+        // If the shape contains a frame, ensure that the frame is unique.
+        // This is necessary e.g. when a shape is duplicated, the frame should not be duplicated.
+        const frame = getFrame(shape);
+        const frameId = frame?.id;
+        if (frameId == null) {
           return shape;
         }
 
-        const allKeyframes = getAllKeyframes(editor);
-        const allKeyframeIds = allKeyframes.map((kf) => kf.id);
-        if (allKeyframeIds.includes(keyframeId)) {
+        const allFrames = getAllFrames(editor);
+        const allFrameIds = allFrames.map((frame) => frame.id);
+        if (allFrameIds.includes(frameId)) {
           const orderedSteps = getOrderedSteps(editor);
           shape.meta.keyframe = {
-            ...keyframe,
+            ...frame,
             id: uniqueId(),
             globalIndex: orderedSteps.length,
           };
@@ -297,10 +297,9 @@ const Inner = track((props: InnerProps) => {
       return HIDDEN;
     }
 
-    const keyframe = getKeyframe(shape);
-    const subFrame = getSubFrame(shape);
-    if (keyframe == null && subFrame == null) {
-      // No animation keyframe is attached to this shape, so it should always be visible
+    const frame = getFrame(shape);
+    if (frame == null) {
+      // No animation frame is attached to this shape, so it should always be visible
       return SHOW;
     }
 
@@ -308,7 +307,8 @@ const Inner = track((props: InnerProps) => {
     const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
 
     // The last frame of a finished animation should always be visible
-    if (keyframe != null) {
+    if (frame.type === "keyframe") {
+      const keyframe = frame;
       const isFuture = keyframe.globalIndex > currentStepIndex;
       if (isFuture) {
         return HIDDEN;
@@ -328,7 +328,8 @@ const Inner = track((props: InnerProps) => {
       if (isLatestPrevInTrack) {
         return SHOW;
       }
-    } else if (subFrame != null) {
+    } else if (frame.type === "subFrame") {
+      const subFrame = frame;
       const thisBatch = orderedSteps
         .flat()
         .find((ab) => ab.data.some((frame) => frame.id === subFrame.id));

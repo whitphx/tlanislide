@@ -18,8 +18,11 @@ import {
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { Keyframe } from "../models";
-import { calcKeyframeUIData, type KeyframeUIData } from "./keyframe-ui-data";
+import type { Frame, FrameBatch, Keyframe } from "../models";
+import {
+  calcFrameBatchUIData,
+  type FrameBatchUIData,
+} from "./keyframe-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
 import { DraggableKeyframeUI } from "./DraggableKeyframeUI";
@@ -235,28 +238,33 @@ function DroppableArea({
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps {
-  ks: Keyframe[];
-  onKeyframesChange: (newKs: Keyframe[]) => void;
+  frameBatches: FrameBatch[];
+  onKeyframeChange: (newKeyframe: Keyframe) => void;
+  onFrameBatchesChange: (newFrameBatches: FrameBatch[]) => void;
   currentStepIndex: number;
   onStepSelect: (stepIndex: number) => void;
-  selectedKeyframeIds: Keyframe["id"][];
-  onKeyframeSelect: (keyframeId: string) => void;
+  selectedFrameIds: Frame["id"][];
+  onFrameSelect: (keyframeId: string) => void;
   requestKeyframeAddAfter: (prevKeyframe: Keyframe) => void;
   showAttachKeyframeButton: boolean;
   requestAttachKeyframe: () => void;
 }
 export function KeyframeTimeline({
-  ks,
-  onKeyframesChange,
+  frameBatches,
+  onKeyframeChange,
+  onFrameBatchesChange,
   currentStepIndex,
   onStepSelect,
-  selectedKeyframeIds,
-  onKeyframeSelect,
+  selectedFrameIds,
+  onFrameSelect,
   requestKeyframeAddAfter,
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
-  const { steps, tracks } = useMemo(() => calcKeyframeUIData(ks), [ks]);
+  const { steps, tracks } = useMemo(
+    () => calcFrameBatchUIData(frameBatches),
+    [frameBatches],
+  );
 
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
@@ -274,18 +282,20 @@ export function KeyframeTimeline({
         (overType === "at" || overType === "after")
       ) {
         const activeId = active.id;
-        // moveKeyframeでKeyframeを全体順序で移動
 
-        const newKs = moveItemPreservingLocalOrder(
-          ks,
-          activeId as KeyframeUIData["id"],
+        const newFrameBatches = moveItemPreservingLocalOrder(
+          frameBatches,
+          activeId as FrameBatchUIData["id"],
           overGlobalIndex,
           overType,
         );
-        onKeyframesChange(newKs);
+        newFrameBatches.forEach((newFrameBatch) => {
+          newFrameBatch.data[0].globalIndex = newFrameBatch.globalIndex;
+        });
+        onFrameBatchesChange(newFrameBatches);
       }
     },
-    [ks, onKeyframesChange],
+    [frameBatches, onFrameBatchesChange],
   );
 
   // To capture click events on draggable elements.
@@ -327,9 +337,9 @@ export function KeyframeTimeline({
             className={styles.inbetweenDroppableCell}
           />
         </div>
-        {steps.map((stepFrames, stepIdx) => {
+        {steps.map((frameBatches, stepIdx) => {
           return (
-            <React.Fragment key={stepFrames[0].id}>
+            <React.Fragment key={frameBatches[0].id}>
               <div className={styles.column} ref={setColumnRef(stepIdx)}>
                 <div className={styles.headerCell}>
                   <button
@@ -345,44 +355,37 @@ export function KeyframeTimeline({
                   className={styles.droppableColumn}
                 >
                   {tracks.map((track) => {
-                    const trackKfs = stepFrames.filter(
-                      (kf) => kf.trackId === track.id,
+                    const trackBatches = frameBatches.filter(
+                      (b) => b.trackId === track.id,
                     );
                     return (
                       <div key={track.id} className={styles.keyframeCell}>
-                        {trackKfs.map((kf) => {
-                          const isSelected = selectedKeyframeIds.includes(
-                            kf.id,
-                          );
+                        {trackBatches.map((batch) => {
+                          const kf = batch.data[0];
+                          const isSelected = selectedFrameIds.includes(kf.id);
                           return (
                             <div key={kf.id} className={styles.keyframeControl}>
                               <KeyframeEditPopover
                                 keyframe={kf}
-                                onUpdate={(newKeyframe) => {
-                                  onKeyframesChange(
-                                    ks.map((kf) =>
-                                      kf.id === newKeyframe.id
-                                        ? newKeyframe
-                                        : kf,
-                                    ),
-                                  );
-                                }}
+                                onUpdate={(newKeyframe) =>
+                                  onKeyframeChange(newKeyframe)
+                                }
                               >
                                 <div>
                                   <DraggableKeyframeUI
-                                    kf={kf}
+                                    kf={batch}
                                     trackId={track.id}
-                                    localIndex={kf.localIndex}
+                                    localIndex={batch.localIndex}
                                   >
                                     <KeyframeIcon
                                       isSelected={isSelected}
                                       onClick={() => {
-                                        onKeyframeSelect(kf.id);
+                                        onFrameSelect(kf.id);
                                       }}
                                     >
                                       {kf.data.type === "cameraZoom"
                                         ? "🎞️"
-                                        : kf.localIndex + 1}
+                                        : batch.localIndex + 1}
                                     </KeyframeIcon>
                                   </DraggableKeyframeUI>
                                 </div>

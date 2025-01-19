@@ -9,6 +9,7 @@ function createMockKeyframe(
 ): Keyframe {
   return {
     id,
+    type: "keyframe",
     trackId,
     globalIndex,
     data: {
