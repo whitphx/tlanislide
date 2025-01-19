@@ -244,112 +244,110 @@ export function getShapeByFrameId(
 
 type NonEmptyArray<T> = [T, ...T[]];
 
-function runFrames(
+const runFrames = (
   editor: Editor,
   frames: NonEmptyArray<Frame>,
   predecessorShape: TLShape | null,
-) {
-  const frame = frames[0];
-  const action = frame.data;
-  if (action.type === "cameraZoom") {
-    const shape = getShapeByFrameId(editor, frame.id);
-    if (shape == null) {
-      return;
-    }
-
-    const { inset = 0, duration = 0, easing = "easeInCubic" } = action;
-    const immediate = duration === 0;
-
-    editor.stopCameraAnimation();
-    const bounds = editor.getShapePageBounds(shape);
-    if (!bounds) return;
-    editor.selectNone();
-    editor.zoomToBounds(bounds, {
-      inset,
-      immediate,
-      animation: { duration, easing: EASINGS[easing] },
-    });
-    setTimeout(() => {
-      const nextFrame = frames.at(1);
-      if (nextFrame) {
-        runFrames(editor, [nextFrame, ...frames.slice(2)], shape);
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const frame = frames[0];
+    const action = frame.data;
+    if (action.type === "cameraZoom") {
+      const shape = getShapeByFrameId(editor, frame.id);
+      if (shape == null) {
+        resolve();
+        return;
       }
-    }, duration);
-  } else if (action.type === "shapeAnimation") {
-    editor.selectNone();
 
-    if (predecessorShape == null) {
-      return;
-    }
+      const { inset = 0, duration = 0, easing = "easeInCubic" } = action;
+      const immediate = duration === 0;
 
-    const shape = getShapeByFrameId(editor, frame.id);
-    if (shape == null) {
-      return;
-    }
-
-    editor.run(
-      () => {
-        editor.updateShape({
-          id: shape.id,
-          type: shape.id,
-          meta: {
-            ...shape.meta,
-            hiddenDuringAnimation: true,
-          },
-        });
-
-        const { duration = 0, easing = "easeInCubic" } = action;
-        const immediate = duration === 0;
-
-        // Create and manipulate a temporary shape for animation
-        const animeShapeId = createShapeId();
-        editor.createShape({
-          ...predecessorShape,
-          id: animeShapeId,
-          type: shape.type,
-          meta: undefined,
-        });
-        editor.animateShape(
-          {
-            ...shape,
-            id: animeShapeId,
-            meta: undefined,
-          },
-          {
-            immediate,
-            animation: {
-              duration,
-              easing: EASINGS[easing],
-            },
-          },
-        );
-        setTimeout(() => {
-          editor.run(
-            () => {
-              editor.deleteShape(animeShapeId);
-
-              editor.updateShape({
-                id: shape.id,
-                type: shape.id,
-                meta: {
-                  ...shape.meta,
-                  hiddenDuringAnimation: false,
-                },
-              });
-            },
-            { history: "ignore", ignoreShapeLock: true },
+      editor.stopCameraAnimation();
+      const bounds = editor.getShapePageBounds(shape);
+      if (!bounds) {
+        reject(`Bounds not found for shape ${shape.id}`);
+        return;
+      }
+      editor.selectNone();
+      editor.zoomToBounds(bounds, {
+        inset,
+        immediate,
+        animation: { duration, easing: EASINGS[easing] },
+      });
+      setTimeout(() => {
+        const nextFrame = frames.at(1);
+        if (nextFrame) {
+          runFrames(editor, [nextFrame, ...frames.slice(2)], shape).then(
+            resolve,
           );
+        } else {
+          resolve();
+        }
+      }, duration);
+    } else if (action.type === "shapeAnimation") {
+      editor.selectNone();
 
-          const nextFrame = frames.at(1);
-          if (nextFrame) {
-            runFrames(editor, [nextFrame, ...frames.slice(2)], shape);
-          }
-        }, duration);
-      },
-      { history: "ignore", ignoreShapeLock: true },
-    );
-  }
-}
+      if (predecessorShape == null) {
+        resolve();
+        return;
+      }
+
+      const shape = getShapeByFrameId(editor, frame.id);
+      if (shape == null) {
+        reject(`Shape not found for frame ${frame.id}`);
+        return;
+      }
+
+      // Create and manipulate a temporary shape for animation
+      const animeShapeId = createShapeId();
+      const { duration = 0, easing = "easeInCubic" } = action;
+      const immediate = duration === 0;
+
+      editor.run(
+        () => {
+          editor.createShape({
+            ...predecessorShape,
+            id: animeShapeId,
+            type: shape.type,
+            meta: undefined,
+          });
+          editor.animateShape(
+            {
+              ...shape,
+              id: animeShapeId,
+              meta: undefined,
+            },
+            {
+              immediate,
+              animation: {
+                duration,
+                easing: EASINGS[easing],
+              },
+            },
+          );
+        },
+        { history: "ignore", ignoreShapeLock: true },
+      );
+
+      setTimeout(() => {
+        editor.run(
+          () => {
+            editor.deleteShape(animeShapeId);
+          },
+          { history: "ignore", ignoreShapeLock: true },
+        );
+
+        const nextFrame = frames.at(1);
+        if (nextFrame) {
+          runFrames(editor, [nextFrame, ...frames.slice(2)], shape).then(
+            resolve,
+          );
+        } else {
+          resolve();
+        }
+      }, duration);
+    }
+  });
 
 type Step = FrameBatch[];
 export function runStep(editor: Editor, steps: Step[], index: number): boolean {
@@ -369,7 +367,50 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
       predecessorLastFrame != null
         ? getShapeByFrameId(editor, predecessorLastFrame.id)
         : null;
-    runFrames(editor, frameBatch.data, predecessorShape ?? null);
+
+    const frames = frameBatch.data;
+
+    editor.run(
+      () => {
+        for (const frame of frames) {
+          const shape = getShapeByFrameId(editor, frame.id);
+          if (shape == null) {
+            continue;
+          }
+          editor.updateShape({
+            id: shape.id,
+            type: shape.id,
+            meta: {
+              ...shape.meta,
+              hiddenDuringAnimation: true,
+            },
+          });
+        }
+      },
+      { history: "ignore", ignoreShapeLock: true },
+    );
+
+    runFrames(editor, frames, predecessorShape ?? null).finally(() => {
+      editor.run(
+        () => {
+          for (const frame of frames) {
+            const shape = getShapeByFrameId(editor, frame.id);
+            if (shape == null) {
+              continue;
+            }
+            editor.updateShape({
+              id: shape.id,
+              type: shape.id,
+              meta: {
+                ...shape.meta,
+                hiddenDuringAnimation: false,
+              },
+            });
+          }
+        },
+        { history: "ignore", ignoreShapeLock: true },
+      );
+    });
   });
 
   return true;
