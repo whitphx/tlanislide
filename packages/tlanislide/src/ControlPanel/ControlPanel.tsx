@@ -79,6 +79,10 @@ export function makeControlPanel(atoms: {
       editor.select(...targetShapes);
     };
 
+    if ($presentationMode.get()) {
+      return null;
+    }
+
     return (
       <div
         className={styles.panelContainer}
