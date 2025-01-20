@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
-import { Keyframe } from "./models";
+import { Keyframe, SubFrame } from "./models";
 import { Tlanislide } from "./Tlanislide.tsx";
 
 function setupDevMock(editor: Editor) {
@@ -16,11 +16,12 @@ function setupDevMock(editor: Editor) {
       h: 50,
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 0,
         trackId: rectTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
         },
       } satisfies Keyframe,
@@ -28,6 +29,7 @@ function setupDevMock(editor: Editor) {
   });
 
   const rect1Id = createShapeId("rect1");
+  const rect1FrameId = uniqueId();
   editor.createShape({
     id: rect1Id,
     type: "geo",
@@ -38,15 +40,39 @@ function setupDevMock(editor: Editor) {
       h: 100,
     },
     meta: {
-      keyframe: {
-        id: uniqueId(),
+      frame: {
+        id: rect1FrameId,
+        type: "keyframe",
         globalIndex: 1,
         trackId: rectTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 1000,
         },
       } satisfies Keyframe,
+    },
+  });
+
+  const rect2Id = createShapeId("rect2");
+  editor.createShape({
+    id: rect2Id,
+    type: "geo",
+    x: 300,
+    y: 0,
+    props: {
+      w: 100,
+      h: 150,
+    },
+    meta: {
+      frame: {
+        id: uniqueId(),
+        type: "subFrame",
+        prevFrameId: rect1FrameId,
+        action: {
+          type: "shapeAnimation",
+          duration: 2000,
+        },
+      } satisfies SubFrame,
     },
   });
 
@@ -68,11 +94,12 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 1,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
         },
       } satisfies Keyframe,
@@ -96,11 +123,12 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 2,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 1000,
         },
@@ -125,11 +153,12 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 3,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
         },
       } satisfies Keyframe,
@@ -153,11 +182,12 @@ function setupDevMock(editor: Editor) {
       },
     },
     meta: {
-      keyframe: {
+      frame: {
         id: uniqueId(),
+        type: "keyframe",
         globalIndex: 4,
         trackId: arrowTrackId,
-        data: {
+        action: {
           type: "shapeAnimation",
           duration: 1000,
         },

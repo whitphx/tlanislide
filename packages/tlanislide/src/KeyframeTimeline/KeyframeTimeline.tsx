@@ -4,12 +4,10 @@ import {
   useDndContext,
   useSensors,
   useSensor,
-  PointerSensor,
-  MouseSensor,
-  TouchSensor,
   KeyboardSensor,
   type DndContextProps,
 } from "@dnd-kit/core";
+import { PointerSensor, MouseSensor, TouchSensor } from "./dnd-sensors";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { moveItemPreservingLocalOrder } from "../ordered-track-item";
 import {
@@ -18,8 +16,11 @@ import {
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { Keyframe } from "../models";
-import { calcKeyframeUIData, type KeyframeUIData } from "./keyframe-ui-data";
+import type { Frame, FrameBatch, Keyframe } from "../models";
+import {
+  calcFrameBatchUIData,
+  type FrameBatchUIData,
+} from "./keyframe-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
 import { DraggableKeyframeUI } from "./DraggableKeyframeUI";
@@ -102,31 +103,34 @@ function SelectField<T extends string[]>({
   );
 }
 
-interface KeyframeEditPopoverProps {
-  keyframe: Keyframe;
-  onUpdate: (newKf: Keyframe) => void;
+interface FrameEditPopoverProps {
+  frame: Frame;
+  onUpdate: (newFrame: Frame) => void;
   children: React.ReactNode;
 }
-function KeyframeEditPopover({
-  keyframe,
+function FrameEditPopover({
+  frame,
   onUpdate,
   children,
-}: KeyframeEditPopoverProps) {
+}: FrameEditPopoverProps) {
   return (
-    <TldrawUiPopover id={`keyframe-config-${keyframe.id}`}>
+    <TldrawUiPopover id={`frame-config-${frame.id}`}>
       <TldrawUiPopoverTrigger>{children}</TldrawUiPopoverTrigger>
       <TldrawUiPopoverContent side="bottom" sideOffset={6}>
-        <div className={styles.popoverContent}>
-          {keyframe.data.type === "cameraZoom" && (
+        <div
+          className={styles.popoverContent}
+          data-no-dnd="true" // Prevent DnD event propagation to parent elements. See `dnd-sensors.ts` for more details.
+        >
+          {frame.action.type === "cameraZoom" && (
             <NumberField
               label="Inset"
-              value={keyframe.data.inset ?? 0}
+              value={frame.action.inset ?? 0}
               max={1000}
               onChange={(newInset) =>
                 onUpdate({
-                  ...keyframe,
-                  data: {
-                    ...keyframe.data,
+                  ...frame,
+                  action: {
+                    ...frame.action,
                     inset: newInset,
                   },
                 })
@@ -135,13 +139,13 @@ function KeyframeEditPopover({
           )}
           <NumberField
             label="Duration"
-            value={keyframe.data.duration ?? 0}
+            value={frame.action.duration ?? 0}
             max={10000}
             onChange={(newDuration) =>
               onUpdate({
-                ...keyframe,
-                data: {
-                  ...keyframe.data,
+                ...frame,
+                action: {
+                  ...frame.action,
                   duration: newDuration,
                 },
               })
@@ -149,14 +153,14 @@ function KeyframeEditPopover({
           />
           <SelectField
             label="Easing"
-            value={keyframe.data.easing ?? ""}
+            value={frame.action.easing ?? ""}
             options={EASINGS_OPTIONS}
             onChange={(newEasing) => {
               if (isEasingOption(newEasing)) {
                 onUpdate({
-                  ...keyframe,
-                  data: {
-                    ...keyframe.data,
+                  ...frame,
+                  action: {
+                    ...frame.action,
                     easing: newEasing,
                   },
                 });
@@ -189,19 +193,23 @@ const DragStateStyleDiv = React.forwardRef<
   );
 });
 
-interface KeyframeIconProps {
+interface FrameIconProps {
   isSelected?: boolean;
+  subFrame?: boolean;
   onClick: () => void;
   children?: React.ReactNode;
   as?: React.ElementType;
 }
-function KeyframeIcon(props: KeyframeIconProps) {
-  return React.createElement(props.as ?? "div", {
-    className: `${styles.keyframeIcon} ${props.isSelected ? styles.selected : ""}`,
-    onClick: props.onClick,
-    children: props.children,
-  });
-}
+const FrameIcon = React.forwardRef<HTMLElement, FrameIconProps>(
+  (props, ref) => {
+    return React.createElement(props.as ?? "div", {
+      ref,
+      className: `${styles.frameIcon} ${props.isSelected ? styles.selected : ""} ${props.subFrame ? styles.subFrame : ""}`,
+      onClick: props.onClick,
+      children: props.children,
+    });
+  },
+);
 
 function DroppableArea({
   type,
@@ -235,28 +243,33 @@ function DroppableArea({
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface KeyframeTimelineProps {
-  ks: Keyframe[];
-  onKeyframesChange: (newKs: Keyframe[]) => void;
+  frameBatches: FrameBatch[];
+  onFrameChange: (newFrame: Frame) => void;
+  onFrameBatchesChange: (newFrameBatches: FrameBatch[]) => void;
   currentStepIndex: number;
   onStepSelect: (stepIndex: number) => void;
-  selectedKeyframeIds: Keyframe["id"][];
-  onKeyframeSelect: (keyframeId: string) => void;
+  selectedFrameIds: Frame["id"][];
+  onFrameSelect: (keyframeId: string) => void;
   requestKeyframeAddAfter: (prevKeyframe: Keyframe) => void;
   showAttachKeyframeButton: boolean;
   requestAttachKeyframe: () => void;
 }
 export function KeyframeTimeline({
-  ks,
-  onKeyframesChange,
+  frameBatches,
+  onFrameChange,
+  onFrameBatchesChange,
   currentStepIndex,
   onStepSelect,
-  selectedKeyframeIds,
-  onKeyframeSelect,
+  selectedFrameIds,
+  onFrameSelect,
   requestKeyframeAddAfter,
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
-  const { steps, tracks } = useMemo(() => calcKeyframeUIData(ks), [ks]);
+  const { steps, tracks } = useMemo(
+    () => calcFrameBatchUIData(frameBatches),
+    [frameBatches],
+  );
 
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
@@ -274,18 +287,20 @@ export function KeyframeTimeline({
         (overType === "at" || overType === "after")
       ) {
         const activeId = active.id;
-        // moveKeyframeでKeyframeを全体順序で移動
 
-        const newKs = moveItemPreservingLocalOrder(
-          ks,
-          activeId as KeyframeUIData["id"],
+        const newFrameBatches = moveItemPreservingLocalOrder(
+          frameBatches,
+          activeId as FrameBatchUIData["id"],
           overGlobalIndex,
           overType,
         );
-        onKeyframesChange(newKs);
+        newFrameBatches.forEach((newFrameBatch) => {
+          newFrameBatch.data[0].globalIndex = newFrameBatch.globalIndex;
+        });
+        onFrameBatchesChange(newFrameBatches);
       }
     },
-    [ks, onKeyframesChange],
+    [frameBatches, onFrameBatchesChange],
   );
 
   // To capture click events on draggable elements.
@@ -327,9 +342,9 @@ export function KeyframeTimeline({
             className={styles.inbetweenDroppableCell}
           />
         </div>
-        {steps.map((stepFrames, stepIdx) => {
+        {steps.map((stepFrameBatches, stepIdx) => {
           return (
-            <React.Fragment key={stepFrames[0].id}>
+            <React.Fragment key={stepFrameBatches[0].id}>
               <div className={styles.column} ref={setColumnRef(stepIdx)}>
                 <div className={styles.headerCell}>
                   <button
@@ -345,57 +360,74 @@ export function KeyframeTimeline({
                   className={styles.droppableColumn}
                 >
                   {tracks.map((track) => {
-                    const trackKfs = stepFrames.filter(
-                      (kf) => kf.trackId === track.id,
+                    const trackBatches = stepFrameBatches.filter(
+                      (b) => b.trackId === track.id,
                     );
                     return (
-                      <div key={track.id} className={styles.keyframeCell}>
-                        {trackKfs.map((kf) => {
-                          const isSelected = selectedKeyframeIds.includes(
-                            kf.id,
-                          );
+                      <div key={track.id} className={styles.frameBatchCell}>
+                        {trackBatches.map((batch) => {
+                          // NOTE: `trackBatches.length` is always 1, while we loop over it just in case.
+                          const kf = batch.data[0];
                           return (
-                            <div key={kf.id} className={styles.keyframeControl}>
-                              <KeyframeEditPopover
-                                keyframe={kf}
-                                onUpdate={(newKeyframe) => {
-                                  onKeyframesChange(
-                                    ks.map((kf) =>
-                                      kf.id === newKeyframe.id
-                                        ? newKeyframe
-                                        : kf,
-                                    ),
-                                  );
-                                }}
+                            <DraggableKeyframeUI
+                              key={kf.id}
+                              frameBatches={batch}
+                              trackId={track.id}
+                              localIndex={batch.localIndex}
+                              className={styles.frameBatchControl}
+                            >
+                              <FrameEditPopover
+                                frame={kf}
+                                onUpdate={(newKeyframe) =>
+                                  onFrameChange(newKeyframe)
+                                }
                               >
-                                <div>
-                                  <DraggableKeyframeUI
-                                    kf={kf}
-                                    trackId={track.id}
-                                    localIndex={kf.localIndex}
-                                  >
-                                    <KeyframeIcon
-                                      isSelected={isSelected}
-                                      onClick={() => {
-                                        onKeyframeSelect(kf.id);
-                                      }}
+                                <FrameIcon
+                                  isSelected={selectedFrameIds.includes(kf.id)}
+                                  onClick={() => {
+                                    onFrameSelect(kf.id);
+                                  }}
+                                >
+                                  {kf.action.type === "cameraZoom"
+                                    ? "🎞️"
+                                    : batch.localIndex + 1}
+                                </FrameIcon>
+                              </FrameEditPopover>
+
+                              {batch.data
+                                .slice(1)
+                                .map((subFrame, subFrameIdx) => {
+                                  return (
+                                    <FrameEditPopover
+                                      key={subFrame.id}
+                                      frame={subFrame}
+                                      onUpdate={(newFrame) =>
+                                        onFrameChange(newFrame)
+                                      }
                                     >
-                                      {kf.data.type === "cameraZoom"
-                                        ? "🎞️"
-                                        : kf.localIndex + 1}
-                                    </KeyframeIcon>
-                                  </DraggableKeyframeUI>
-                                </div>
-                              </KeyframeEditPopover>
+                                      <FrameIcon
+                                        isSelected={selectedFrameIds.includes(
+                                          subFrame.id,
+                                        )}
+                                        subFrame
+                                        onClick={() => {
+                                          onFrameSelect(subFrame.id);
+                                        }}
+                                      >
+                                        {subFrameIdx + 1}
+                                      </FrameIcon>
+                                    </FrameEditPopover>
+                                  );
+                                })}
                               <div className={styles.frameAddButtonContainer}>
-                                <KeyframeIcon
+                                <FrameIcon
                                   as="button"
                                   onClick={() => requestKeyframeAddAfter(kf)}
                                 >
                                   +
-                                </KeyframeIcon>
+                                </FrameIcon>
                               </div>
-                            </div>
+                            </DraggableKeyframeUI>
                           );
                         })}
                       </div>
@@ -420,13 +452,13 @@ export function KeyframeTimeline({
               <div key={track.id} className={styles.keyframeCell}></div>
             ))}
             <div className={styles.keyframeCell}>
-              <KeyframeIcon
+              <FrameIcon
                 as="button"
                 isSelected={true}
                 onClick={() => requestAttachKeyframe()}
               >
                 +
-              </KeyframeIcon>
+              </FrameIcon>
             </div>
           </div>
         )}

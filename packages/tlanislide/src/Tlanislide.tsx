@@ -32,13 +32,15 @@ import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import { createModeAwareDefaultComponents } from "./mode-aware-components";
 import {
   getOrderedSteps,
-  getKeyframe,
   runStep,
-  getAllKeyframes,
   detatchKeyframe,
-  CameraZoomFrameAction,
   keyframeToJsonObject,
+  getFrame,
+  getAllFrames,
+  getNextGlobalIndex,
+  type CameraZoomFrameAction,
   type Keyframe,
+  type SubFrame,
 } from "./models";
 import React, {
   useCallback,
@@ -223,18 +225,19 @@ const Inner = track((props: InnerProps) => {
 
   const handleMount = (editor: Editor) => {
     editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
-      if (shape.type === SlideShapeType && shape.meta?.keyframe == null) {
+      if (shape.type === SlideShapeType && shape.meta?.frame == null) {
         // Auto attach camera keyframe to the newly created slide shape
         const orderedSteps = getOrderedSteps(editor);
         const lastCameraKeyframe = orderedSteps
           .reverse()
           .flat()
-          .find((kf) => kf.data.type === "cameraZoom");
+          .find((ab) => ab.data[0].action.type === "cameraZoom");
         const keyframe: Keyframe<CameraZoomFrameAction> = {
           id: uniqueId(),
+          type: "keyframe",
           globalIndex: orderedSteps.length,
           trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
-          data: {
+          action: {
             type: "cameraZoom",
             duration: lastCameraKeyframe ? 1000 : 0,
           },
@@ -243,27 +246,33 @@ const Inner = track((props: InnerProps) => {
           ...shape,
           meta: {
             ...shape.meta,
-            keyframe: keyframeToJsonObject(keyframe),
+            frame: keyframeToJsonObject(keyframe),
           },
         };
       } else {
-        // If the shape contains a keyframe, ensure that the keyframe is unique.
-        // This is necessary e.g. when a shape is duplicated, the keyframe should not be duplicated.
-        const keyframe = getKeyframe(shape);
-        const keyframeId = keyframe?.id;
-        if (keyframeId == null) {
+        // If the shape contains a frame, ensure that the frame is unique.
+        // This is necessary e.g. when a shape is duplicated, the frame should not be duplicated.
+        const frame = getFrame(shape);
+        if (frame == null) {
           return shape;
         }
 
-        const allKeyframes = getAllKeyframes(editor);
-        const allKeyframeIds = allKeyframes.map((kf) => kf.id);
-        if (allKeyframeIds.includes(keyframeId)) {
-          const orderedSteps = getOrderedSteps(editor);
-          shape.meta.keyframe = {
-            ...keyframe,
-            id: uniqueId(),
-            globalIndex: orderedSteps.length,
-          };
+        const allFrames = getAllFrames(editor);
+        const allFrameIds = allFrames.map((frame) => frame.id);
+        if (allFrameIds.includes(frame.id)) {
+          if (frame.type === "keyframe") {
+            shape.meta.frame = {
+              ...frame,
+              id: uniqueId(),
+              globalIndex: getNextGlobalIndex(editor),
+            } satisfies Keyframe;
+          } else if (frame.type === "subFrame") {
+            shape.meta.frame = {
+              ...frame,
+              id: uniqueId(),
+              prevFrameId: frame.id,
+            } satisfies SubFrame;
+          }
         }
         return shape;
       }
@@ -296,48 +305,66 @@ const Inner = track((props: InnerProps) => {
       return HIDDEN;
     }
 
-    const keyframe = getKeyframe(shape);
-    if (keyframe == null) {
-      // No animation keyframe is attached to this shape, so it should always be visible
+    const frame = getFrame(shape);
+    if (frame == null) {
+      // No animation frame is attached to this shape, so it should always be visible
       return SHOW;
     }
 
     const orderedSteps = getOrderedSteps(editor); // TODO: Cache
     const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
-    const currentStep = orderedSteps[currentStepIndex];
-    if (currentStep == null) {
-      // Fallback: This should never happen, but if it does, show the shape
-      return SHOW;
-    }
-
-    const isCurrent = currentStep
-      .map((keyframe) => keyframe.id)
-      .includes(keyframe.id);
-    if (isCurrent) {
-      // Current frame should always be visible
-      return SHOW;
-    }
 
     // The last frame of a finished animation should always be visible
-    const isFuture = keyframe.globalIndex > currentStepIndex;
-    if (isFuture) {
-      return HIDDEN;
-    }
-    const keyframes = getAllKeyframes(editor); // TODO: Cache
-    const isLatestPrevInTrack = !keyframes.some((anotherKf) => {
-      const same = anotherKf.id === keyframe.id;
-      if (same) {
-        return false;
+    if (frame.type === "keyframe") {
+      const keyframe = frame;
+      const isFuture = keyframe.globalIndex > currentStepIndex;
+      if (isFuture) {
+        return HIDDEN;
       }
 
-      const anotherKfIsLatestInTrack =
-        anotherKf.trackId === keyframe.trackId &&
-        keyframe.globalIndex < anotherKf.globalIndex &&
-        anotherKf.globalIndex <= currentStepIndex;
-      return anotherKfIsLatestInTrack;
-    });
-    if (isLatestPrevInTrack) {
-      return SHOW;
+      const lastBatchIncludingThisTrack = orderedSteps
+        .slice(0, currentStepIndex + 1)
+        .reverse()
+        .flat()
+        .find((ab) => ab.trackId === keyframe.trackId);
+      const isLatestPrevInTrack =
+        lastBatchIncludingThisTrack &&
+        lastBatchIncludingThisTrack.data.findIndex(
+          (frame) => frame.id === keyframe.id,
+        ) ===
+          lastBatchIncludingThisTrack.data.length - 1;
+      if (isLatestPrevInTrack) {
+        return SHOW;
+      }
+    } else if (frame.type === "subFrame") {
+      const subFrame = frame;
+      const thisBatch = orderedSteps
+        .flat()
+        .find((ab) => ab.data.some((frame) => frame.id === subFrame.id));
+      if (thisBatch == null) {
+        // This should never happen, but just in case
+        return HIDDEN;
+      }
+
+      const isFuture = thisBatch.globalIndex > currentStepIndex;
+      if (isFuture) {
+        return HIDDEN;
+      }
+
+      const lastBatchIncludingThisTrack = orderedSteps
+        .slice(0, currentStepIndex + 1)
+        .reverse()
+        .flat()
+        .find((ab) => ab.trackId === thisBatch.trackId);
+      const isLatestPrevInTrack =
+        lastBatchIncludingThisTrack &&
+        lastBatchIncludingThisTrack.data.findIndex(
+          (frame) => frame.id === subFrame.id,
+        ) ===
+          lastBatchIncludingThisTrack.data.length - 1;
+      if (isLatestPrevInTrack) {
+        return SHOW;
+      }
     }
 
     return HIDDEN;

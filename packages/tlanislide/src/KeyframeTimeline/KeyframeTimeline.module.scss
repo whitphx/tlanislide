@@ -40,21 +40,21 @@ $inbetween-droppable-cell-width: 16px;
     height: $header-row-height;
   }
 
-  .keyframeCell {
+  .frameBatchCell {
     position: relative;
     width: 100%;
     height: $row-height;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
   }
 
-  .keyframeControl {
+  .frameBatchControl {
     position: relative;
-    width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
+    padding: 0 8px;
   }
 
   .frameAddButtonContainer {
@@ -116,7 +116,7 @@ $inbetween-droppable-cell-width: 16px;
   }
 }
 
-.keyframeIcon {
+.frameIcon {
   color: var(--color-text-1);
   background: var(--color-background);
   box-shadow: var(--shadow-1);
@@ -140,6 +140,14 @@ $inbetween-droppable-cell-width: 16px;
 
   &.selected {
     border-color: var(--color-selected);
+  }
+
+  &.subFrame {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    margin-left: 8px;
   }
 }
 button.keyframeIcon {

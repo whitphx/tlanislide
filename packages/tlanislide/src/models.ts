@@ -22,26 +22,56 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export type Keyframe<T extends FrameAction = FrameAction> = OrderedTrackItem<T>;
+export interface FrameBase {
+  id: string;
+  type: string;
+}
+export interface Keyframe<T extends FrameAction = FrameAction>
+  extends FrameBase {
+  type: "keyframe";
+  globalIndex: OrderedTrackItem["globalIndex"];
+  trackId: OrderedTrackItem["trackId"];
+  action: T;
+}
+export interface SubFrame<T extends FrameAction = FrameAction>
+  extends FrameBase {
+  type: "subFrame";
+  prevFrameId: Frame["id"];
+  action: T;
+}
+export type Frame<T extends FrameAction = FrameAction> =
+  | Keyframe<T>
+  | SubFrame<T>;
+
+type BatchedFrames<T extends FrameAction = FrameAction> = [
+  Keyframe<T>,
+  ...SubFrame<T>[],
+];
+
+export type FrameBatch<T extends FrameAction = FrameAction> = OrderedTrackItem<
+  BatchedFrames<T>
+>;
 
 export function keyframeToJsonObject(kf: Keyframe): JsonObject {
-  const { id, globalIndex, trackId, data } = kf;
-  const obj = { id, globalIndex, trackId, data } satisfies JsonObject;
+  const { id, type, globalIndex, trackId, action } = kf;
+  const obj = { id, type, globalIndex, trackId, action } satisfies JsonObject;
   return obj;
 }
 
-function isOrderedTrackItem<T extends JsonObject>(
-  obj: unknown,
-): obj is OrderedTrackItem<T> {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    !Array.isArray(obj) &&
-    "id" in obj &&
-    "globalIndex" in obj &&
-    "trackId" in obj &&
-    "data" in obj
-  );
+export function subFrameToJsonObject(sf: SubFrame): JsonObject {
+  const { id, type, prevFrameId, action } = sf;
+  const obj = { id, type, prevFrameId, action } satisfies JsonObject;
+  return obj;
+}
+
+export function frameToJsonObject(frame: Frame): JsonObject {
+  if (frame.type === "keyframe") {
+    return keyframeToJsonObject(frame);
+  } else if (frame.type === "subFrame") {
+    return subFrameToJsonObject(frame);
+  }
+  // @ts-expect-error This should never happen
+  throw new Error(`Invalid frame type: ${frame.type}`);
 }
 
 function isFrameAction(obj: unknown): obj is FrameAction {
@@ -54,21 +84,64 @@ function isFrameAction(obj: unknown): obj is FrameAction {
 }
 
 function isKeyframe(obj: unknown): obj is Keyframe {
-  return isOrderedTrackItem(obj) && isFrameAction(obj.data);
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    !Array.isArray(obj) &&
+    "id" in obj &&
+    "type" in obj &&
+    obj.type === "keyframe" &&
+    "globalIndex" in obj &&
+    "trackId" in obj &&
+    "action" in obj &&
+    isFrameAction(obj.action)
+  );
 }
 
 export function jsonObjectToKeyframe(obj: unknown): Keyframe {
   if (isKeyframe(obj)) {
-    return obj;
+    return { ...obj };
   }
   throw new Error(
     `Given input is not a valid Keyframe. ${JSON.stringify(obj)}`,
   );
 }
 
-export function getNextGlobalIndex(keyframes: Keyframe[]): number {
+function isSubFrame(obj: unknown): obj is SubFrame {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    !Array.isArray(obj) &&
+    "id" in obj &&
+    "type" in obj &&
+    obj.type === "subFrame" &&
+    "prevFrameId" in obj &&
+    "action" in obj &&
+    isFrameAction(obj.action)
+  );
+}
+
+function jsonObjectToSubFrame(obj: unknown): SubFrame {
+  if (isSubFrame(obj)) {
+    return { ...obj };
+  }
+  throw new Error(
+    `Given input is not a valid SubFrame. ${JSON.stringify(obj)}`,
+  );
+}
+
+function getAllKeyframes(editor: Editor): Keyframe[] {
+  const shapes = editor.getCurrentPageShapes();
+  return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
+}
+
+export function getNextGlobalIndexFromKeyframes(keyframes: Keyframe[]): number {
   const globalIndexes = keyframes.map((kf) => kf.globalIndex);
   return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
+}
+
+export function getNextGlobalIndex(editor: Editor): number {
+  return getNextGlobalIndexFromKeyframes(getAllKeyframes(editor));
 }
 
 export function attachKeyframe(
@@ -78,9 +151,10 @@ export function attachKeyframe(
 ) {
   const keyframe: Keyframe = {
     id: shapeId,
-    globalIndex: getNextGlobalIndex(getAllKeyframes(editor)),
+    type: "keyframe",
+    globalIndex: getNextGlobalIndex(editor),
     trackId: uniqueId(),
-    data: frameAction,
+    action: frameAction,
   };
 
   const shape = editor.getShape(shapeId);
@@ -91,7 +165,7 @@ export function attachKeyframe(
     id: shapeId,
     type: shape.type,
     meta: {
-      keyframe: keyframeToJsonObject(keyframe),
+      frame: keyframeToJsonObject(keyframe),
     },
   });
 }
@@ -105,104 +179,128 @@ export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
     id: shape.id,
     type: shape.type,
     meta: {
-      keyframe: undefined,
+      frame: undefined,
     },
   });
 }
 
+export function getFrame(shape: TLShape): Frame | undefined {
+  return getKeyframe(shape) ?? getSubFrame(shape);
+}
+
 export function getKeyframe(shape: TLShape): Keyframe | undefined {
-  return isJsonObject(shape.meta.keyframe)
-    ? jsonObjectToKeyframe(shape.meta.keyframe)
+  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "keyframe"
+    ? jsonObjectToKeyframe(shape.meta.frame)
     : undefined;
 }
 
-export function getAllKeyframes(editor: Editor): Keyframe[] {
+export function getSubFrame(shape: TLShape): SubFrame | undefined {
+  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "subFrame"
+    ? jsonObjectToSubFrame(shape.meta.frame)
+    : undefined;
+}
+
+export function getAllFrames(editor: Editor): Frame[] {
   const shapes = editor.getCurrentPageShapes();
-  return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
+  return shapes.map(getFrame).filter((frame) => frame != null);
 }
 
-export function getOrderedSteps(editor: Editor): Keyframe[][] {
-  const keyframes = getAllKeyframes(editor);
-  const globalOrder = getGlobalOrder(keyframes);
-  return globalOrder;
+export function getFrameBatches(frames: Frame[]): FrameBatch[] {
+  const keyframes: Keyframe[] = [];
+  const subFrameConnections: Record<string, SubFrame> = {};
+  for (const frame of frames) {
+    if (frame.type === "keyframe") {
+      keyframes.push(frame);
+    } else if (frame.type === "subFrame") {
+      subFrameConnections[frame.prevFrameId] = frame;
+    }
+  }
+
+  const frameBatches: FrameBatch[] = [];
+  for (const keyframe of keyframes) {
+    const subFrames: SubFrame[] = [];
+    let prevFrameId = keyframe.id;
+    while (prevFrameId != null) {
+      const subFrame = subFrameConnections[prevFrameId];
+      if (subFrame != null) {
+        subFrames.push(subFrame);
+        prevFrameId = subFrame.id;
+      } else {
+        break;
+      }
+    }
+
+    frameBatches.push({
+      id: `batch-${keyframe.id}`,
+      globalIndex: keyframe.globalIndex,
+      trackId: keyframe.trackId,
+      data: [keyframe, ...subFrames],
+    });
+  }
+
+  return frameBatches;
 }
 
-export function getShapeFromKeyframeId(
+export function getFramesFromFrameBatches(frameBatches: FrameBatch[]): Frame[] {
+  return frameBatches.flatMap((batch) => batch.data);
+}
+
+export function getOrderedSteps(editor: Editor): Step[] {
+  const frames = getAllFrames(editor);
+  const frameBatches = getFrameBatches(frames);
+  return getGlobalOrder(frameBatches);
+}
+
+export function getShapeByFrameId(
   editor: Editor,
-  keyframeId: string,
+  frameId: Frame["id"],
 ): TLShape | undefined {
   const shapes = editor.getCurrentPageShapes();
-  return shapes.find((shape) => {
-    const keyframe = getKeyframe(shape);
-    return keyframe != null && keyframe.id === keyframeId;
-  });
+  return shapes.find((shape) => getFrame(shape)?.id === frameId);
 }
 
-type Step = Keyframe[];
-export function runStep(editor: Editor, steps: Step[], index: number): boolean {
-  const step = steps[index];
-  if (step == null) {
-    return false;
-  }
-  step.forEach((keyframe) => {
-    if (keyframe.data.type === "cameraZoom") {
-      const shape = getShapeFromKeyframeId(editor, keyframe.id);
-      if (shape == null) {
-        return;
-      }
+async function runFrames(
+  editor: Editor,
+  frames: Frame[],
+  predecessorShape: TLShape | null,
+): Promise<void> {
+  for (const frame of frames) {
+    const shape = getShapeByFrameId(editor, frame.id);
+    if (shape == null) {
+      throw new Error(`Shape not found for frame ${frame.id}`);
+    }
 
-      const { inset = 0, duration = 0, easing = "easeInCubic" } = keyframe.data;
-      const immediate = duration === 0;
+    const action = frame.action;
+
+    const { duration = 0, easing = "easeInCubic" } = action;
+    const immediate = duration === 0;
+
+    if (action.type === "cameraZoom") {
+      const { inset = 0 } = action;
 
       editor.stopCameraAnimation();
       const bounds = editor.getShapePageBounds(shape);
-      if (!bounds) return;
+      if (!bounds) {
+        throw new Error(`Bounds not found for shape ${shape.id}`);
+      }
       editor.selectNone();
       editor.zoomToBounds(bounds, {
         inset,
         immediate,
         animation: { duration, easing: EASINGS[easing] },
       });
-    } else if (keyframe.data.type === "shapeAnimation") {
-      const predecessorKeyframe = steps
-        .slice(0, keyframe.globalIndex)
-        .reverse()
-        .flat()
-        .find((kf) => kf.trackId === keyframe.trackId);
-      if (predecessorKeyframe == null) {
-        return;
-      }
-
+    } else if (action.type === "shapeAnimation") {
       editor.selectNone();
 
-      const shape = getShapeFromKeyframeId(editor, keyframe.id);
-      if (shape == null) {
-        return;
-      }
-      const predecessorShape = getShapeFromKeyframeId(
-        editor,
-        predecessorKeyframe.id,
-      );
       if (predecessorShape == null) {
-        return;
+        predecessorShape = shape;
+        continue;
       }
 
+      // Create and manipulate a temporary shape for animation
+      const animeShapeId = createShapeId();
       editor.run(
         () => {
-          editor.updateShape({
-            id: shape.id,
-            type: shape.id,
-            meta: {
-              ...shape.meta,
-              hiddenDuringAnimation: true,
-            },
-          });
-
-          const { duration = 0, easing = "easeInCubic" } = keyframe.data;
-          const immediate = duration === 0;
-
-          // Create and manipulate a temporary shape for animation
-          const animeShapeId = createShapeId();
           editor.createShape({
             ...predecessorShape,
             id: animeShapeId,
@@ -223,27 +321,84 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
               },
             },
           );
-          setTimeout(() => {
-            editor.run(
-              () => {
-                editor.deleteShape(animeShapeId);
-
-                editor.updateShape({
-                  id: shape.id,
-                  type: shape.id,
-                  meta: {
-                    ...shape.meta,
-                    hiddenDuringAnimation: false,
-                  },
-                });
-              },
-              { history: "ignore", ignoreShapeLock: true },
-            );
-          }, duration);
         },
         { history: "ignore", ignoreShapeLock: true },
       );
+
+      setTimeout(() => {
+        editor.run(
+          () => {
+            editor.deleteShape(animeShapeId);
+          },
+          { history: "ignore", ignoreShapeLock: true },
+        );
+      }, duration);
     }
+
+    await new Promise((resolve) => setTimeout(resolve, duration));
+
+    predecessorShape = shape;
+  }
+}
+
+type Step = FrameBatch[];
+export function runStep(editor: Editor, steps: Step[], index: number): boolean {
+  const step = steps[index];
+  if (step == null) {
+    return false;
+  }
+
+  step.forEach((frameBatch) => {
+    const predecessorFrameBatch = steps
+      .slice(0, frameBatch.globalIndex)
+      .reverse()
+      .flat()
+      .find((fb) => fb.trackId === frameBatch.trackId);
+    const predecessorLastFrame = predecessorFrameBatch?.data.at(-1);
+    const predecessorShape =
+      predecessorLastFrame != null
+        ? getShapeByFrameId(editor, predecessorLastFrame.id)
+        : null;
+
+    const frames = frameBatch.data;
+    const frameShapes = frames
+      .map((frame) => getShapeByFrameId(editor, frame.id))
+      .filter((shape) => shape != null);
+
+    editor.run(
+      () => {
+        for (const shape of frameShapes) {
+          editor.updateShape({
+            id: shape.id,
+            type: shape.id,
+            meta: {
+              ...shape.meta,
+              hiddenDuringAnimation: true,
+            },
+          });
+        }
+      },
+      { history: "ignore", ignoreShapeLock: true },
+    );
+
+    runFrames(editor, frames, predecessorShape ?? null).finally(() => {
+      editor.run(
+        () => {
+          for (const shape of frameShapes) {
+            editor.updateShape({
+              id: shape.id,
+              type: shape.id,
+              meta: {
+                ...shape.meta,
+                hiddenDuringAnimation: false,
+              },
+            });
+          }
+        },
+        { history: "ignore", ignoreShapeLock: true },
+      );
+    });
   });
+
   return true;
 }
