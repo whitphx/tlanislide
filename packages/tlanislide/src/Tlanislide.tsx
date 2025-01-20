@@ -33,7 +33,6 @@ import { createModeAwareDefaultComponents } from "./mode-aware-components";
 import {
   getOrderedSteps,
   runStep,
-  detatchKeyframe,
   keyframeToJsonObject,
   getFrame,
   getAllFrames,
@@ -224,66 +223,75 @@ const Inner = track((props: InnerProps) => {
   const { onMount, snapshot, perInstanceAtoms } = props;
 
   const handleMount = (editor: Editor) => {
-    editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
-      if (shape.type === SlideShapeType && shape.meta?.frame == null) {
-        // Auto attach camera keyframe to the newly created slide shape
-        const orderedSteps = getOrderedSteps(editor);
-        const lastCameraKeyframe = orderedSteps
-          .reverse()
-          .flat()
-          .find((ab) => ab.data[0].action.type === "cameraZoom");
-        const keyframe: Keyframe<CameraZoomFrameAction> = {
-          id: uniqueId(),
-          type: "keyframe",
-          globalIndex: orderedSteps.length,
-          trackId: lastCameraKeyframe ? lastCameraKeyframe.trackId : uniqueId(),
-          action: {
-            type: "cameraZoom",
-            duration: lastCameraKeyframe ? 1000 : 0,
-          },
-        };
-        return {
-          ...shape,
-          meta: {
-            ...shape.meta,
-            frame: keyframeToJsonObject(keyframe),
-          },
-        };
-      } else {
-        // If the shape contains a frame, ensure that the frame is unique.
-        // This is necessary e.g. when a shape is duplicated, the frame should not be duplicated.
-        const frame = getFrame(shape);
-        if (frame == null) {
+    const stopHandlers: (() => void)[] = [];
+
+    stopHandlers.push(
+      editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
+        if (shape.type === SlideShapeType && shape.meta?.frame == null) {
+          // Auto attach camera keyframe to the newly created slide shape
+          const orderedSteps = getOrderedSteps(editor);
+          const lastCameraKeyframe = orderedSteps
+            .reverse()
+            .flat()
+            .find((ab) => ab.data[0].action.type === "cameraZoom");
+          const keyframe: Keyframe<CameraZoomFrameAction> = {
+            id: uniqueId(),
+            type: "keyframe",
+            globalIndex: orderedSteps.length,
+            trackId: lastCameraKeyframe
+              ? lastCameraKeyframe.trackId
+              : uniqueId(),
+            action: {
+              type: "cameraZoom",
+              duration: lastCameraKeyframe ? 1000 : 0,
+            },
+          };
+          return {
+            ...shape,
+            meta: {
+              ...shape.meta,
+              frame: keyframeToJsonObject(keyframe),
+            },
+          };
+        } else {
+          // If the shape contains a frame, ensure that the frame is unique.
+          // This is necessary e.g. when a shape is duplicated, the frame should not be duplicated.
+          const frame = getFrame(shape);
+          if (frame == null) {
+            return shape;
+          }
+
+          const allFrames = getAllFrames(editor);
+          const allFrameIds = allFrames.map((frame) => frame.id);
+          if (allFrameIds.includes(frame.id)) {
+            if (frame.type === "keyframe") {
+              shape.meta.frame = {
+                ...frame,
+                id: uniqueId(),
+                globalIndex: getNextGlobalIndex(editor),
+              } satisfies Keyframe;
+            } else if (frame.type === "subFrame") {
+              shape.meta.frame = {
+                ...frame,
+                id: uniqueId(),
+                prevFrameId: frame.id,
+              } satisfies SubFrame;
+            }
+          }
           return shape;
         }
-
-        const allFrames = getAllFrames(editor);
-        const allFrameIds = allFrames.map((frame) => frame.id);
-        if (allFrameIds.includes(frame.id)) {
-          if (frame.type === "keyframe") {
-            shape.meta.frame = {
-              ...frame,
-              id: uniqueId(),
-              globalIndex: getNextGlobalIndex(editor),
-            } satisfies Keyframe;
-          } else if (frame.type === "subFrame") {
-            shape.meta.frame = {
-              ...frame,
-              id: uniqueId(),
-              prevFrameId: frame.id,
-            } satisfies SubFrame;
-          }
-        }
-        return shape;
-      }
-    });
-    editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
-      detatchKeyframe(editor, shape.id);
-    });
+      }),
+    );
+    stopHandlers.push(
+      editor.sideEffects.registerBeforeDeleteHandler("shape", () => {
+        // TODO: Reassign globalIndex
+      }),
+    );
 
     onMount?.(editor);
 
     return () => {
+      stopHandlers.forEach((stopHandler) => stopHandler());
       editor.dispose();
     };
   };

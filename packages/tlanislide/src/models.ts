@@ -170,20 +170,6 @@ export function attachKeyframe(
   });
 }
 
-export function detatchKeyframe(editor: Editor, shapeId: TLShapeId) {
-  const shape = editor.getShape(shapeId);
-  if (shape == null) {
-    return;
-  }
-  editor.updateShape({
-    id: shape.id,
-    type: shape.type,
-    meta: {
-      frame: undefined,
-    },
-  });
-}
-
 export function getFrame(shape: TLShape): Frame | undefined {
   return getKeyframe(shape) ?? getSubFrame(shape);
 }
