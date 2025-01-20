@@ -165,7 +165,7 @@ export function makeControlPanel(atoms: {
             const newKeyframe = {
               id: uniqueId(),
               type: "keyframe",
-              globalIndex: 0, // NOTE: This will be recalculated later.
+              globalIndex: steps.length + 999999, // NOTE: This will be recalculated later.
               trackId: prevKeyframe.trackId,
               action: {
                 type: prevKeyframe.action.type,
@@ -173,16 +173,23 @@ export function makeControlPanel(atoms: {
               },
             } satisfies Keyframe;
             const newFrameBatch: FrameBatch = {
-              id: newKeyframe.id,
+              id: `batch-${newKeyframe.id}`,
               globalIndex: newKeyframe.globalIndex,
               trackId: newKeyframe.trackId,
               data: [newKeyframe],
             };
-
-            const newShapeId = createShapeId();
+            const newFrameBatches = insertOrderedTrackItem(
+              frameBatches,
+              newFrameBatch,
+              prevKeyframe.globalIndex + 1,
+            );
+            for (const batch of newFrameBatches) {
+              batch.data[0].globalIndex = batch.globalIndex;
+            }
 
             editor.run(
               () => {
+                const newShapeId = createShapeId();
                 editor.createShape({
                   ...prevShape,
                   id: newShapeId,
@@ -194,11 +201,6 @@ export function makeControlPanel(atoms: {
                 });
                 editor.select(newShapeId);
 
-                const newFrameBatches = insertOrderedTrackItem(
-                  frameBatches,
-                  newFrameBatch,
-                  prevKeyframe.globalIndex + 1,
-                );
                 handleFrameBatchesChange(newFrameBatches);
               },
               { history: "ignore" },
