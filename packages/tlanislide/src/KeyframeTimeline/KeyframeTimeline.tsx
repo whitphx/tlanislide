@@ -342,9 +342,9 @@ export function KeyframeTimeline({
             className={styles.inbetweenDroppableCell}
           />
         </div>
-        {steps.map((frameBatches, stepIdx) => {
+        {steps.map((stepFrameBatches, stepIdx) => {
           return (
-            <React.Fragment key={frameBatches[0].id}>
+            <React.Fragment key={stepFrameBatches[0].id}>
               <div className={styles.column} ref={setColumnRef(stepIdx)}>
                 <div className={styles.headerCell}>
                   <button
@@ -360,7 +360,7 @@ export function KeyframeTimeline({
                   className={styles.droppableColumn}
                 >
                   {tracks.map((track) => {
-                    const trackBatches = frameBatches.filter(
+                    const trackBatches = stepFrameBatches.filter(
                       (b) => b.trackId === track.id,
                     );
                     return (
@@ -371,7 +371,7 @@ export function KeyframeTimeline({
                           return (
                             <DraggableKeyframeUI
                               key={kf.id}
-                              kf={batch}
+                              frameBatches={batch}
                               trackId={track.id}
                               localIndex={batch.localIndex}
                               className={styles.frameBatchControl}

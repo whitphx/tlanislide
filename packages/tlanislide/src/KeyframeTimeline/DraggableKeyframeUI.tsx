@@ -4,13 +4,13 @@ import type { FrameBatchUIData } from "./keyframe-ui-data";
 import { useDraggableKeyframeDelta } from "./KeyframeMoveTogetherDndContext";
 
 export function DraggableKeyframeUI({
-  kf,
+  frameBatches,
   trackId,
   localIndex,
   children,
   className,
 }: {
-  kf: FrameBatchUIData;
+  frameBatches: FrameBatchUIData;
   trackId: string;
   localIndex: number;
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export function DraggableKeyframeUI({
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging, active } =
     useDraggable({
-      id: kf.id,
+      id: frameBatches.id,
       data: {
         trackId,
         localIndex,
