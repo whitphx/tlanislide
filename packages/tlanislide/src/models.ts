@@ -350,7 +350,7 @@ export function runStep(editor: Editor, steps: Step[], index: number): boolean {
 
   step.forEach((frameBatch) => {
     const predecessorFrameBatch = steps
-      .slice(0, frameBatch.globalIndex)
+      .slice(0, index)
       .reverse()
       .flat()
       .find((fb) => fb.trackId === frameBatch.trackId);
