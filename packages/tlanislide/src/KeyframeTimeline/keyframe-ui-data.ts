@@ -15,18 +15,19 @@ export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
     string,
     { type: FrameAction["type"]; batchCount: number }
   > = {};
-  for (const step of orderedSteps) {
+  for (const stepFrameBatches of orderedSteps) {
     const frameBatchUIData: FrameBatchUIData[] = [];
-    for (const batch of step) {
-      tracksMap[batch.trackId] = tracksMap[batch.trackId] ?? {
-        type: batch.data[0].action.type,
+    for (const frameBatch of stepFrameBatches) {
+      const keyframe = frameBatch.data[0];
+      tracksMap[frameBatch.trackId] = tracksMap[frameBatch.trackId] ?? {
+        type: keyframe.action.type,
         batchCount: 0,
       };
       frameBatchUIData.push({
-        ...batch,
-        localIndex: tracksMap[batch.trackId].batchCount,
+        ...frameBatch,
+        localIndex: tracksMap[frameBatch.trackId].batchCount,
       });
-      tracksMap[batch.trackId].batchCount++;
+      tracksMap[frameBatch.trackId].batchCount++;
     }
     stepsUIData.push(frameBatchUIData);
   }
