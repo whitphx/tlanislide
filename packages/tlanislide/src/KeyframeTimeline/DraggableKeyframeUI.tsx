@@ -59,7 +59,7 @@ export function DraggableKeyframeUI({
     <div
       ref={(node) => {
         setNodeRef(node);
-        registerDOM(trackId, localIndex, node);
+        registerDOM(node);
       }}
       {...attributes}
       {...listeners}

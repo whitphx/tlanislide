@@ -1,8 +1,5 @@
 import React from "react";
-import {
-  DraggableKeyframeDOMContext,
-  draggableKeyframeDOMContext,
-} from "./draggableKeyframeDOMContext";
+import { draggableKeyframeDOMContext } from "./draggableKeyframeDOMContext";
 
 /**
  * When the user drags a keyframe,
@@ -11,7 +8,7 @@ import {
  * This hook provides the delta value to move each keyframe draggable element.
  */
 interface UseDraggableKeyframeDeltaReturn {
-  registerDOM: DraggableKeyframeDOMContext["registerDOM"];
+  registerDOM: (node: HTMLElement | null) => void;
   deltaX: number | null;
 }
 export function useDraggableKeyframeDelta(
@@ -26,7 +23,7 @@ export function useDraggableKeyframeDelta(
   }
 
   return {
-    registerDOM: context.registerDOM,
+    registerDOM: context.registerDOM.bind(null, trackId, localIndex),
     deltaX: context.draggableDOMDeltaXs?.[trackId]?.[localIndex] ?? null,
   };
 }
