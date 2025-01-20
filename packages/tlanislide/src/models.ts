@@ -231,7 +231,7 @@ export function getFrameBatches(frames: Frame[]): FrameBatch[] {
     }
 
     frameBatches.push({
-      id: keyframe.id,
+      id: `batch-${keyframe.id}`,
       globalIndex: keyframe.globalIndex,
       trackId: keyframe.trackId,
       data: [keyframe, ...subFrames],
@@ -251,45 +251,29 @@ export function getOrderedSteps(editor: Editor): Step[] {
   return getGlobalOrder(frameBatches);
 }
 
-export function getShapeFromKeyframeId(
-  editor: Editor,
-  keyframeId: string,
-): TLShape | undefined {
-  const shapes = editor.getCurrentPageShapes();
-  return shapes.find((shape) => {
-    const keyframe = getKeyframe(shape);
-    return keyframe != null && keyframe.id === keyframeId;
-  });
-}
-
 export function getShapeByFrameId(
   editor: Editor,
   frameId: Frame["id"],
 ): TLShape | undefined {
   const shapes = editor.getCurrentPageShapes();
-  return shapes.find((shape) => {
-    const frame = getFrame(shape);
-    return frame != null && frame.id === frameId;
-  });
+  return shapes.find((shape) => getFrame(shape)?.id === frameId);
 }
-
-type NonEmptyArray<T> = [T, ...T[]];
 
 async function runFrames(
   editor: Editor,
-  frames: NonEmptyArray<Frame>,
+  frames: Frame[],
   predecessorShape: TLShape | null,
 ): Promise<void> {
   for (const frame of frames) {
-    const action = frame.action;
-
-    const { duration = 0, easing = "easeInCubic" } = action;
-    const immediate = duration === 0;
-
     const shape = getShapeByFrameId(editor, frame.id);
     if (shape == null) {
       throw new Error(`Shape not found for frame ${frame.id}`);
     }
+
+    const action = frame.action;
+
+    const { duration = 0, easing = "easeInCubic" } = action;
+    const immediate = duration === 0;
 
     if (action.type === "cameraZoom") {
       const { inset = 0 } = action;
