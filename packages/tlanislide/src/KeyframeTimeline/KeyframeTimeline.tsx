@@ -438,6 +438,7 @@ export function KeyframeTimeline({
                                       type: "subFrame",
                                       id: subFrame.id,
                                     }}
+                                    className={styles.subFrameIconContainer}
                                   >
                                     <FrameEditPopover
                                       frame={subFrame}
