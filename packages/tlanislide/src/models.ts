@@ -1,6 +1,10 @@
 import { EASINGS, createShapeId, uniqueId } from "tldraw";
 import type { Editor, JsonObject, TLShape, TLShapeId } from "tldraw";
-import { getGlobalOrder, OrderedTrackItem } from "./ordered-track-item";
+import {
+  getGlobalOrder,
+  OrderedTrackItem,
+  reassignGlobalIndexInplace,
+} from "./ordered-track-item";
 
 export interface FrameActionBase extends JsonObject {
   type: string;
@@ -130,18 +134,17 @@ function jsonObjectToSubFrame(obj: unknown): SubFrame {
   );
 }
 
-function getAllKeyframes(editor: Editor): Keyframe[] {
-  const shapes = editor.getCurrentPageShapes();
-  return shapes.map(getKeyframe).filter((keyframe) => keyframe != null);
-}
-
 export function getNextGlobalIndexFromKeyframes(keyframes: Keyframe[]): number {
   const globalIndexes = keyframes.map((kf) => kf.globalIndex);
   return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
 }
 
 export function getNextGlobalIndex(editor: Editor): number {
-  return getNextGlobalIndexFromKeyframes(getAllKeyframes(editor));
+  const shapes = editor.getCurrentPageShapes();
+  const allKeyframes = shapes
+    .map(getKeyframe)
+    .filter((keyframe) => keyframe != null);
+  return getNextGlobalIndexFromKeyframes(allKeyframes);
 }
 
 export function attachKeyframe(
@@ -243,6 +246,62 @@ export function getShapeByFrameId(
 ): TLShape | undefined {
   const shapes = editor.getCurrentPageShapes();
   return shapes.find((shape) => getFrame(shape)?.id === frameId);
+}
+
+export function reconcileShapeDeletion(editor: Editor, deletedShape: TLShape) {
+  const deletedFrame = getFrame(deletedShape);
+  if (deletedFrame == null) {
+    return;
+  }
+
+  if (deletedFrame.type === "keyframe") {
+    // Reassign globalIndex
+    const steps = getOrderedSteps(editor);
+    reassignGlobalIndexInplace(steps);
+    steps.forEach((stepFrameBatches) => {
+      stepFrameBatches.forEach((frameBatch) => {
+        const newGlobalIndex = frameBatch.globalIndex;
+        const keyframe = frameBatch.data[0];
+        const shape = getShapeByFrameId(editor, keyframe.id);
+        if (shape == null) {
+          return;
+        }
+        editor.updateShape({
+          id: shape.id,
+          type: shape.type,
+          meta: {
+            frame: keyframeToJsonObject({
+              ...keyframe,
+              globalIndex: newGlobalIndex,
+            }),
+          },
+        });
+      });
+    });
+  } else if (deletedFrame.type === "subFrame") {
+    // Reassign prevFrameId
+    const shapes = editor.getCurrentPageShapes();
+    const allSubFrames = shapes
+      .map((shape) => ({ shape, subFrame: getSubFrame(shape) }))
+      .filter(({ subFrame }) => subFrame != null) as {
+      shape: TLShape;
+      subFrame: SubFrame;
+    }[];
+    allSubFrames.forEach(({ shape, subFrame }) => {
+      if (subFrame.prevFrameId === deletedFrame.id) {
+        editor.updateShape({
+          id: shape.id,
+          type: shape.type,
+          meta: {
+            frame: subFrameToJsonObject({
+              ...subFrame,
+              prevFrameId: deletedFrame.prevFrameId,
+            }),
+          },
+        });
+      }
+    });
+  }
 }
 
 async function runFrames(

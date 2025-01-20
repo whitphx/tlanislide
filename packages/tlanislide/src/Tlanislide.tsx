@@ -40,6 +40,7 @@ import {
   type CameraZoomFrameAction,
   type Keyframe,
   type SubFrame,
+  reconcileShapeDeletion,
 } from "./models";
 import React, {
   useCallback,
@@ -283,19 +284,8 @@ const Inner = track((props: InnerProps) => {
       }),
     );
     stopHandlers.push(
-      editor.sideEffects.registerBeforeDeleteHandler("shape", (shape) => {
-        const frame = getFrame(shape);
-        if (frame == null) {
-          return;
-        }
-
-        if (frame.type === "keyframe") {
-          // TODO: Reassign globalIndex
-        } else if (frame.type === "subFrame") {
-          // TODO: Reassign prevFrameId
-        }
-
-        return;
+      editor.sideEffects.registerAfterDeleteHandler("shape", (shape) => {
+        reconcileShapeDeletion(editor, shape);
       }),
     );
 

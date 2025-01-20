@@ -110,7 +110,7 @@ export function getGlobalOrder<T>(
   return result;
 }
 
-function reassignGlobalIndexInplace<T>(globalOrder: ItemGroup<T>[]) {
+export function reassignGlobalIndexInplace<T>(globalOrder: ItemGroup<T>[]) {
   let gIndex = 0;
   for (const group of globalOrder) {
     if (group.length === 0) continue;

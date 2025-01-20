@@ -54,6 +54,7 @@ function setupDevMock(editor: Editor) {
   });
 
   const rect2Id = createShapeId("rect2");
+  const rect2FrameId = uniqueId();
   editor.createShape({
     id: rect2Id,
     type: "geo",
@@ -65,12 +66,36 @@ function setupDevMock(editor: Editor) {
     },
     meta: {
       frame: {
-        id: uniqueId(),
+        id: rect2FrameId,
         type: "subFrame",
         prevFrameId: rect1FrameId,
         action: {
           type: "shapeAnimation",
           duration: 2000,
+        },
+      } satisfies SubFrame,
+    },
+  });
+
+  const rect3Id = createShapeId("rect3");
+  const rect3FrameId = uniqueId();
+  editor.createShape({
+    id: rect3Id,
+    type: "geo",
+    x: 400,
+    y: 0,
+    props: {
+      w: 100,
+      h: 200,
+    },
+    meta: {
+      frame: {
+        id: rect3FrameId,
+        type: "subFrame",
+        prevFrameId: rect2FrameId,
+        action: {
+          type: "shapeAnimation",
+          duration: 3000,
         },
       } satisfies SubFrame,
     },
