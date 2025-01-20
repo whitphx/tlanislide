@@ -1,25 +1,43 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import type { FrameBatchUIData } from "./keyframe-ui-data";
 import { useDraggableKeyframeDelta } from "./KeyframeMoveTogetherDndContext";
+import { FrameBatch, SubFrame } from "../models";
 
+interface DraggableUIPayloadBase {
+  type: string;
+}
+interface DraggableUIPayloadFrameBatch extends DraggableUIPayloadBase {
+  type: "frameBatch";
+  id: FrameBatch["id"];
+}
+interface DraggableUIPayloadSubFrame extends DraggableUIPayloadBase {
+  type: "subFrame";
+  id: SubFrame["id"];
+}
+
+export type DraggableUIPayload =
+  | DraggableUIPayloadFrameBatch
+  | DraggableUIPayloadSubFrame;
 export function DraggableKeyframeUI({
-  frameBatches,
+  id,
   trackId,
   localIndex,
+  payload,
   children,
   className,
 }: {
-  frameBatches: FrameBatchUIData;
+  id: string;
   trackId: string;
   localIndex: number;
+  payload: DraggableUIPayload;
   children: React.ReactNode;
   className?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging, active } =
     useDraggable({
-      id: frameBatches.id,
+      id,
       data: {
+        payload,
         trackId,
         localIndex,
       },
