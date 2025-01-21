@@ -13,7 +13,7 @@ interface UseDraggableKeyframeDeltaReturn {
 }
 export function useDraggableKeyframeDelta(
   trackId: string,
-  localIndex: number,
+  trackIndex: number,
 ): UseDraggableKeyframeDeltaReturn {
   const context = React.useContext(draggableKeyframeDOMContext);
   if (context == null) {
@@ -23,7 +23,7 @@ export function useDraggableKeyframeDelta(
   }
 
   return {
-    registerDOM: context.registerDOM.bind(null, trackId, localIndex),
-    deltaX: context.draggableDOMDeltaXs?.[trackId]?.[localIndex] ?? null,
+    registerDOM: context.registerDOM.bind(null, trackId, trackIndex),
+    deltaX: context.draggableDOMDeltaXs?.[trackId]?.[trackIndex] ?? null,
   };
 }

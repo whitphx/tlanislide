@@ -1,11 +1,11 @@
 import React from "react";
 
-type DraggableKeyframeDOMDeltaXs = Record<string, Record<number, number>>; // obj[trackId][localIndex] = delta
+type DraggableKeyframeDOMDeltaXs = Record<string, Record<number, number>>; // obj[trackId][trackIndex] = delta
 
 export interface DraggableKeyframeDOMContext {
   registerDOM: (
     trackId: string,
-    localIndex: number,
+    trackIndex: number,
     node: HTMLElement | null,
   ) => void;
   draggableDOMDeltaXs: DraggableKeyframeDOMDeltaXs | null;

@@ -389,7 +389,7 @@ export function KeyframeTimeline({
                               <DraggableKeyframeUI
                                 id={trackFrameBatch.id}
                                 trackId={track.id}
-                                localIndex={keyframe.trackIndex}
+                                trackIndex={keyframe.trackIndex}
                                 payload={{
                                   type: "frameBatch",
                                   id: trackFrameBatch.id,
@@ -422,7 +422,7 @@ export function KeyframeTimeline({
                                     key={subFrame.id}
                                     id={subFrame.id}
                                     trackId={track.id}
-                                    localIndex={subFrame.trackIndex}
+                                    trackIndex={subFrame.trackIndex}
                                     payload={{
                                       type: "subFrame",
                                       id: subFrame.id,
