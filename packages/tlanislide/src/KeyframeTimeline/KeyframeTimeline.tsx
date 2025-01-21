@@ -422,7 +422,7 @@ export function KeyframeTimeline({
                                   >
                                     {keyframe.action.type === "cameraZoom"
                                       ? "🎞️"
-                                      : trackFrameBatch.localIndex + 1}
+                                      : trackFrameIndex + 1}
                                   </FrameIcon>
                                 </FrameEditPopover>
                               </DraggableKeyframeUI>
@@ -457,7 +457,7 @@ export function KeyframeTimeline({
                                           onFrameSelect(subFrame.id);
                                         }}
                                       >
-                                        {subFrameIdx + 1}
+                                        {trackFrameIndex + subFrameIdx + 2}
                                       </FrameIcon>
                                     </FrameEditPopover>
                                   </DraggableKeyframeUI>
