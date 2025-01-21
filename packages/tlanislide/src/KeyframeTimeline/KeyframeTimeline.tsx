@@ -331,14 +331,6 @@ export function KeyframeTimeline({
   const { containerRef, setColumnRef, columnIndicatorRef } =
     useAnimatedActiveColumnIndicator(currentStepIndex);
 
-  const trackFrameCounter = tracks.reduce(
-    (acc, track) => {
-      acc[track.id] = 0;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
   return (
     <KeyframeMoveTogetherDndContext
       onDragEnd={handleDragEnd}
@@ -388,9 +380,6 @@ export function KeyframeTimeline({
                         {trackFrameBatches.map((trackFrameBatch) => {
                           const frames = trackFrameBatch.data;
 
-                          const trackFrameIndex = trackFrameCounter[track.id];
-                          trackFrameCounter[track.id] += frames.length;
-
                           const [keyframe, ...subFrames] = frames;
                           return (
                             <div
@@ -400,7 +389,7 @@ export function KeyframeTimeline({
                               <DraggableKeyframeUI
                                 id={trackFrameBatch.id}
                                 trackId={track.id}
-                                localIndex={trackFrameIndex}
+                                localIndex={keyframe.trackIndex}
                                 payload={{
                                   type: "frameBatch",
                                   id: trackFrameBatch.id,
@@ -422,20 +411,18 @@ export function KeyframeTimeline({
                                   >
                                     {keyframe.action.type === "cameraZoom"
                                       ? "🎞️"
-                                      : trackFrameIndex + 1}
+                                      : keyframe.trackIndex + 1}
                                   </FrameIcon>
                                 </FrameEditPopover>
                               </DraggableKeyframeUI>
 
-                              {subFrames.map((subFrame, subFrameIdx) => {
+                              {subFrames.map((subFrame) => {
                                 return (
                                   <DraggableKeyframeUI
                                     key={subFrame.id}
                                     id={subFrame.id}
                                     trackId={track.id}
-                                    localIndex={
-                                      trackFrameIndex + subFrameIdx + 1
-                                    }
+                                    localIndex={subFrame.trackIndex}
                                     payload={{
                                       type: "subFrame",
                                       id: subFrame.id,
@@ -457,7 +444,7 @@ export function KeyframeTimeline({
                                           onFrameSelect(subFrame.id);
                                         }}
                                       >
-                                        {trackFrameIndex + subFrameIdx + 2}
+                                        {subFrame.trackIndex + 1}
                                       </FrameIcon>
                                     </FrameEditPopover>
                                   </DraggableKeyframeUI>
