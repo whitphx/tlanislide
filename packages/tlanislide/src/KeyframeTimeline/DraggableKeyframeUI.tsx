@@ -21,14 +21,14 @@ export type DraggableUIPayload =
 export function DraggableKeyframeUI({
   id,
   trackId,
-  localIndex,
+  trackIndex: trackIndex,
   payload,
   children,
   className,
 }: {
   id: string;
   trackId: string;
-  localIndex: number;
+  trackIndex: number;
   payload: DraggableUIPayload;
   children: React.ReactNode;
   className?: string;
@@ -39,12 +39,12 @@ export function DraggableKeyframeUI({
       data: {
         payload,
         trackId,
-        localIndex,
+        trackIndex,
       },
     });
   const { registerDOM, deltaX } = useDraggableKeyframeDelta(
     trackId,
-    localIndex,
+    trackIndex,
   );
   const transformX = deltaX != null ? deltaX : (transform?.x ?? 0);
   const transformY = transform?.y ?? 0;

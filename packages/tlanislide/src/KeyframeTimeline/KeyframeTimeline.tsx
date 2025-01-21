@@ -248,6 +248,7 @@ interface KeyframeTimelineProps {
   selectedFrameIds: Frame["id"][];
   onFrameSelect: (keyframeId: string) => void;
   requestKeyframeAddAfter: (prevKeyframe: Keyframe) => void;
+  requestSubFrameAddAfter: (prevFrame: Frame) => void;
   showAttachKeyframeButton: boolean;
   requestAttachKeyframe: () => void;
 }
@@ -260,6 +261,7 @@ export function KeyframeTimeline({
   selectedFrameIds,
   onFrameSelect,
   requestKeyframeAddAfter,
+  requestSubFrameAddAfter,
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
@@ -329,14 +331,6 @@ export function KeyframeTimeline({
   const { containerRef, setColumnRef, columnIndicatorRef } =
     useAnimatedActiveColumnIndicator(currentStepIndex);
 
-  const trackFrameCounter = tracks.reduce(
-    (acc, track) => {
-      acc[track.id] = 0;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
   return (
     <KeyframeMoveTogetherDndContext
       onDragEnd={handleDragEnd}
@@ -386,9 +380,6 @@ export function KeyframeTimeline({
                         {trackFrameBatches.map((trackFrameBatch) => {
                           const frames = trackFrameBatch.data;
 
-                          const trackFrameIndex = trackFrameCounter[track.id];
-                          trackFrameCounter[track.id] += frames.length;
-
                           const [keyframe, ...subFrames] = frames;
                           return (
                             <div
@@ -398,7 +389,7 @@ export function KeyframeTimeline({
                               <DraggableKeyframeUI
                                 id={trackFrameBatch.id}
                                 trackId={track.id}
-                                localIndex={trackFrameIndex}
+                                trackIndex={keyframe.trackIndex}
                                 payload={{
                                   type: "frameBatch",
                                   id: trackFrameBatch.id,
@@ -420,20 +411,18 @@ export function KeyframeTimeline({
                                   >
                                     {keyframe.action.type === "cameraZoom"
                                       ? "🎞️"
-                                      : trackFrameBatch.localIndex + 1}
+                                      : keyframe.trackIndex + 1}
                                   </FrameIcon>
                                 </FrameEditPopover>
                               </DraggableKeyframeUI>
 
-                              {subFrames.map((subFrame, subFrameIdx) => {
+                              {subFrames.map((subFrame) => {
                                 return (
                                   <DraggableKeyframeUI
                                     key={subFrame.id}
                                     id={subFrame.id}
                                     trackId={track.id}
-                                    localIndex={
-                                      trackFrameIndex + subFrameIdx + 1
-                                    }
+                                    trackIndex={subFrame.trackIndex}
                                     payload={{
                                       type: "subFrame",
                                       id: subFrame.id,
@@ -455,7 +444,7 @@ export function KeyframeTimeline({
                                           onFrameSelect(subFrame.id);
                                         }}
                                       >
-                                        {subFrameIdx + 1}
+                                        {subFrame.trackIndex + 1}
                                       </FrameIcon>
                                     </FrameEditPopover>
                                   </DraggableKeyframeUI>
@@ -464,12 +453,23 @@ export function KeyframeTimeline({
                               <div className={styles.frameAddButtonContainer}>
                                 <FrameIcon
                                   as="button"
+                                  subFrame
                                   onClick={() =>
-                                    requestKeyframeAddAfter(keyframe)
+                                    requestSubFrameAddAfter(frames.at(-1)!)
                                   }
                                 >
                                   +
                                 </FrameIcon>
+                                <div className={styles.hoverExpandedPart}>
+                                  <FrameIcon
+                                    as="button"
+                                    onClick={() =>
+                                      requestKeyframeAddAfter(keyframe)
+                                    }
+                                  >
+                                    +
+                                  </FrameIcon>
+                                </div>
                               </div>
                             </div>
                           );

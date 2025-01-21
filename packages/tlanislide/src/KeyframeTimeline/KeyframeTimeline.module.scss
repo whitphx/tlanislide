@@ -60,14 +60,24 @@ $inbetween-droppable-cell-width: 16px;
   .frameAddButtonContainer {
     position: absolute;
     left: 100%;
-    width: $inbetween-droppable-cell-width;
+    z-index: 10;
+    // width: $inbetween-droppable-cell-width;
     display: none; // Hidden by default, shown on hover
     align-items: center;
     justify-content: center;
+    gap: 4px;
+
+    .hoverExpandedPart {
+      display: none;
+    }
   }
   &:not(.dragging) {
     .frameBatchControl:hover > .frameAddButtonContainer,
     .frameAddButtonContainer:hover {
+      display: flex;
+    }
+
+    .frameAddButtonContainer:hover > .hoverExpandedPart {
       display: flex;
     }
   }
@@ -139,7 +149,7 @@ $inbetween-droppable-cell-width: 16px;
   border: 2px solid transparent;
 
   &:hover {
-    background: var(--color-muted-2);
+    background: color-mix(in srgb, var(--color-background), #ccc 20%);
   }
 
   &.selected {

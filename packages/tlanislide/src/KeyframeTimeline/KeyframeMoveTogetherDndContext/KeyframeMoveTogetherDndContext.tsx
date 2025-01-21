@@ -7,10 +7,10 @@ import {
 
 interface KeyframeDraggingState {
   trackId: string;
-  localIndex: number;
+  trackIndex: number;
   deltaX: number;
 }
-type DraggableKeyframeDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][localIndex] = HTMLElement | null
+type DraggableKeyframeDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][trackIndex] = HTMLElement | null
 
 export function KeyframeMoveTogetherDndContext({
   children,
@@ -31,11 +31,11 @@ export function KeyframeMoveTogetherDndContext({
     (event) => {
       const { active, delta } = event;
       const trackId = active.data.current?.trackId;
-      const localIndex = active.data.current?.localIndex;
-      if (typeof trackId === "string" && typeof localIndex === "number") {
+      const trackIndex = active.data.current?.trackIndex;
+      if (typeof trackId === "string" && typeof trackIndex === "number") {
         setDraggingState({
           trackId,
-          localIndex,
+          trackIndex,
           deltaX: delta.x,
         });
       }
@@ -64,17 +64,17 @@ export function KeyframeMoveTogetherDndContext({
 
   const draggableDOMsRef = useRef<DraggableKeyframeDOMs>({});
   const registerDOM = useCallback<DraggableKeyframeDOMContext["registerDOM"]>(
-    (trackId, localIndex, node) => {
+    (trackId, trackIndex, node) => {
       const draggableDOMs = draggableDOMsRef.current;
       if (!draggableDOMs[trackId]) {
-        draggableDOMs[trackId] = Array(localIndex + 1).fill(null);
-      } else if (draggableDOMs[trackId].length < localIndex + 1) {
+        draggableDOMs[trackId] = Array(trackIndex + 1).fill(null);
+      } else if (draggableDOMs[trackId].length < trackIndex + 1) {
         draggableDOMs[trackId] = [
           ...draggableDOMs[trackId],
-          ...Array(localIndex + 1 - draggableDOMs[trackId].length).fill(null),
+          ...Array(trackIndex + 1 - draggableDOMs[trackId].length).fill(null),
         ];
       }
-      draggableDOMs[trackId][localIndex] = node;
+      draggableDOMs[trackId][trackIndex] = node;
       draggableDOMsRef.current = draggableDOMs;
     },
     [],
@@ -110,7 +110,7 @@ export function KeyframeMoveTogetherDndContext({
     if (draggingState == null) {
       return null;
     }
-    const { trackId, localIndex, deltaX: delta } = draggingState;
+    const { trackId, trackIndex, deltaX: delta } = draggingState;
 
     const draggableDOMOrgRects = draggableDOMOrgRectsRef.current;
     const rectsInTrack = draggableDOMOrgRects[trackId];
@@ -118,7 +118,7 @@ export function KeyframeMoveTogetherDndContext({
       return null;
     }
 
-    const selfRect = rectsInTrack[localIndex];
+    const selfRect = rectsInTrack[trackIndex];
     if (selfRect == null) {
       return null;
     }
@@ -127,7 +127,7 @@ export function KeyframeMoveTogetherDndContext({
       const draggableDOMDeltaXs: Record<number, number> = {};
       // Dragging right
       let right = selfRect.right + delta;
-      for (let i = localIndex + 1; i < rectsInTrack.length; i++) {
+      for (let i = trackIndex + 1; i < rectsInTrack.length; i++) {
         const domRect = rectsInTrack[i];
         if (domRect == null) continue;
         if (domRect.left < right) {
@@ -143,7 +143,7 @@ export function KeyframeMoveTogetherDndContext({
       // Dragging left
       const draggableDOMDeltaXs: Record<number, number> = {};
       let left = selfRect.left + delta;
-      for (let i = localIndex - 1; i >= 0; i--) {
+      for (let i = trackIndex - 1; i >= 0; i--) {
         const domRect = rectsInTrack[i];
         if (domRect == null) continue;
         if (left < domRect.right) {

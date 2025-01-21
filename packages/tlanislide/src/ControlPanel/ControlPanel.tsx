@@ -9,7 +9,6 @@ import {
 import {
   getOrderedSteps,
   runStep,
-  getKeyframe,
   attachKeyframe,
   keyframeToJsonObject,
   type Keyframe,
@@ -20,6 +19,8 @@ import {
   getFrameBatches,
   getAllFrames,
   Frame,
+  SubFrame,
+  getShapeByFrameId,
 } from "../models";
 import { insertOrderedTrackItem } from "../ordered-track-item";
 import { KeyframeTimeline } from "../KeyframeTimeline";
@@ -154,15 +155,12 @@ export function makeControlPanel(atoms: {
             });
           }}
           requestKeyframeAddAfter={(prevKeyframe) => {
-            const allShapes = editor.getCurrentPageShapes();
-            const prevShape = allShapes.find(
-              (shape) => getKeyframe(shape)?.id === prevKeyframe.id,
-            );
+            const prevShape = getShapeByFrameId(editor, prevKeyframe.id);
             if (prevShape == null) {
               return;
             }
 
-            const newKeyframe = {
+            const newKeyframe: Keyframe = {
               id: uniqueId(),
               type: "keyframe",
               globalIndex: steps.length + 999999, // NOTE: This will be recalculated later.
@@ -171,7 +169,7 @@ export function makeControlPanel(atoms: {
                 type: prevKeyframe.action.type,
                 duration: 1000,
               },
-            } satisfies Keyframe;
+            };
             const newFrameBatch: FrameBatch = {
               id: `batch-${newKeyframe.id}`,
               globalIndex: newKeyframe.globalIndex,
@@ -205,6 +203,34 @@ export function makeControlPanel(atoms: {
               },
               { history: "ignore" },
             );
+          }}
+          requestSubFrameAddAfter={(prevFrame) => {
+            const prevShape = getShapeByFrameId(editor, prevFrame.id);
+            if (prevShape == null) {
+              return;
+            }
+
+            const newSubFrame: SubFrame = {
+              id: uniqueId(),
+              type: "subFrame",
+              prevFrameId: prevFrame.id,
+              action: {
+                type: "shapeAnimation",
+                duration: 1000,
+              },
+            };
+
+            const newShapeId = createShapeId();
+            editor.createShape({
+              ...prevShape,
+              id: newShapeId,
+              x: prevShape.x + 100,
+              y: prevShape.y + 100,
+              meta: {
+                frame: frameToJsonObject(newSubFrame),
+              },
+            });
+            editor.select(newShapeId);
           }}
         />
       </div>
