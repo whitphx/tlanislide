@@ -248,6 +248,7 @@ interface KeyframeTimelineProps {
   selectedFrameIds: Frame["id"][];
   onFrameSelect: (keyframeId: string) => void;
   requestKeyframeAddAfter: (prevKeyframe: Keyframe) => void;
+  requestSubFrameAddAfter: (prevFrame: Frame) => void;
   showAttachKeyframeButton: boolean;
   requestAttachKeyframe: () => void;
 }
@@ -260,6 +261,7 @@ export function KeyframeTimeline({
   selectedFrameIds,
   onFrameSelect,
   requestKeyframeAddAfter,
+  requestSubFrameAddAfter,
   showAttachKeyframeButton,
   requestAttachKeyframe,
 }: KeyframeTimelineProps) {
@@ -462,6 +464,15 @@ export function KeyframeTimeline({
                                 );
                               })}
                               <div className={styles.frameAddButtonContainer}>
+                                <FrameIcon
+                                  as="button"
+                                  subFrame
+                                  onClick={() =>
+                                    requestSubFrameAddAfter(frames.at(-1)!)
+                                  }
+                                >
+                                  +
+                                </FrameIcon>
                                 <FrameIcon
                                   as="button"
                                   onClick={() =>
