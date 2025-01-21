@@ -460,14 +460,16 @@ export function KeyframeTimeline({
                                 >
                                   +
                                 </FrameIcon>
-                                <FrameIcon
-                                  as="button"
-                                  onClick={() =>
-                                    requestKeyframeAddAfter(keyframe)
-                                  }
-                                >
-                                  +
-                                </FrameIcon>
+                                <div className={styles.hoverExpandedPart}>
+                                  <FrameIcon
+                                    as="button"
+                                    onClick={() =>
+                                      requestKeyframeAddAfter(keyframe)
+                                    }
+                                  >
+                                    +
+                                  </FrameIcon>
+                                </div>
                               </div>
                             </div>
                           );
