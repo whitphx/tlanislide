@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
-import { Keyframe, SubFrame } from "./models";
+import { CueFrame, SubFrame } from "./models";
 import { Tlanislide } from "./Tlanislide.tsx";
 
 function setupDevMock(editor: Editor) {
@@ -18,13 +18,13 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: uniqueId(),
-        type: "keyframe",
+        type: "cue",
         globalIndex: 0,
         trackId: rectTrackId,
         action: {
           type: "shapeAnimation",
         },
-      } satisfies Keyframe,
+      } satisfies CueFrame,
     },
   });
 
@@ -42,14 +42,14 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: rect1FrameId,
-        type: "keyframe",
+        type: "cue",
         globalIndex: 1,
         trackId: rectTrackId,
         action: {
           type: "shapeAnimation",
           duration: 1000,
         },
-      } satisfies Keyframe,
+      } satisfies CueFrame,
     },
   });
 
@@ -67,7 +67,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: rect2FrameId,
-        type: "subFrame",
+        type: "sub",
         prevFrameId: rect1FrameId,
         action: {
           type: "shapeAnimation",
@@ -91,7 +91,7 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: rect3FrameId,
-        type: "subFrame",
+        type: "sub",
         prevFrameId: rect2FrameId,
         action: {
           type: "shapeAnimation",
@@ -121,13 +121,13 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: uniqueId(),
-        type: "keyframe",
+        type: "cue",
         globalIndex: 1,
         trackId: arrowTrackId,
         action: {
           type: "shapeAnimation",
         },
-      } satisfies Keyframe,
+      } satisfies CueFrame,
     },
   });
 
@@ -150,14 +150,14 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: uniqueId(),
-        type: "keyframe",
+        type: "cue",
         globalIndex: 2,
         trackId: arrowTrackId,
         action: {
           type: "shapeAnimation",
           duration: 1000,
         },
-      } satisfies Keyframe,
+      } satisfies CueFrame,
     },
   });
 
@@ -180,13 +180,13 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: uniqueId(),
-        type: "keyframe",
+        type: "cue",
         globalIndex: 3,
         trackId: arrowTrackId,
         action: {
           type: "shapeAnimation",
         },
-      } satisfies Keyframe,
+      } satisfies CueFrame,
     },
   });
 
@@ -209,14 +209,14 @@ function setupDevMock(editor: Editor) {
     meta: {
       frame: {
         id: uniqueId(),
-        type: "keyframe",
+        type: "cue",
         globalIndex: 4,
         trackId: arrowTrackId,
         action: {
           type: "shapeAnimation",
           duration: 1000,
         },
-      } satisfies Keyframe,
+      } satisfies CueFrame,
     },
   });
 }

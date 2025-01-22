@@ -33,12 +33,12 @@ import { createModeAwareDefaultComponents } from "./mode-aware-components";
 import {
   getOrderedSteps,
   runStep,
-  keyframeToJsonObject,
+  cueFrameToJsonObject,
   getFrame,
   getAllFrames,
   getNextGlobalIndex,
   type CameraZoomFrameAction,
-  type Keyframe,
+  type CueFrame,
   type SubFrame,
   reconcileShapeDeletion,
 } from "./models";
@@ -229,29 +229,29 @@ const Inner = track((props: InnerProps) => {
     stopHandlers.push(
       editor.sideEffects.registerBeforeCreateHandler("shape", (shape) => {
         if (shape.type === SlideShapeType && shape.meta?.frame == null) {
-          // Auto attach camera keyframe to the newly created slide shape
+          // Auto attach camera cueFrame to the newly created slide shape
           const orderedSteps = getOrderedSteps(editor);
-          const lastCameraKeyframe = orderedSteps
+          const lastCameraCueFrame = orderedSteps
             .reverse()
             .flat()
             .find((ab) => ab.data[0].action.type === "cameraZoom");
-          const keyframe: Keyframe<CameraZoomFrameAction> = {
+          const cueFrame: CueFrame<CameraZoomFrameAction> = {
             id: uniqueId(),
-            type: "keyframe",
+            type: "cue",
             globalIndex: orderedSteps.length,
-            trackId: lastCameraKeyframe
-              ? lastCameraKeyframe.trackId
+            trackId: lastCameraCueFrame
+              ? lastCameraCueFrame.trackId
               : uniqueId(),
             action: {
               type: "cameraZoom",
-              duration: lastCameraKeyframe ? 1000 : 0,
+              duration: lastCameraCueFrame ? 1000 : 0,
             },
           };
           return {
             ...shape,
             meta: {
               ...shape.meta,
-              frame: keyframeToJsonObject(keyframe),
+              frame: cueFrameToJsonObject(cueFrame),
             },
           };
         } else {
@@ -265,13 +265,13 @@ const Inner = track((props: InnerProps) => {
           const allFrames = getAllFrames(editor);
           const allFrameIds = allFrames.map((frame) => frame.id);
           if (allFrameIds.includes(frame.id)) {
-            if (frame.type === "keyframe") {
+            if (frame.type === "cue") {
               shape.meta.frame = {
                 ...frame,
                 id: uniqueId(),
                 globalIndex: getNextGlobalIndex(editor),
-              } satisfies Keyframe;
-            } else if (frame.type === "subFrame") {
+              } satisfies CueFrame;
+            } else if (frame.type === "sub") {
               shape.meta.frame = {
                 ...frame,
                 id: uniqueId(),
@@ -324,9 +324,9 @@ const Inner = track((props: InnerProps) => {
     const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
 
     // The last frame of a finished animation should always be visible
-    if (frame.type === "keyframe") {
-      const keyframe = frame;
-      const isFuture = keyframe.globalIndex > currentStepIndex;
+    if (frame.type === "cue") {
+      const cueFrame = frame;
+      const isFuture = cueFrame.globalIndex > currentStepIndex;
       if (isFuture) {
         return HIDDEN;
       }
@@ -335,17 +335,17 @@ const Inner = track((props: InnerProps) => {
         .slice(0, currentStepIndex + 1)
         .reverse()
         .flat()
-        .find((ab) => ab.trackId === keyframe.trackId);
+        .find((ab) => ab.trackId === cueFrame.trackId);
       const isLatestPrevInTrack =
         lastBatchIncludingThisTrack &&
         lastBatchIncludingThisTrack.data.findIndex(
-          (frame) => frame.id === keyframe.id,
+          (frame) => frame.id === cueFrame.id,
         ) ===
           lastBatchIncludingThisTrack.data.length - 1;
       if (isLatestPrevInTrack) {
         return SHOW;
       }
-    } else if (frame.type === "subFrame") {
+    } else if (frame.type === "sub") {
       const subFrame = frame;
       const thisBatch = orderedSteps
         .flat()

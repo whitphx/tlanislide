@@ -9,9 +9,9 @@ import {
 import {
   getOrderedSteps,
   runStep,
-  attachKeyframe,
-  keyframeToJsonObject,
-  type Keyframe,
+  attachCueFrame,
+  cueFrameToJsonObject,
+  type CueFrame,
   FrameBatch,
   getFramesFromFrameBatches,
   getFrame,
@@ -23,7 +23,7 @@ import {
   getShapeByFrameId,
 } from "../models";
 import { insertOrderedTrackItem } from "../ordered-track-item";
-import { KeyframeTimeline } from "../KeyframeTimeline";
+import { FrameTimeline } from "../FrameTimeline";
 import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";
 
@@ -131,7 +131,7 @@ export function makeControlPanel(atoms: {
           </label>
         </div>
 
-        <KeyframeTimeline
+        <FrameTimeline
           frameBatches={frameBatches}
           onFrameBatchesChange={handleFrameBatchesChange}
           onFrameChange={handleFrameChange}
@@ -146,40 +146,40 @@ export function makeControlPanel(atoms: {
             (shape) => getFrame(shape)!.id,
           )}
           onFrameSelect={handleFrameSelect}
-          showAttachKeyframeButton={selectedNotFrameShapes.length > 0}
-          requestAttachKeyframe={() => {
+          showAttachCueFrameButton={selectedNotFrameShapes.length > 0}
+          requestAttachCueFrame={() => {
             selectedNotFrameShapes.forEach((shape) => {
               if (shape.type !== SlideShapeType) {
-                attachKeyframe(editor, shape.id, { type: "shapeAnimation" });
+                attachCueFrame(editor, shape.id, { type: "shapeAnimation" });
               }
             });
           }}
-          requestKeyframeAddAfter={(prevKeyframe) => {
-            const prevShape = getShapeByFrameId(editor, prevKeyframe.id);
+          requestCueFrameAddAfter={(prevCueFrame) => {
+            const prevShape = getShapeByFrameId(editor, prevCueFrame.id);
             if (prevShape == null) {
               return;
             }
 
-            const newKeyframe: Keyframe = {
+            const newCueFrame: CueFrame = {
               id: uniqueId(),
-              type: "keyframe",
+              type: "cue",
               globalIndex: steps.length + 999999, // NOTE: This will be recalculated later.
-              trackId: prevKeyframe.trackId,
+              trackId: prevCueFrame.trackId,
               action: {
-                type: prevKeyframe.action.type,
+                type: prevCueFrame.action.type,
                 duration: 1000,
               },
             };
             const newFrameBatch: FrameBatch = {
-              id: `batch-${newKeyframe.id}`,
-              globalIndex: newKeyframe.globalIndex,
-              trackId: newKeyframe.trackId,
-              data: [newKeyframe],
+              id: `batch-${newCueFrame.id}`,
+              globalIndex: newCueFrame.globalIndex,
+              trackId: newCueFrame.trackId,
+              data: [newCueFrame],
             };
             const newFrameBatches = insertOrderedTrackItem(
               frameBatches,
               newFrameBatch,
-              prevKeyframe.globalIndex + 1,
+              prevCueFrame.globalIndex + 1,
             );
             for (const batch of newFrameBatches) {
               batch.data[0].globalIndex = batch.globalIndex;
@@ -194,7 +194,7 @@ export function makeControlPanel(atoms: {
                   x: prevShape.x + 100,
                   y: prevShape.y + 100,
                   meta: {
-                    frame: keyframeToJsonObject(newKeyframe),
+                    frame: cueFrameToJsonObject(newCueFrame),
                   },
                 });
                 editor.select(newShapeId);
@@ -212,7 +212,7 @@ export function makeControlPanel(atoms: {
 
             const newSubFrame: SubFrame = {
               id: uniqueId(),
-              type: "subFrame",
+              type: "sub",
               prevFrameId: prevFrame.id,
               action: {
                 type: "shapeAnimation",
