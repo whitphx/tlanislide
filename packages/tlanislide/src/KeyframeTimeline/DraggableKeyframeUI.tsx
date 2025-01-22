@@ -21,7 +21,8 @@ export type DraggableUIPayload =
 export function DraggableKeyframeUI({
   id,
   trackId,
-  trackIndex: trackIndex,
+  trackIndex,
+  globalIndex,
   payload,
   children,
   className,
@@ -29,6 +30,7 @@ export function DraggableKeyframeUI({
   id: string;
   trackId: string;
   trackIndex: number;
+  globalIndex: number;
   payload: DraggableUIPayload;
   children: React.ReactNode;
   className?: string;
@@ -40,6 +42,7 @@ export function DraggableKeyframeUI({
         payload,
         trackId,
         trackIndex,
+        globalIndex,
       },
     });
   const { registerDOM, deltaX } = useDraggableKeyframeDelta(

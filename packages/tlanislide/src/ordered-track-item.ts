@@ -29,7 +29,9 @@ export function getGlobalOrder<T>(
         copy[i].trackId === copy[j].trackId &&
         copy[i].globalIndex === copy[j].globalIndex
       ) {
-        throw new Error("Cycle or conflict: same trackId and globalIndex");
+        throw new Error(
+          `Cycle or conflict: same trackId and globalIndex ${copy[i].id} and ${copy[j].id} (${copy[i].globalIndex}, ${copy[i].trackId}) and (${copy[j].globalIndex}, ${copy[j].trackId})`,
+        );
       }
     }
   }
@@ -119,94 +121,6 @@ export function reassignGlobalIndexInplace<T>(globalOrder: ItemGroup<T>[]) {
     }
     gIndex++;
   }
-}
-
-export function moveItemPreservingLocalOrder<T>(
-  items: OrderedTrackItem<T>[],
-  targetId: string,
-  newIndex: number,
-  type: "at" | "after",
-): OrderedTrackItem<T>[] {
-  if (items.length <= 1) return items;
-
-  const globalOrder = getGlobalOrder(items);
-
-  const oldIndex = globalOrder.findIndex((group) =>
-    group.some((k) => k.id === targetId),
-  );
-  if (oldIndex === -1) return items;
-
-  const target = globalOrder[oldIndex].find((k) => k.id === targetId);
-  if (target == null) return items;
-
-  if (type === "at" && oldIndex === newIndex) return items;
-
-  const isForward = oldIndex <= newIndex;
-
-  let newGlobalOrder: ItemGroup<T>[] = [];
-  if (isForward) {
-    newGlobalOrder = globalOrder.slice(0, oldIndex); // [0, oldIndex) are not affected.
-
-    newGlobalOrder.push(globalOrder[oldIndex].filter((k) => k.id !== targetId)); // Remove target
-
-    const pushedOutItems: OrderedTrackItem<T>[] = [];
-    for (let i = oldIndex + 1; i <= newIndex; i++) {
-      const updatedItemGroup: ItemGroup<T> = [];
-      globalOrder[i].forEach((k) => {
-        if (k.trackId === target.trackId) {
-          pushedOutItems.push(k);
-        } else {
-          updatedItemGroup.push(k);
-        }
-      });
-      newGlobalOrder.push(updatedItemGroup);
-    }
-
-    if (type === "at") {
-      newGlobalOrder[newGlobalOrder.length - 1].push(target);
-    } else if (type === "after") {
-      newGlobalOrder.push([target]);
-    }
-
-    pushedOutItems.forEach((k) => {
-      newGlobalOrder.push([k]);
-    });
-
-    newGlobalOrder.push(...globalOrder.slice(newIndex + 1));
-  } else {
-    const targetIndex = type === "at" ? newIndex : newIndex + 1;
-    newGlobalOrder = globalOrder.slice(0, targetIndex); // [0, targetIndex) are not affected.
-
-    const pushedOutItems: OrderedTrackItem<T>[] = [];
-    const affectedItemGroups: ItemGroup<T>[] = [];
-    for (let i = oldIndex - 1; i >= targetIndex; i--) {
-      const updatedItemGroup: ItemGroup<T> = [];
-      globalOrder[i].forEach((k) => {
-        if (k.trackId === target.trackId) {
-          pushedOutItems.unshift(k);
-        } else {
-          updatedItemGroup.push(k);
-        }
-      });
-      affectedItemGroups.unshift(updatedItemGroup);
-    }
-
-    newGlobalOrder.push(...pushedOutItems.map((k) => [k]));
-
-    if (type === "at") {
-      affectedItemGroups[0].push(target);
-    } else if (type === "after") {
-      affectedItemGroups.unshift([target]);
-    }
-    newGlobalOrder.push(...affectedItemGroups);
-
-    newGlobalOrder.push(globalOrder[oldIndex].filter((k) => k.id !== targetId));
-
-    newGlobalOrder.push(...globalOrder.slice(oldIndex + 1));
-  }
-
-  reassignGlobalIndexInplace(newGlobalOrder);
-  return newGlobalOrder.flat();
 }
 
 export function insertOrderedTrackItem<T>(
