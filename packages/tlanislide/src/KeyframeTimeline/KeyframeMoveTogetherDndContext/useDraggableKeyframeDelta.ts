@@ -1,23 +1,23 @@
 import React from "react";
-import { draggableKeyframeDOMContext } from "./draggableKeyframeDOMContext";
+import { draggableFrameDOMContext } from "./draggableKeyframeDOMContext";
 
 /**
  * When the user drags a frame,
  * the frame should move together with other frames in the same track.
  * This hook provides the delta value to move each draggable frame element.
  */
-interface UseDraggableKeyframeDeltaReturn {
+interface UseDraggableFrameDeltaReturn {
   registerDOM: (node: HTMLElement | null) => void;
   deltaX: number | null;
 }
-export function useDraggableKeyframeDelta(
+export function useDraggableFrameDelta(
   trackId: string,
   trackIndex: number,
-): UseDraggableKeyframeDeltaReturn {
-  const context = React.useContext(draggableKeyframeDOMContext);
+): UseDraggableFrameDeltaReturn {
+  const context = React.useContext(draggableFrameDOMContext);
   if (context == null) {
     throw new Error(
-      "useDraggableKeyframeDelta must be used within a DraggableKeyframeDeltaProvider",
+      "useDraggableFrameDelta must be used within a DraggableFrameDeltaProvider",
     );
   }
 

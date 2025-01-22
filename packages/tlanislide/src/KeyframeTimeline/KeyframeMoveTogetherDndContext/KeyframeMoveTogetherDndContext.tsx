@@ -1,18 +1,18 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { DndContext, type DndContextProps } from "@dnd-kit/core";
 import {
-  draggableKeyframeDOMContext,
-  type DraggableKeyframeDOMContext,
+  draggableFrameDOMContext,
+  type DraggableFrameDOMContext,
 } from "./draggableKeyframeDOMContext";
 
-interface KeyframeDraggingState {
+interface FrameDraggingState {
   trackId: string;
   trackIndex: number;
   deltaX: number;
 }
-type DraggableKeyframeDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][trackIndex] = HTMLElement | null
+type DraggableFrameDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][trackIndex] = HTMLElement | null
 
-export function KeyframeMoveTogetherDndContext({
+export function FrameMoveTogetherDndContext({
   children,
   onDragStart,
   onDragMove,
@@ -22,8 +22,9 @@ export function KeyframeMoveTogetherDndContext({
 }: {
   children: React.ReactNode;
 } & DndContextProps) {
-  const [draggingState, setDraggingState] =
-    useState<KeyframeDraggingState | null>(null);
+  const [draggingState, setDraggingState] = useState<FrameDraggingState | null>(
+    null,
+  );
 
   const handleDragMove = useCallback<
     NonNullable<DndContextProps["onDragMove"]>
@@ -62,8 +63,8 @@ export function KeyframeMoveTogetherDndContext({
     [onDragCancel],
   );
 
-  const draggableDOMsRef = useRef<DraggableKeyframeDOMs>({});
-  const registerDOM = useCallback<DraggableKeyframeDOMContext["registerDOM"]>(
+  const draggableDOMsRef = useRef<DraggableFrameDOMs>({});
+  const registerDOM = useCallback<DraggableFrameDOMContext["registerDOM"]>(
     (trackId, trackIndex, node) => {
       const draggableDOMs = draggableDOMsRef.current;
       if (!draggableDOMs[trackId]) {
@@ -161,7 +162,7 @@ export function KeyframeMoveTogetherDndContext({
   }, [draggingState]);
 
   return (
-    <draggableKeyframeDOMContext.Provider
+    <draggableFrameDOMContext.Provider
       value={{
         registerDOM,
         draggableDOMDeltaXs,
@@ -176,6 +177,6 @@ export function KeyframeMoveTogetherDndContext({
       >
         {children}
       </DndContext>
-    </draggableKeyframeDOMContext.Provider>
+    </draggableFrameDOMContext.Provider>
   );
 }

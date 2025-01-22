@@ -1,2 +1,2 @@
-export { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
-export { useDraggableKeyframeDelta } from "./useDraggableKeyframeDelta";
+export { FrameMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
+export { useDraggableFrameDelta } from "./useDraggableKeyframeDelta";

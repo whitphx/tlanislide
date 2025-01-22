@@ -24,8 +24,8 @@ import {
   SubFrameUIData,
 } from "./keyframe-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
-import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
-import { DraggableKeyframeUI, DraggableUIPayload } from "./DraggableKeyframeUI";
+import { FrameMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
+import { DraggableFrameUI, DraggableUIPayload } from "./DraggableKeyframeUI";
 import styles from "./KeyframeTimeline.module.scss";
 
 const EASINGS_OPTIONS = Object.keys(EASINGS);
@@ -244,7 +244,7 @@ function DroppableArea({
 
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
-interface KeyframeTimelineProps {
+interface FrameTimelineProps {
   frameBatches: FrameBatch[];
   onFrameChange: (newFrame: Frame) => void;
   onFrameBatchesChange: (newFrameBatches: FrameBatch[]) => void;
@@ -257,7 +257,7 @@ interface KeyframeTimelineProps {
   showAttachCueFrameButton: boolean;
   requestAttachCueFrame: () => void;
 }
-export function KeyframeTimeline({
+export function FrameTimeline({
   frameBatches,
   onFrameChange,
   onFrameBatchesChange,
@@ -269,7 +269,7 @@ export function KeyframeTimeline({
   requestSubFrameAddAfter,
   showAttachCueFrameButton,
   requestAttachCueFrame,
-}: KeyframeTimelineProps) {
+}: FrameTimelineProps) {
   const { steps, tracks } = useMemo(
     () => calcFrameBatchUIData(frameBatches),
     [frameBatches],
@@ -613,7 +613,7 @@ export function KeyframeTimeline({
     useAnimatedActiveColumnIndicator(currentStepIndex);
 
   return (
-    <KeyframeMoveTogetherDndContext
+    <FrameMoveTogetherDndContext
       onDragEnd={handleDragEnd}
       sensors={sensors}
       modifiers={DND_CONTEXT_MODIFIERS}
@@ -667,7 +667,7 @@ export function KeyframeTimeline({
                               key={trackFrameBatch.id}
                               className={styles.frameBatchControl}
                             >
-                              <DraggableKeyframeUI
+                              <DraggableFrameUI
                                 id={trackFrameBatch.id}
                                 trackId={track.id}
                                 trackIndex={cueFrame.trackIndex}
@@ -696,11 +696,11 @@ export function KeyframeTimeline({
                                       : cueFrame.trackIndex + 1}
                                   </FrameIcon>
                                 </FrameEditPopover>
-                              </DraggableKeyframeUI>
+                              </DraggableFrameUI>
 
                               {subFrames.map((subFrame) => {
                                 return (
-                                  <DraggableKeyframeUI
+                                  <DraggableFrameUI
                                     key={subFrame.id}
                                     id={subFrame.id}
                                     trackId={track.id}
@@ -730,7 +730,7 @@ export function KeyframeTimeline({
                                         {subFrame.trackIndex + 1}
                                       </FrameIcon>
                                     </FrameEditPopover>
-                                  </DraggableKeyframeUI>
+                                  </DraggableFrameUI>
                                 );
                               })}
                               <div className={styles.frameAddButtonContainer}>
@@ -790,6 +790,6 @@ export function KeyframeTimeline({
           </div>
         )}
       </DragStateStyleDiv>
-    </KeyframeMoveTogetherDndContext>
+    </FrameMoveTogetherDndContext>
   );
 }

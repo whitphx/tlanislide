@@ -1,14 +1,14 @@
 import React from "react";
 
-type DraggableKeyframeDOMDeltaXs = Record<string, Record<number, number>>; // obj[trackId][trackIndex] = delta
+type DraggableFrameDOMDeltaXs = Record<string, Record<number, number>>; // obj[trackId][trackIndex] = delta
 
-export interface DraggableKeyframeDOMContext {
+export interface DraggableFrameDOMContext {
   registerDOM: (
     trackId: string,
     trackIndex: number,
     node: HTMLElement | null,
   ) => void;
-  draggableDOMDeltaXs: DraggableKeyframeDOMDeltaXs | null;
+  draggableDOMDeltaXs: DraggableFrameDOMDeltaXs | null;
 }
-export const draggableKeyframeDOMContext =
-  React.createContext<DraggableKeyframeDOMContext | null>(null);
+export const draggableFrameDOMContext =
+  React.createContext<DraggableFrameDOMContext | null>(null);

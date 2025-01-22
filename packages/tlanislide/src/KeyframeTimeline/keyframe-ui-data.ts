@@ -7,7 +7,7 @@ import type {
   Frame,
 } from "../models";
 
-export type KeyframeUIData<T extends FrameAction = FrameAction> =
+export type CueFrameUIData<T extends FrameAction = FrameAction> =
   CueFrame<T> & {
     trackIndex: number;
   };
@@ -16,10 +16,10 @@ export type SubFrameUIData<T extends FrameAction = FrameAction> =
     trackIndex: number;
   };
 export type FrameUIData<T extends FrameAction = FrameAction> =
-  | KeyframeUIData<T>
+  | CueFrameUIData<T>
   | SubFrameUIData<T>;
 export type UIBatchedFrames<T extends FrameAction = FrameAction> = [
-  KeyframeUIData<T>,
+  CueFrameUIData<T>,
   ...SubFrameUIData<T>[],
 ];
 export type UIFrameBatch<T extends FrameAction = FrameAction> =

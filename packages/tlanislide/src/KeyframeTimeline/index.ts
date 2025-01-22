@@ -1,1 +1,1 @@
-export { KeyframeTimeline } from "./KeyframeTimeline";
+export { FrameTimeline } from "./KeyframeTimeline";

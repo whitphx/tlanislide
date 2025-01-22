@@ -1,6 +1,6 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { useDraggableKeyframeDelta } from "./KeyframeMoveTogetherDndContext";
+import { useDraggableFrameDelta } from "./KeyframeMoveTogetherDndContext";
 import { FrameBatch, SubFrame } from "../models";
 
 interface DraggableUIPayloadBase {
@@ -18,7 +18,7 @@ interface DraggableUIPayloadSubFrame extends DraggableUIPayloadBase {
 export type DraggableUIPayload =
   | DraggableUIPayloadFrameBatch
   | DraggableUIPayloadSubFrame;
-export function DraggableKeyframeUI({
+export function DraggableFrameUI({
   id,
   trackId,
   trackIndex,
@@ -45,10 +45,7 @@ export function DraggableKeyframeUI({
         globalIndex,
       },
     });
-  const { registerDOM, deltaX } = useDraggableKeyframeDelta(
-    trackId,
-    trackIndex,
-  );
+  const { registerDOM, deltaX } = useDraggableFrameDelta(trackId, trackIndex);
   const transformX = deltaX != null ? deltaX : (transform?.x ?? 0);
   const transformY = transform?.y ?? 0;
   const isDraggingSomething = active != null;
