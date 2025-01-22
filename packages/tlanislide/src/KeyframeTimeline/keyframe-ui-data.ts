@@ -1,10 +1,11 @@
 import { getGlobalOrder, OrderedTrackItem } from "../ordered-track-item";
-import type { Keyframe, FrameAction, SubFrame, FrameBatch } from "../models";
-
-export interface Track {
-  id: string;
-  type: FrameAction["type"];
-}
+import type {
+  Keyframe,
+  FrameAction,
+  SubFrame,
+  FrameBatch,
+  Frame,
+} from "../models";
 
 export type KeyframeUIData<T extends FrameAction = FrameAction> =
   Keyframe<T> & {
@@ -26,46 +27,68 @@ export type UIFrameBatch<T extends FrameAction = FrameAction> =
 
 export type FrameBatchUIData = UIFrameBatch & { localIndex: number };
 
+export interface Track {
+  id: string;
+  type: FrameAction["type"];
+  // frames: Frame[];
+  frameBatches: FrameBatchUIData[];
+}
+
 export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
   const orderedSteps = getGlobalOrder(frameBatches);
   const stepsUIData: FrameBatchUIData[][] = [];
   const tracksMap: Record<
     string,
-    { type: FrameAction["type"]; batchCount: number; frameCount: number }
+    {
+      type: FrameAction["type"];
+      frameBatches: FrameBatchUIData[];
+      frames: Frame[];
+    }
   > = {};
-  for (const stepFrameBatches of orderedSteps) {
-    const frameBatchUIData: FrameBatchUIData[] = [];
+  orderedSteps.forEach((stepFrameBatches, stepIndex) => {
+    const frameBatchUIDatas: FrameBatchUIData[] = [];
     for (const frameBatch of stepFrameBatches) {
       const [keyframe, ...subFrames] = frameBatch.data;
       tracksMap[frameBatch.trackId] = tracksMap[frameBatch.trackId] ?? {
         type: keyframe.action.type,
-        batchCount: 0,
-        frameCount: 0,
+        frameBatches: [],
+        frames: [],
       };
-      frameBatchUIData.push({
+      const frameBatchUIData: FrameBatchUIData = {
         ...frameBatch,
-        localIndex: tracksMap[frameBatch.trackId].batchCount,
+        globalIndex: stepIndex, // Recalculate globalIndex for each step to make this field trustworthy
+        localIndex: tracksMap[frameBatch.trackId].frameBatches.length,
         data: [
           {
             ...keyframe,
-            trackIndex: tracksMap[frameBatch.trackId].frameCount,
+            trackIndex: tracksMap[frameBatch.trackId].frames.length,
           },
           ...subFrames.map((subFrame, index) => ({
             ...subFrame,
-            trackIndex: tracksMap[frameBatch.trackId].frameCount + index + 1,
+            trackIndex: tracksMap[frameBatch.trackId].frames.length + index + 1,
           })),
         ],
-      });
-      tracksMap[frameBatch.trackId].batchCount++;
-      tracksMap[frameBatch.trackId].frameCount += 1 + subFrames.length;
+      };
+      frameBatchUIDatas.push(frameBatchUIData);
+      tracksMap[frameBatch.trackId].frameBatches.push(frameBatchUIData);
+      tracksMap[frameBatch.trackId].frames.push(keyframe, ...subFrames);
     }
-    stepsUIData.push(frameBatchUIData);
-  }
+    stepsUIData.push(frameBatchUIDatas);
+  });
 
   const tracks: Track[] = Object.entries(tracksMap).map(
-    ([trackId, { type }]) => ({
+    ([
+      trackId,
+      {
+        type,
+        frameBatches,
+        // frames,
+      },
+    ]) => ({
       id: trackId,
       type,
+      frameBatches,
+      // frames,
     }),
   );
   tracks.sort((a, b) => {

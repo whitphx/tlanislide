@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { PointerSensor, MouseSensor, TouchSensor } from "./dnd-sensors";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import { moveItemPreservingLocalOrder } from "../ordered-track-item";
+import { reassignGlobalIndexInplace } from "../ordered-track-item";
 import {
   EASINGS,
   TldrawUiPopover,
@@ -17,7 +17,12 @@ import {
   TldrawUiPopoverContent,
 } from "tldraw";
 import type { Frame, FrameBatch, Keyframe } from "../models";
-import { calcFrameBatchUIData } from "./keyframe-ui-data";
+import {
+  calcFrameBatchUIData,
+  FrameBatchUIData,
+  FrameUIData,
+  SubFrameUIData,
+} from "./keyframe-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { KeyframeMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
 import { DraggableKeyframeUI, DraggableUIPayload } from "./DraggableKeyframeUI";
@@ -285,33 +290,309 @@ export function KeyframeTimeline({
         return;
       }
 
-      const overType = over.data.current?.type;
-      const overGlobalIndex = over.data.current?.globalIndex;
+      const trackId = active.data.current?.trackId;
+      const srcTrackIndex = active.data.current?.trackIndex;
+      const srcGlobalIndex = active.data.current?.globalIndex;
+      const dstType = over.data.current?.type;
+      let dstGlobalIndex = over.data.current?.globalIndex;
+      console.log({
+        trackId,
+        srcTrackIndex,
+        srcGlobalIndex,
+        dstType,
+        dstGlobalIndex,
+      });
       if (
-        typeof overGlobalIndex === "number" &&
-        typeof overType === "string" &&
-        (overType === "at" || overType === "after")
+        !(
+          typeof trackId === "string" &&
+          typeof srcTrackIndex === "number" &&
+          typeof srcGlobalIndex === "number" &&
+          typeof dstGlobalIndex === "number" &&
+          typeof dstType === "string" &&
+          (dstType === "at" || dstType === "after")
+        )
       ) {
-        if (payload.type === "frameBatch") {
-          const frameBatchId = payload.id;
-          const newFrameBatches = moveItemPreservingLocalOrder(
-            frameBatches,
-            frameBatchId,
-            overGlobalIndex,
-            overType,
-          );
-          newFrameBatches.forEach((newFrameBatch) => {
-            newFrameBatch.data[0].globalIndex = newFrameBatch.globalIndex;
-          });
-          onFrameBatchesChange(newFrameBatches);
-        } else if (payload.type === "subFrame") {
-          const subFrameId = payload.id;
-          console.log("dragged subFrameId", subFrameId);
-          // TODO:
+        return;
+      }
+
+      const track = tracks.find((track) => track.id === trackId);
+      if (track == null) {
+        return;
+      }
+      console.log("track", track);
+
+      console.log({
+        srcGlobalIndex,
+        dstGlobalIndex,
+      });
+
+      if (
+        srcGlobalIndex < dstGlobalIndex ||
+        (srcGlobalIndex === dstGlobalIndex && dstType === "after")
+      ) {
+        if (dstType === "after") {
+          dstGlobalIndex++;
         }
+        console.log("move to the right");
+        // Move to the right
+        const newSteps: FrameBatch[][] = [];
+        const pushedOutFrames: FrameUIData[] = [];
+        steps.forEach((step, stepIndex) => {
+          if (stepIndex < srcGlobalIndex) {
+            newSteps.push(step);
+          } else if (stepIndex === srcGlobalIndex) {
+            const newStep: FrameBatch[] = [];
+            step.forEach((frameBatch) => {
+              if (frameBatch.trackId !== track.id) {
+                newStep.push(frameBatch);
+              } else {
+                const [keyframe, ...subFrames] = frameBatch.data;
+                if (keyframe.trackIndex === srcTrackIndex) {
+                  pushedOutFrames.push(keyframe, ...subFrames);
+                } else {
+                  const remainingSubFrames: SubFrameUIData[] = [];
+                  subFrames.forEach((subFrame) => {
+                    if (subFrame.trackIndex < srcTrackIndex) {
+                      remainingSubFrames.push(subFrame);
+                    } else {
+                      pushedOutFrames.push(subFrame);
+                    }
+                  });
+                  newStep.push({
+                    ...frameBatch,
+                    data: [keyframe, ...remainingSubFrames],
+                  });
+                }
+              }
+            });
+            newSteps.push(newStep);
+          } else if (srcGlobalIndex < stepIndex && stepIndex < dstGlobalIndex) {
+            const newStep: FrameBatch[] = [];
+            step.forEach((frameBatch) => {
+              if (frameBatch.trackId !== track.id) {
+                newStep.push(frameBatch);
+              } else {
+                pushedOutFrames.push(...frameBatch.data);
+              }
+            });
+            newSteps.push(newStep);
+          } else if (stepIndex === dstGlobalIndex) {
+            const newStep: FrameBatch[] = [];
+            let existingDstFrameBatch: FrameBatchUIData | null = null;
+            for (const frameBatch of step) {
+              if (!(dstType === "at" && frameBatch.trackId === track.id)) {
+                newStep.push(frameBatch);
+              } else {
+                existingDstFrameBatch = frameBatch;
+              }
+            }
+
+            if (existingDstFrameBatch != null) {
+              const lastPushedOutFrame = pushedOutFrames.at(-1);
+              if (lastPushedOutFrame != null) {
+                const [keyframe, ...subFrames] = existingDstFrameBatch.data;
+                pushedOutFrames.push(
+                  {
+                    id: keyframe.id,
+                    type: "subFrame",
+                    prevFrameId: lastPushedOutFrame.id,
+                    trackIndex: keyframe.trackIndex,
+                    action: keyframe.action,
+                  },
+                  ...subFrames,
+                );
+              } else {
+                pushedOutFrames.push(...existingDstFrameBatch.data);
+              }
+            }
+            // Convert the pushed out frames into new frame batches
+            let frameBatchesToInsert: FrameBatch[] = [];
+            if (pushedOutFrames.length > 0) {
+              pushedOutFrames[0] = {
+                // The first frame is always a keyframe
+                ...pushedOutFrames[0],
+                type: "keyframe",
+                trackId: track.id,
+                globalIndex: 999999, // This will be set later.
+              };
+              pushedOutFrames.forEach((frame) => {
+                if (frame.type === "keyframe") {
+                  frameBatchesToInsert.push({
+                    id: `batch-${pushedOutFrames[0].id}`,
+                    trackId: track.id,
+                    globalIndex: 999999, // This will be set later.
+                    data: [frame],
+                  });
+                } else {
+                  frameBatchesToInsert.at(-1)?.data.push(frame);
+                }
+              });
+            }
+
+            if (dstType === "at") {
+              const lastFrameBatchToInsert = frameBatchesToInsert.at(-1);
+              if (lastFrameBatchToInsert != null) {
+                newStep.push(lastFrameBatchToInsert);
+                frameBatchesToInsert = frameBatchesToInsert.slice(0, -1);
+              }
+            }
+
+            frameBatchesToInsert.forEach((frameBatchToInsert) => {
+              newSteps.push([frameBatchToInsert]);
+            });
+            newSteps.push(newStep);
+          } else if (dstGlobalIndex < stepIndex) {
+            newSteps.push(step);
+          }
+        });
+        reassignGlobalIndexInplace(newSteps);
+        for (const step of newSteps) {
+          for (const frameBatch of step) {
+            frameBatch.data[0].globalIndex = frameBatch.globalIndex;
+          }
+        }
+        onFrameBatchesChange(newSteps.flat());
+      } else if (dstGlobalIndex < srcGlobalIndex) {
+        // Move to the left
+        console.log("move to the left");
+        const newSteps: FrameBatch[][] = [];
+        const pushedOutFrames: Frame[] = [];
+        for (let stepIndex = steps.length - 1; stepIndex >= 0; stepIndex--) {
+          const step = steps[stepIndex];
+          if (srcGlobalIndex < stepIndex) {
+            newSteps.unshift(step);
+          } else if (stepIndex === srcGlobalIndex) {
+            const newStep: FrameBatch[] = [];
+            for (const frameBatch of step) {
+              if (frameBatch.trackId !== track.id) {
+                newStep.push(frameBatch);
+              } else {
+                const lastFrame = frameBatch.data.at(-1);
+                if (lastFrame && lastFrame.trackIndex === srcTrackIndex) {
+                  pushedOutFrames.unshift(...frameBatch.data);
+                } else {
+                  const [keyframe, ...subFrames] = frameBatch.data;
+                  const remainingSubFrames: SubFrameUIData[] = [];
+                  subFrames.forEach((subFrame) => {
+                    if (srcTrackIndex < subFrame.trackIndex) {
+                      remainingSubFrames.unshift(subFrame);
+                    } else {
+                      pushedOutFrames.unshift(subFrame);
+                    }
+                  });
+                  pushedOutFrames.unshift(keyframe);
+                  const [firstRemainingSubFrame, ...restRemainingSubFrames] =
+                    remainingSubFrames;
+                  if (firstRemainingSubFrame != null) {
+                    newStep.push({
+                      ...frameBatch,
+                      data: [
+                        {
+                          id: firstRemainingSubFrame.id,
+                          type: "keyframe",
+                          globalIndex: 999999, // This will be set later
+                          trackId: track.id,
+                          action: firstRemainingSubFrame.action,
+                        },
+                        ...restRemainingSubFrames,
+                      ],
+                    });
+                  }
+                }
+              }
+            }
+            newSteps.unshift(newStep);
+          } else if (dstGlobalIndex < stepIndex && stepIndex < srcGlobalIndex) {
+            const newStep: FrameBatch[] = [];
+            for (const frameBatch of step) {
+              if (frameBatch.trackId !== track.id) {
+                newStep.push(frameBatch);
+              } else {
+                pushedOutFrames.unshift(...frameBatch.data);
+              }
+            }
+            newSteps.unshift(newStep);
+          } else if (stepIndex === dstGlobalIndex) {
+            const newStep: FrameBatch[] = [];
+            let existingDstFrameBatch: FrameBatchUIData | null = null;
+            for (const frameBatch of step) {
+              if (!(dstType === "at" && frameBatch.trackId === track.id)) {
+                newStep.push(frameBatch);
+              } else {
+                existingDstFrameBatch = frameBatch;
+              }
+            }
+
+            if (existingDstFrameBatch != null) {
+              if (pushedOutFrames.length > 0) {
+                const [firstPushedOutFrame, ...restPushedOutFrames] =
+                  pushedOutFrames;
+                pushedOutFrames.unshift(
+                  ...existingDstFrameBatch.data,
+                  {
+                    id: firstPushedOutFrame.id,
+                    type: "subFrame",
+                    prevFrameId: existingDstFrameBatch.data.at(-1)!.id,
+                    action: firstPushedOutFrame.action,
+                  },
+                  ...restPushedOutFrames,
+                );
+              } else {
+                pushedOutFrames.unshift(...existingDstFrameBatch.data);
+              }
+            }
+
+            // Convert the pushed out frames into new frame batches
+            const frameBatchesToInsert: FrameBatch[] = [];
+            if (pushedOutFrames.length > 0) {
+              pushedOutFrames[0] = {
+                // The first frame is always a keyframe
+                ...pushedOutFrames[0],
+                type: "keyframe",
+                trackId: track.id,
+                globalIndex: 999999, // This will be set later.
+              };
+              pushedOutFrames.forEach((frame) => {
+                if (frame.type === "keyframe") {
+                  frameBatchesToInsert.push({
+                    id: `batch-${pushedOutFrames[0].id}`,
+                    trackId: track.id,
+                    globalIndex: 999999, // This will be set later.
+                    data: [frame],
+                  });
+                } else {
+                  frameBatchesToInsert.at(-1)?.data.push(frame);
+                }
+              });
+            }
+
+            const [firstFrameBatchToInsert, ...restFrameBatchesToInsert] =
+              frameBatchesToInsert;
+            restFrameBatchesToInsert.reverse().forEach((frameBatch) => {
+              newSteps.unshift([frameBatch]);
+            });
+
+            if (dstType === "at") {
+              newStep.push(firstFrameBatchToInsert);
+            } else {
+              newSteps.unshift([firstFrameBatchToInsert]);
+            }
+            newSteps.unshift(newStep);
+          } else if (stepIndex < dstGlobalIndex) {
+            newSteps.unshift(step);
+          }
+        }
+
+        reassignGlobalIndexInplace(newSteps);
+        for (const step of newSteps) {
+          for (const frameBatch of step) {
+            frameBatch.data[0].globalIndex = frameBatch.globalIndex;
+          }
+        }
+        onFrameBatchesChange(newSteps.flat());
       }
     },
-    [frameBatches, onFrameBatchesChange],
+    [steps, tracks, onFrameBatchesChange],
   );
 
   // To capture click events on draggable elements.
@@ -390,6 +671,7 @@ export function KeyframeTimeline({
                                 id={trackFrameBatch.id}
                                 trackId={track.id}
                                 trackIndex={keyframe.trackIndex}
+                                globalIndex={trackFrameBatch.globalIndex}
                                 payload={{
                                   type: "frameBatch",
                                   id: trackFrameBatch.id,
@@ -423,6 +705,7 @@ export function KeyframeTimeline({
                                     id={subFrame.id}
                                     trackId={track.id}
                                     trackIndex={subFrame.trackIndex}
+                                    globalIndex={trackFrameBatch.globalIndex}
                                     payload={{
                                       type: "subFrame",
                                       id: subFrame.id,

@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   OrderedTrackItem,
   getGlobalOrder,
-  moveItemPreservingLocalOrder,
   insertOrderedTrackItem,
 } from "./ordered-track-item";
 
@@ -108,61 +107,6 @@ describe("OrderedTrackItem Implementation Tests", () => {
         makeItem("k2", 2, "A"),
       ];
       expect(() => getGlobalOrder(items)).toThrowError("Cycle or conflict");
-    });
-  });
-
-  /**
-   * Section 2: moveOrderedTrackItemPreservingLocalOrder
-   * We confirm that OrderedTrackItems are moved with forward/backward logic
-   * and that OrderedTrackItems in the same track get pushed out if needed.
-   */
-  describe("moveOrderedTrackItemPreservingLocalOrder", () => {
-    it("should do nothing if the target is not found or only one OrderedTrackItem exists", () => {
-      const single = [makeItem("k1", 0, "A")];
-      // not found
-      const res1 = moveItemPreservingLocalOrder(single, "no-such", 2, "at");
-      expect(res1).toEqual(single);
-      // single => can't move
-      const res2 = moveItemPreservingLocalOrder(single, "k1", 0, "at");
-      expect(res2).toEqual(single);
-    });
-
-    it("should move an OrderedTrackItem forward (type='at')", () => {
-      // group0 => [k1], group1 => [k2], group2 => [k3]
-      const k1 = makeItem("k1", 0, "A");
-      const k2 = makeItem("k2", 1, "A");
-      const k3 = makeItem("k3", 2, "A");
-      const items = [k1, k2, k3];
-      // Move k1 => newIndex=2 => "at"
-      const after = moveItemPreservingLocalOrder(items, "k1", 2, "at");
-      // Check final => no conflict
-      expect(() => getGlobalOrder(after)).not.toThrow();
-    });
-
-    it("should move an OrderedTrackItem backward (type='after')", () => {
-      // group0 => [k1], group1 => [k2], group2 => [k3]
-      const k1 = makeItem("k1", 0, "A");
-      const k2 = makeItem("k2", 1, "A");
-      const k3 = makeItem("k3", 2, "A");
-      // Move k3 => newIndex=0 => "after"
-      const after = moveItemPreservingLocalOrder(
-        [k1, k2, k3],
-        "k3",
-        0,
-        "after",
-      );
-      expect(() => getGlobalOrder(after)).not.toThrow();
-    });
-
-    it("should push out same-track OrderedTrackItems in between oldIndex..newIndex range", () => {
-      // trackId="A" => k1=0, k2=1, k3=2
-      // Move k1 =>2 => presumably k2,k3 get extracted and re-inserted
-      const k1 = makeItem("k1", 0, "A");
-      const k2 = makeItem("k2", 1, "A");
-      const k3 = makeItem("k3", 2, "A");
-      const items = [k1, k2, k3];
-      const after = moveItemPreservingLocalOrder(items, "k1", 2, "at");
-      expect(() => getGlobalOrder(after)).not.toThrow();
     });
   });
 
