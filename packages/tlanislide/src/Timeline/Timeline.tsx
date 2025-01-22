@@ -282,12 +282,15 @@ export function Timeline({
           }
         }
         onFrameBatchesChange(newSteps.flat());
-      } else if (dstGlobalIndex < srcGlobalIndex) {
+      } else if (
+        dstGlobalIndex < srcGlobalIndex ||
+        (dstGlobalIndex === srcGlobalIndex && dstType === "after")
+      ) {
         // Move to the left
         const newSteps: FrameBatch[][] = [];
         const pushedOutFrames: Frame[] = [];
-        for (let stepIndex = steps.length - 1; stepIndex >= 0; stepIndex--) {
-          const step = steps[stepIndex];
+        for (let stepIndex = steps.length - 1; stepIndex >= -1; stepIndex--) {
+          const step = steps[stepIndex] ?? [];
           if (srcGlobalIndex < stepIndex) {
             newSteps.unshift(step);
           } else if (stepIndex === srcGlobalIndex) {
@@ -302,7 +305,7 @@ export function Timeline({
                 } else {
                   const [cueFrame, ...subFrames] = frameBatch.data;
                   const remainingSubFrames: SubFrameUIData[] = [];
-                  subFrames.forEach((subFrame) => {
+                  subFrames.reverse().forEach((subFrame) => {
                     if (srcTrackIndex < subFrame.trackIndex) {
                       remainingSubFrames.unshift(subFrame);
                     } else {
@@ -312,21 +315,19 @@ export function Timeline({
                   pushedOutFrames.unshift(cueFrame);
                   const [firstRemainingSubFrame, ...restRemainingSubFrames] =
                     remainingSubFrames;
-                  if (firstRemainingSubFrame != null) {
-                    newStep.push({
-                      ...frameBatch,
-                      data: [
-                        {
-                          id: firstRemainingSubFrame.id,
-                          type: "cue",
-                          globalIndex: 999999, // This will be set later
-                          trackId: track.id,
-                          action: firstRemainingSubFrame.action,
-                        },
-                        ...restRemainingSubFrames,
-                      ],
-                    });
-                  }
+                  newStep.push({
+                    ...frameBatch,
+                    data: [
+                      {
+                        id: firstRemainingSubFrame.id,
+                        type: "cue",
+                        globalIndex: 999999, // This will be set later
+                        trackId: track.id,
+                        action: firstRemainingSubFrame.action,
+                      },
+                      ...restRemainingSubFrames,
+                    ],
+                  });
                 }
               }
             }
@@ -354,6 +355,7 @@ export function Timeline({
 
             if (existingDstFrameBatch != null) {
               if (pushedOutFrames.length > 0) {
+                // Merge the existing frame batch with the pushed out frames
                 const [firstPushedOutFrame, ...restPushedOutFrames] =
                   pushedOutFrames;
                 pushedOutFrames.unshift(
