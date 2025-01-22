@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { DndContext, type DndContextProps } from "@dnd-kit/core";
+import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import {
   draggableFrameDOMContext,
   type DraggableFrameDOMContext,
@@ -11,6 +12,8 @@ interface FrameDraggingState {
   deltaX: number;
 }
 type DraggableFrameDOMs = Record<string, (HTMLElement | null)[]>; // obj[trackId][trackIndex] = HTMLElement | null
+
+const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 export function FrameMoveTogetherDndContext({
   children,
@@ -174,6 +177,7 @@ export function FrameMoveTogetherDndContext({
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
+        modifiers={DND_CONTEXT_MODIFIERS}
       >
         {children}
       </DndContext>

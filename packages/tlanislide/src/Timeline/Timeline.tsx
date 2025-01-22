@@ -8,7 +8,6 @@ import {
   type DndContextProps,
 } from "@dnd-kit/core";
 import { PointerSensor, MouseSensor, TouchSensor } from "./dnd-sensors";
-import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { reassignGlobalIndexInplace } from "../ordered-track-item";
 import {
   EASINGS,
@@ -241,8 +240,6 @@ function DroppableArea({
     </div>
   );
 }
-
-const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
 interface TimelineProps {
   frameBatches: FrameBatch[];
@@ -598,11 +595,7 @@ export function Timeline({
     useAnimatedActiveColumnIndicator(currentStepIndex);
 
   return (
-    <FrameMoveTogetherDndContext
-      onDragEnd={handleDragEnd}
-      sensors={sensors}
-      modifiers={DND_CONTEXT_MODIFIERS}
-    >
+    <FrameMoveTogetherDndContext onDragEnd={handleDragEnd} sensors={sensors}>
       <DragStateStyleDiv
         ref={containerRef}
         className={styles.timelineContainer}
