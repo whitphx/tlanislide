@@ -26,7 +26,7 @@ import {
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { FrameMoveTogetherDndContext } from "./FrameMoveTogetherDndContext";
 import { DraggableFrameUI, DraggableUIPayload } from "./DraggableFrameUI";
-import styles from "./FrameTimeline.module.scss";
+import styles from "./Timeline.module.scss";
 
 const EASINGS_OPTIONS = Object.keys(EASINGS);
 function isEasingOption(value: string): value is keyof typeof EASINGS {
@@ -244,7 +244,7 @@ function DroppableArea({
 
 const DND_CONTEXT_MODIFIERS = [restrictToHorizontalAxis];
 
-interface FrameTimelineProps {
+interface TimelineProps {
   frameBatches: FrameBatch[];
   onFrameChange: (newFrame: Frame) => void;
   onFrameBatchesChange: (newFrameBatches: FrameBatch[]) => void;
@@ -257,7 +257,7 @@ interface FrameTimelineProps {
   showAttachCueFrameButton: boolean;
   requestAttachCueFrame: () => void;
 }
-export function FrameTimeline({
+export function Timeline({
   frameBatches,
   onFrameChange,
   onFrameBatchesChange,
@@ -269,7 +269,7 @@ export function FrameTimeline({
   requestSubFrameAddAfter,
   showAttachCueFrameButton,
   requestAttachCueFrame,
-}: FrameTimelineProps) {
+}: TimelineProps) {
   const { steps, tracks } = useMemo(
     () => calcFrameBatchUIData(frameBatches),
     [frameBatches],

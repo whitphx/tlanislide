@@ -23,7 +23,7 @@ import {
   getShapeByFrameId,
 } from "../models";
 import { insertOrderedTrackItem } from "../ordered-track-item";
-import { FrameTimeline } from "../FrameTimeline";
+import { Timeline } from "../Timeline";
 import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";
 
@@ -131,7 +131,7 @@ export function makeControlPanel(atoms: {
           </label>
         </div>
 
-        <FrameTimeline
+        <Timeline
           frameBatches={frameBatches}
           onFrameBatchesChange={handleFrameBatchesChange}
           onFrameChange={handleFrameChange}
