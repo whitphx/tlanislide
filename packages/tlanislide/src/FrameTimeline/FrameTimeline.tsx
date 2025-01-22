@@ -776,9 +776,9 @@ export function FrameTimeline({
           <div className={styles.column}>
             <div className={styles.headerCell}>{steps.length + 1}</div>
             {tracks.map((track) => (
-              <div key={track.id} className={styles.keyframeCell}></div>
+              <div key={track.id} className={styles.frameBatchCell}></div>
             ))}
-            <div className={styles.keyframeCell}>
+            <div className={styles.frameBatchCell}>
               <FrameIcon
                 as="button"
                 isSelected={true}
