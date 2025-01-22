@@ -1,6 +1,6 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { useDraggableFrameDelta } from "./KeyframeMoveTogetherDndContext";
+import { useDraggableFrameDelta } from "./FrameMoveTogetherDndContext";
 import { FrameBatch, SubFrame } from "../models";
 
 interface DraggableUIPayloadBase {

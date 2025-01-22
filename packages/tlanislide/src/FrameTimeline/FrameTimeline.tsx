@@ -22,11 +22,11 @@ import {
   FrameBatchUIData,
   FrameUIData,
   SubFrameUIData,
-} from "./keyframe-ui-data";
+} from "./frame-ui-data";
 import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
-import { FrameMoveTogetherDndContext } from "./KeyframeMoveTogetherDndContext";
-import { DraggableFrameUI, DraggableUIPayload } from "./DraggableKeyframeUI";
-import styles from "./KeyframeTimeline.module.scss";
+import { FrameMoveTogetherDndContext } from "./FrameMoveTogetherDndContext";
+import { DraggableFrameUI, DraggableUIPayload } from "./DraggableFrameUI";
+import styles from "./FrameTimeline.module.scss";
 
 const EASINGS_OPTIONS = Object.keys(EASINGS);
 function isEasingOption(value: string): value is keyof typeof EASINGS {

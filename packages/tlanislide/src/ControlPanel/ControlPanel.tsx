@@ -23,7 +23,7 @@ import {
   getShapeByFrameId,
 } from "../models";
 import { insertOrderedTrackItem } from "../ordered-track-item";
-import { FrameTimeline } from "../KeyframeTimeline";
+import { FrameTimeline } from "../FrameTimeline";
 import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";
 

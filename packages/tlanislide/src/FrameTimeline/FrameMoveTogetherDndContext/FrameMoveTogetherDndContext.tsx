@@ -3,7 +3,7 @@ import { DndContext, type DndContextProps } from "@dnd-kit/core";
 import {
   draggableFrameDOMContext,
   type DraggableFrameDOMContext,
-} from "./draggableKeyframeDOMContext";
+} from "./draggableFrameDOMContext";
 
 interface FrameDraggingState {
   trackId: string;

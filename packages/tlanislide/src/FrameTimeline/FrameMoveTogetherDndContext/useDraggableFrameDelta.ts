@@ -1,5 +1,5 @@
 import React from "react";
-import { draggableFrameDOMContext } from "./draggableKeyframeDOMContext";
+import { draggableFrameDOMContext } from "./draggableFrameDOMContext";
 
 /**
  * When the user drags a frame,
