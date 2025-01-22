@@ -9,12 +9,6 @@ import {
 } from "@dnd-kit/core";
 import { PointerSensor, MouseSensor, TouchSensor } from "./dnd-sensors";
 import { reassignGlobalIndexInplace } from "../ordered-track-item";
-import {
-  EASINGS,
-  TldrawUiPopover,
-  TldrawUiPopoverTrigger,
-  TldrawUiPopoverContent,
-} from "tldraw";
 import type { Frame, FrameBatch, CueFrame } from "../models";
 import {
   calcFrameBatchUIData,
@@ -22,157 +16,10 @@ import {
   FrameUIData,
   SubFrameUIData,
 } from "./frame-ui-data";
-import { useAnimatedActiveColumnIndicator } from "./useAnimatedActiveColumnIndicator";
 import { FrameMoveTogetherDndContext } from "./FrameMoveTogetherDndContext";
 import { DraggableFrameUI, DraggableUIPayload } from "./DraggableFrameUI";
 import styles from "./Timeline.module.scss";
-
-const EASINGS_OPTIONS = Object.keys(EASINGS);
-function isEasingOption(value: string): value is keyof typeof EASINGS {
-  return EASINGS_OPTIONS.includes(value);
-}
-
-interface NumberFieldProps {
-  label: string;
-  value: number;
-  max: number;
-  onChange: (newValue: number) => void;
-}
-function NumberField({ label, value, max, onChange }: NumberFieldProps) {
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.value === "") {
-        onChange(0);
-        return;
-      }
-      const intVal = parseInt(e.target.value);
-      if (!isNaN(intVal)) {
-        onChange(intVal);
-      }
-    },
-    [onChange],
-  );
-  return (
-    <div>
-      <label>
-        {label}
-        <input type="number" value={value} onChange={handleChange} />
-      </label>
-      <input
-        type="range"
-        min={0}
-        max={Math.max(max, value)}
-        value={value}
-        onChange={handleChange}
-      />
-    </div>
-  );
-}
-
-function SelectField<T extends string[]>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: T;
-  onChange: (newValue: T[number]) => void;
-}) {
-  return (
-    <div>
-      <label>
-        {label}
-        <select
-          value={value}
-          onChange={(e) => {
-            if (options.includes(e.target.value)) {
-              onChange(e.target.value);
-            }
-          }}
-        >
-          <option value=""></option>
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
-  );
-}
-
-interface FrameEditPopoverProps {
-  frame: Frame;
-  onUpdate: (newFrame: Frame) => void;
-  children: React.ReactNode;
-}
-function FrameEditPopover({
-  frame,
-  onUpdate,
-  children,
-}: FrameEditPopoverProps) {
-  return (
-    <TldrawUiPopover id={`frame-config-${frame.id}`}>
-      <TldrawUiPopoverTrigger>{children}</TldrawUiPopoverTrigger>
-      <TldrawUiPopoverContent side="bottom" sideOffset={6}>
-        <div
-          className={styles.popoverContent}
-          data-no-dnd="true" // Prevent DnD event propagation to parent elements. See `dnd-sensors.ts` for more details.
-        >
-          {frame.action.type === "cameraZoom" && (
-            <NumberField
-              label="Inset"
-              value={frame.action.inset ?? 0}
-              max={1000}
-              onChange={(newInset) =>
-                onUpdate({
-                  ...frame,
-                  action: {
-                    ...frame.action,
-                    inset: newInset,
-                  },
-                })
-              }
-            />
-          )}
-          <NumberField
-            label="Duration"
-            value={frame.action.duration ?? 0}
-            max={10000}
-            onChange={(newDuration) =>
-              onUpdate({
-                ...frame,
-                action: {
-                  ...frame.action,
-                  duration: newDuration,
-                },
-              })
-            }
-          />
-          <SelectField
-            label="Easing"
-            value={frame.action.easing ?? ""}
-            options={EASINGS_OPTIONS}
-            onChange={(newEasing) => {
-              if (isEasingOption(newEasing)) {
-                onUpdate({
-                  ...frame,
-                  action: {
-                    ...frame.action,
-                    easing: newEasing,
-                  },
-                });
-              }
-            }}
-          />
-        </div>
-      </TldrawUiPopoverContent>
-    </TldrawUiPopover>
-  );
-}
+import { FrameEditor } from "./FrameEditor/FrameEditor";
 
 interface DragStateStyleDivProps {
   children: React.ReactNode;
@@ -591,20 +438,12 @@ export function Timeline({
     useSensor(KeyboardSensor),
   );
 
-  const { containerRef, setColumnRef, columnIndicatorRef } =
-    useAnimatedActiveColumnIndicator(currentStepIndex);
-
   return (
     <FrameMoveTogetherDndContext onDragEnd={handleDragEnd} sensors={sensors}>
       <DragStateStyleDiv
-        ref={containerRef}
         className={styles.timelineContainer}
         classNameWhenDragging={`${styles.timelineContainer} ${styles.dragging}`}
       >
-        <div
-          ref={columnIndicatorRef}
-          className={styles.activeColumnIndicator}
-        />
         <div className={styles.headerLessColumn}>
           <DroppableArea
             type="after"
@@ -613,9 +452,12 @@ export function Timeline({
           />
         </div>
         {steps.map((stepFrameBatches, stepIdx) => {
+          const isActive = stepIdx === currentStepIndex;
           return (
             <React.Fragment key={stepFrameBatches[0].id}>
-              <div className={styles.column} ref={setColumnRef(stepIdx)}>
+              <div
+                className={`${styles.column} ${isActive ? styles.active : ""}`}
+              >
                 <div className={styles.headerCell}>
                   <button
                     className={`${styles.frameButton} ${stepIdx === currentStepIndex ? styles.selected : ""}`}
@@ -655,25 +497,18 @@ export function Timeline({
                                   id: trackFrameBatch.id,
                                 }}
                               >
-                                <FrameEditPopover
+                                <FrameEditor
                                   frame={cueFrame}
                                   onUpdate={(newCueFrame) =>
                                     onFrameChange(newCueFrame)
                                   }
-                                >
-                                  <FrameIcon
-                                    isSelected={selectedFrameIds.includes(
-                                      cueFrame.id,
-                                    )}
-                                    onClick={() => {
-                                      onFrameSelect(cueFrame.id);
-                                    }}
-                                  >
-                                    {cueFrame.action.type === "cameraZoom"
-                                      ? "🎞️"
-                                      : cueFrame.trackIndex + 1}
-                                  </FrameIcon>
-                                </FrameEditPopover>
+                                  isSelected={selectedFrameIds.includes(
+                                    cueFrame.id,
+                                  )}
+                                  onClick={() => {
+                                    onFrameSelect(cueFrame.id);
+                                  }}
+                                />
                               </DraggableFrameUI>
 
                               {subFrames.map((subFrame) => {
@@ -688,26 +523,19 @@ export function Timeline({
                                       type: "sub",
                                       id: subFrame.id,
                                     }}
-                                    className={styles.subFrameIconContainer}
                                   >
-                                    <FrameEditPopover
+                                    <FrameEditor
                                       frame={subFrame}
                                       onUpdate={(newFrame) =>
                                         onFrameChange(newFrame)
                                       }
-                                    >
-                                      <FrameIcon
-                                        isSelected={selectedFrameIds.includes(
-                                          subFrame.id,
-                                        )}
-                                        subFrame
-                                        onClick={() => {
-                                          onFrameSelect(subFrame.id);
-                                        }}
-                                      >
-                                        {subFrame.trackIndex + 1}
-                                      </FrameIcon>
-                                    </FrameEditPopover>
+                                      isSelected={selectedFrameIds.includes(
+                                        subFrame.id,
+                                      )}
+                                      onClick={() => {
+                                        onFrameSelect(subFrame.id);
+                                      }}
+                                    />
                                   </DraggableFrameUI>
                                 );
                               })}

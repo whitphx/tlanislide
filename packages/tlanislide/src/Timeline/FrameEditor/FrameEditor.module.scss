@@ -1,0 +1,45 @@
+$frame-handle-height: 10px;
+$editor-height: 20px;
+
+.container {
+  display: flex;
+  flex-direction: column;
+
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0;
+  box-sizing: border-box;
+
+  background: var(--color-background);
+  border: 2px solid var(--color-divider);
+  &[data-selected="true"] {
+    border-color: var(--color-selection-stroke);
+    border-width: 2px;
+  }
+}
+
+.editorContainer {
+  display: flex;
+  height: $editor-height;
+  min-height: $editor-height;
+}
+
+.durationDisplay {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.shrink {
+    background: linear-gradient(90deg, var(--color-background) 0%, var(--color-background) 90%, var(--color-primary) 100%);
+  }
+}
+
+.frameBlock {
+  background: var(--color-primary);
+}
+
+.durationHandle {
+  width: 10px;
+  height: 100%;
+}
