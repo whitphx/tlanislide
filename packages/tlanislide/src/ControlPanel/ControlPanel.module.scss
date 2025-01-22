@@ -1,11 +1,13 @@
 .panelContainer {
   display: flex;
+  margin-left: var(--space-2);
   flex-direction: row;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-4);
   z-index: var(--layer-panels);
   background: var(--color-panel);
   box-shadow: var(--shadow-2);
+  overflow: scroll;
 }
 
 .playButton {

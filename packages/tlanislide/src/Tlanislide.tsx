@@ -50,6 +50,8 @@ import React, {
   useRef,
 } from "react";
 
+import "./tldraw-overrides.css";
+
 const customShapeUtils = [SlideShapeUtil];
 const customTools = [SlideShapeTool];
 
