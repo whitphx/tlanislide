@@ -167,7 +167,8 @@ export function Timeline({
         // Move to the right
         const newSteps: FrameBatch[][] = [];
         const pushedOutFrames: FrameUIData[] = [];
-        steps.forEach((step, stepIndex) => {
+        for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
+          const step = steps[stepIndex];
           if (stepIndex < srcGlobalIndex) {
             newSteps.push(step);
           } else if (stepIndex === srcGlobalIndex) {
@@ -274,7 +275,7 @@ export function Timeline({
           } else if (dstGlobalIndex < stepIndex) {
             newSteps.push(step);
           }
-        });
+        }
         reassignGlobalIndexInplace(newSteps);
         for (const step of newSteps) {
           for (const frameBatch of step) {
@@ -290,6 +291,7 @@ export function Timeline({
         const newSteps: FrameBatch[][] = [];
         const pushedOutFrames: Frame[] = [];
         for (let stepIndex = steps.length - 1; stepIndex >= -1; stepIndex--) {
+          // NOTE: Loop until `stepIndex` is -1 to handle the case where `dstGlobalIndex = -1` and `dstType = "after"`.
           const step = steps[stepIndex] ?? [];
           if (srcGlobalIndex < stepIndex) {
             newSteps.unshift(step);
