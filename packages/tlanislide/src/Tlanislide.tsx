@@ -35,12 +35,12 @@ import {
   runStep,
   cueFrameToJsonObject,
   getFrame,
-  getAllFrames,
-  getNextGlobalIndex,
   type CameraZoomFrameAction,
   type CueFrame,
   type SubFrame,
   reconcileShapeDeletion,
+  getSubFrame,
+  subFrameToJsonObject,
 } from "./models";
 import React, {
   useCallback,
@@ -262,22 +262,32 @@ const Inner = track((props: InnerProps) => {
             return shape;
           }
 
-          const allFrames = getAllFrames(editor);
-          const allFrameIds = allFrames.map((frame) => frame.id);
+          const allShapes = editor.getCurrentPageShapes();
+          const allFrameIds = allShapes.map((shape) => getFrame(shape)?.id);
           if (allFrameIds.includes(frame.id)) {
-            if (frame.type === "cue") {
-              shape.meta.frame = {
-                ...frame,
-                id: uniqueId(),
-                globalIndex: getNextGlobalIndex(editor),
-              } satisfies CueFrame;
-            } else if (frame.type === "sub") {
-              shape.meta.frame = {
-                ...frame,
-                id: uniqueId(),
-                prevFrameId: frame.id,
-              } satisfies SubFrame;
+            const newFrameId = uniqueId();
+            const nextSubFrameShape = allShapes.find(
+              (shape) => getSubFrame(shape)?.prevFrameId === frame.id,
+            );
+            if (nextSubFrameShape != null) {
+              const nextSubFrame = getSubFrame(nextSubFrameShape)!;
+              editor.updateShape({
+                ...nextSubFrameShape,
+                meta: {
+                  ...nextSubFrameShape.meta,
+                  frame: subFrameToJsonObject({
+                    ...nextSubFrame,
+                    prevFrameId: newFrameId,
+                  }),
+                },
+              });
             }
+            shape.meta.frame = {
+              id: newFrameId,
+              type: "sub",
+              prevFrameId: frame.id,
+              action: frame.action,
+            } satisfies SubFrame;
           }
           return shape;
         }
