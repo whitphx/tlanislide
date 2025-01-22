@@ -295,13 +295,6 @@ export function FrameTimeline({
       const srcGlobalIndex = active.data.current?.globalIndex;
       const dstType = over.data.current?.type;
       let dstGlobalIndex = over.data.current?.globalIndex;
-      console.log({
-        trackId,
-        srcTrackIndex,
-        srcGlobalIndex,
-        dstType,
-        dstGlobalIndex,
-      });
       if (
         !(
           typeof trackId === "string" &&
@@ -319,12 +312,6 @@ export function FrameTimeline({
       if (track == null) {
         return;
       }
-      console.log("track", track);
-
-      console.log({
-        srcGlobalIndex,
-        dstGlobalIndex,
-      });
 
       if (
         srcGlobalIndex < dstGlobalIndex ||
@@ -333,7 +320,6 @@ export function FrameTimeline({
         if (dstType === "after") {
           dstGlobalIndex++;
         }
-        console.log("move to the right");
         // Move to the right
         const newSteps: FrameBatch[][] = [];
         const pushedOutFrames: FrameUIData[] = [];
@@ -454,7 +440,6 @@ export function FrameTimeline({
         onFrameBatchesChange(newSteps.flat());
       } else if (dstGlobalIndex < srcGlobalIndex) {
         // Move to the left
-        console.log("move to the left");
         const newSteps: FrameBatch[][] = [];
         const pushedOutFrames: Frame[] = [];
         for (let stepIndex = steps.length - 1; stepIndex >= 0; stepIndex--) {
