@@ -22,15 +22,17 @@
         "isLocked": false,
         "opacity": 1,
         "meta": {
-          "keyframe": {
+          "frame": {
             "id": "yRdp2Mfouhga5Gbbu0KOT",
+            "type": "cue",
             "globalIndex": 0,
             "trackId": "jFn8tSmuzJzyJJl1jLpPL",
-            "data": {
+            "action": {
               "type": "cameraZoom",
               "duration": 0
             }
-          }
+          },
+          "hiddenDuringAnimation": false
         },
         "id": "shape:koLg2p6UHTUQQtnG99iDW",
         "type": "slide",
@@ -49,15 +51,17 @@
         "isLocked": false,
         "opacity": 1,
         "meta": {
-          "keyframe": {
+          "frame": {
             "id": "LJ5UUPjIB2vvp7WklGmOn",
+            "type": "cue",
             "globalIndex": 1,
             "trackId": "jFn8tSmuzJzyJJl1jLpPL",
-            "data": {
+            "action": {
               "type": "cameraZoom",
               "duration": 1000
             }
-          }
+          },
+          "hiddenDuringAnimation": false
         },
         "id": "shape:Jr1efee7oZInPdic4ODKd",
         "type": "slide",
@@ -133,8 +137,52 @@
         "rotation": 0,
         "isLocked": false,
         "opacity": 1,
-        "meta": {},
+        "meta": {
+          "frame": {
+            "id": "shape:ozEIek9Y2a3Nn3iPFreA-",
+            "type": "cue",
+            "globalIndex": 1,
+            "trackId": "leYI43-H17cmZ0seqOwxj",
+            "action": {
+              "type": "shapeAnimation"
+            }
+          }
+        },
         "id": "shape:ozEIek9Y2a3Nn3iPFreA-",
+        "type": "text",
+        "props": {
+          "color": "black",
+          "size": "m",
+          "w": 16,
+          "text": "B",
+          "font": "draw",
+          "textAlign": "start",
+          "autoSize": true,
+          "scale": 1
+        },
+        "parentId": "page:page",
+        "index": "a69s8",
+        "typeName": "shape"
+      },
+      "shape:iczmqrVsbIBCCV7gIVSSX": {
+        "x": 469.21060748562627,
+        "y": 92.15616562445496,
+        "rotation": 0,
+        "isLocked": false,
+        "opacity": 1,
+        "meta": {
+          "frame": {
+            "id": "EsSg3DcfcR84Wv33WuU1x",
+            "type": "cue",
+            "globalIndex": 2,
+            "trackId": "leYI43-H17cmZ0seqOwxj",
+            "action": {
+              "type": "shapeAnimation",
+              "duration": 1000
+            }
+          }
+        },
+        "id": "shape:iczmqrVsbIBCCV7gIVSSX",
         "type": "text",
         "props": {
           "color": "black",
