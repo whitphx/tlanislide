@@ -16,7 +16,7 @@ import {
   TldrawUiPopoverTrigger,
   TldrawUiPopoverContent,
 } from "tldraw";
-import type { Frame, FrameBatch, Keyframe } from "../models";
+import type { Frame, FrameBatch, CueFrame } from "../models";
 import {
   calcFrameBatchUIData,
   FrameBatchUIData,
@@ -251,11 +251,11 @@ interface KeyframeTimelineProps {
   currentStepIndex: number;
   onStepSelect: (stepIndex: number) => void;
   selectedFrameIds: Frame["id"][];
-  onFrameSelect: (keyframeId: string) => void;
-  requestKeyframeAddAfter: (prevKeyframe: Keyframe) => void;
+  onFrameSelect: (cueFrameId: string) => void;
+  requestCueFrameAddAfter: (prevCueFrame: CueFrame) => void;
   requestSubFrameAddAfter: (prevFrame: Frame) => void;
-  showAttachKeyframeButton: boolean;
-  requestAttachKeyframe: () => void;
+  showAttachCueFrameButton: boolean;
+  requestAttachCueFrame: () => void;
 }
 export function KeyframeTimeline({
   frameBatches,
@@ -265,10 +265,10 @@ export function KeyframeTimeline({
   onStepSelect,
   selectedFrameIds,
   onFrameSelect,
-  requestKeyframeAddAfter,
+  requestCueFrameAddAfter,
   requestSubFrameAddAfter,
-  showAttachKeyframeButton,
-  requestAttachKeyframe,
+  showAttachCueFrameButton,
+  requestAttachCueFrame,
 }: KeyframeTimelineProps) {
   const { steps, tracks } = useMemo(
     () => calcFrameBatchUIData(frameBatches),
@@ -346,9 +346,9 @@ export function KeyframeTimeline({
               if (frameBatch.trackId !== track.id) {
                 newStep.push(frameBatch);
               } else {
-                const [keyframe, ...subFrames] = frameBatch.data;
-                if (keyframe.trackIndex === srcTrackIndex) {
-                  pushedOutFrames.push(keyframe, ...subFrames);
+                const [cueFrame, ...subFrames] = frameBatch.data;
+                if (cueFrame.trackIndex === srcTrackIndex) {
+                  pushedOutFrames.push(cueFrame, ...subFrames);
                 } else {
                   const remainingSubFrames: SubFrameUIData[] = [];
                   subFrames.forEach((subFrame) => {
@@ -360,7 +360,7 @@ export function KeyframeTimeline({
                   });
                   newStep.push({
                     ...frameBatch,
-                    data: [keyframe, ...remainingSubFrames],
+                    data: [cueFrame, ...remainingSubFrames],
                   });
                 }
               }
@@ -390,14 +390,14 @@ export function KeyframeTimeline({
             if (existingDstFrameBatch != null) {
               const lastPushedOutFrame = pushedOutFrames.at(-1);
               if (lastPushedOutFrame != null) {
-                const [keyframe, ...subFrames] = existingDstFrameBatch.data;
+                const [cueFrame, ...subFrames] = existingDstFrameBatch.data;
                 pushedOutFrames.push(
                   {
-                    id: keyframe.id,
-                    type: "subFrame",
+                    id: cueFrame.id,
+                    type: "sub",
                     prevFrameId: lastPushedOutFrame.id,
-                    trackIndex: keyframe.trackIndex,
-                    action: keyframe.action,
+                    trackIndex: cueFrame.trackIndex,
+                    action: cueFrame.action,
                   },
                   ...subFrames,
                 );
@@ -409,14 +409,14 @@ export function KeyframeTimeline({
             let frameBatchesToInsert: FrameBatch[] = [];
             if (pushedOutFrames.length > 0) {
               pushedOutFrames[0] = {
-                // The first frame is always a keyframe
+                // The first frame is always a cueFrame
                 ...pushedOutFrames[0],
-                type: "keyframe",
+                type: "cue",
                 trackId: track.id,
                 globalIndex: 999999, // This will be set later.
               };
               pushedOutFrames.forEach((frame) => {
-                if (frame.type === "keyframe") {
+                if (frame.type === "cue") {
                   frameBatchesToInsert.push({
                     id: `batch-${pushedOutFrames[0].id}`,
                     trackId: track.id,
@@ -471,7 +471,7 @@ export function KeyframeTimeline({
                 if (lastFrame && lastFrame.trackIndex === srcTrackIndex) {
                   pushedOutFrames.unshift(...frameBatch.data);
                 } else {
-                  const [keyframe, ...subFrames] = frameBatch.data;
+                  const [cueFrame, ...subFrames] = frameBatch.data;
                   const remainingSubFrames: SubFrameUIData[] = [];
                   subFrames.forEach((subFrame) => {
                     if (srcTrackIndex < subFrame.trackIndex) {
@@ -480,7 +480,7 @@ export function KeyframeTimeline({
                       pushedOutFrames.unshift(subFrame);
                     }
                   });
-                  pushedOutFrames.unshift(keyframe);
+                  pushedOutFrames.unshift(cueFrame);
                   const [firstRemainingSubFrame, ...restRemainingSubFrames] =
                     remainingSubFrames;
                   if (firstRemainingSubFrame != null) {
@@ -489,7 +489,7 @@ export function KeyframeTimeline({
                       data: [
                         {
                           id: firstRemainingSubFrame.id,
-                          type: "keyframe",
+                          type: "cue",
                           globalIndex: 999999, // This will be set later
                           trackId: track.id,
                           action: firstRemainingSubFrame.action,
@@ -531,7 +531,7 @@ export function KeyframeTimeline({
                   ...existingDstFrameBatch.data,
                   {
                     id: firstPushedOutFrame.id,
-                    type: "subFrame",
+                    type: "sub",
                     prevFrameId: existingDstFrameBatch.data.at(-1)!.id,
                     action: firstPushedOutFrame.action,
                   },
@@ -546,14 +546,14 @@ export function KeyframeTimeline({
             const frameBatchesToInsert: FrameBatch[] = [];
             if (pushedOutFrames.length > 0) {
               pushedOutFrames[0] = {
-                // The first frame is always a keyframe
+                // The first frame is always a cueFrame
                 ...pushedOutFrames[0],
-                type: "keyframe",
+                type: "cue",
                 trackId: track.id,
                 globalIndex: 999999, // This will be set later.
               };
               pushedOutFrames.forEach((frame) => {
-                if (frame.type === "keyframe") {
+                if (frame.type === "cue") {
                   frameBatchesToInsert.push({
                     id: `batch-${pushedOutFrames[0].id}`,
                     trackId: track.id,
@@ -661,7 +661,7 @@ export function KeyframeTimeline({
                         {trackFrameBatches.map((trackFrameBatch) => {
                           const frames = trackFrameBatch.data;
 
-                          const [keyframe, ...subFrames] = frames;
+                          const [cueFrame, ...subFrames] = frames;
                           return (
                             <div
                               key={trackFrameBatch.id}
@@ -670,7 +670,7 @@ export function KeyframeTimeline({
                               <DraggableKeyframeUI
                                 id={trackFrameBatch.id}
                                 trackId={track.id}
-                                trackIndex={keyframe.trackIndex}
+                                trackIndex={cueFrame.trackIndex}
                                 globalIndex={trackFrameBatch.globalIndex}
                                 payload={{
                                   type: "frameBatch",
@@ -678,22 +678,22 @@ export function KeyframeTimeline({
                                 }}
                               >
                                 <FrameEditPopover
-                                  frame={keyframe}
-                                  onUpdate={(newKeyframe) =>
-                                    onFrameChange(newKeyframe)
+                                  frame={cueFrame}
+                                  onUpdate={(newCueFrame) =>
+                                    onFrameChange(newCueFrame)
                                   }
                                 >
                                   <FrameIcon
                                     isSelected={selectedFrameIds.includes(
-                                      keyframe.id,
+                                      cueFrame.id,
                                     )}
                                     onClick={() => {
-                                      onFrameSelect(keyframe.id);
+                                      onFrameSelect(cueFrame.id);
                                     }}
                                   >
-                                    {keyframe.action.type === "cameraZoom"
+                                    {cueFrame.action.type === "cameraZoom"
                                       ? "🎞️"
-                                      : keyframe.trackIndex + 1}
+                                      : cueFrame.trackIndex + 1}
                                   </FrameIcon>
                                 </FrameEditPopover>
                               </DraggableKeyframeUI>
@@ -707,7 +707,7 @@ export function KeyframeTimeline({
                                     trackIndex={subFrame.trackIndex}
                                     globalIndex={trackFrameBatch.globalIndex}
                                     payload={{
-                                      type: "subFrame",
+                                      type: "sub",
                                       id: subFrame.id,
                                     }}
                                     className={styles.subFrameIconContainer}
@@ -747,7 +747,7 @@ export function KeyframeTimeline({
                                   <FrameIcon
                                     as="button"
                                     onClick={() =>
-                                      requestKeyframeAddAfter(keyframe)
+                                      requestCueFrameAddAfter(cueFrame)
                                     }
                                   >
                                     +
@@ -772,7 +772,7 @@ export function KeyframeTimeline({
             </React.Fragment>
           );
         })}
-        {showAttachKeyframeButton && (
+        {showAttachCueFrameButton && (
           <div className={styles.column}>
             <div className={styles.headerCell}>{steps.length + 1}</div>
             {tracks.map((track) => (
@@ -782,7 +782,7 @@ export function KeyframeTimeline({
               <FrameIcon
                 as="button"
                 isSelected={true}
-                onClick={() => requestAttachKeyframe()}
+                onClick={() => requestAttachCueFrame()}
               >
                 +
               </FrameIcon>

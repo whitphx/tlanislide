@@ -11,7 +11,7 @@ interface DraggableUIPayloadFrameBatch extends DraggableUIPayloadBase {
   id: FrameBatch["id"];
 }
 interface DraggableUIPayloadSubFrame extends DraggableUIPayloadBase {
-  type: "subFrame";
+  type: "sub";
   id: SubFrame["id"];
 }
 

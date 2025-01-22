@@ -1,6 +1,6 @@
 import { getGlobalOrder, OrderedTrackItem } from "../ordered-track-item";
 import type {
-  Keyframe,
+  CueFrame,
   FrameAction,
   SubFrame,
   FrameBatch,
@@ -8,7 +8,7 @@ import type {
 } from "../models";
 
 export type KeyframeUIData<T extends FrameAction = FrameAction> =
-  Keyframe<T> & {
+  CueFrame<T> & {
     trackIndex: number;
   };
 export type SubFrameUIData<T extends FrameAction = FrameAction> =
@@ -48,9 +48,9 @@ export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
   orderedSteps.forEach((stepFrameBatches, stepIndex) => {
     const frameBatchUIDatas: FrameBatchUIData[] = [];
     for (const frameBatch of stepFrameBatches) {
-      const [keyframe, ...subFrames] = frameBatch.data;
+      const [cueFrame, ...subFrames] = frameBatch.data;
       tracksMap[frameBatch.trackId] = tracksMap[frameBatch.trackId] ?? {
-        type: keyframe.action.type,
+        type: cueFrame.action.type,
         frameBatches: [],
         frames: [],
       };
@@ -60,7 +60,7 @@ export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
         localIndex: tracksMap[frameBatch.trackId].frameBatches.length,
         data: [
           {
-            ...keyframe,
+            ...cueFrame,
             trackIndex: tracksMap[frameBatch.trackId].frames.length,
           },
           ...subFrames.map((subFrame, index) => ({
@@ -71,7 +71,7 @@ export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
       };
       frameBatchUIDatas.push(frameBatchUIData);
       tracksMap[frameBatch.trackId].frameBatches.push(frameBatchUIData);
-      tracksMap[frameBatch.trackId].frames.push(keyframe, ...subFrames);
+      tracksMap[frameBatch.trackId].frames.push(cueFrame, ...subFrames);
     }
     stepsUIData.push(frameBatchUIDatas);
   });

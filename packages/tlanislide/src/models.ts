@@ -30,25 +30,25 @@ export interface FrameBase {
   id: string;
   type: string;
 }
-export interface Keyframe<T extends FrameAction = FrameAction>
+export interface CueFrame<T extends FrameAction = FrameAction>
   extends FrameBase {
-  type: "keyframe";
+  type: "cue";
   globalIndex: OrderedTrackItem["globalIndex"];
   trackId: OrderedTrackItem["trackId"];
   action: T;
 }
 export interface SubFrame<T extends FrameAction = FrameAction>
   extends FrameBase {
-  type: "subFrame";
+  type: "sub";
   prevFrameId: Frame["id"];
   action: T;
 }
 export type Frame<T extends FrameAction = FrameAction> =
-  | Keyframe<T>
+  | CueFrame<T>
   | SubFrame<T>;
 
 type BatchedFrames<T extends FrameAction = FrameAction> = [
-  Keyframe<T>,
+  CueFrame<T>,
   ...SubFrame<T>[],
 ];
 
@@ -56,8 +56,8 @@ export type FrameBatch<T extends FrameAction = FrameAction> = OrderedTrackItem<
   BatchedFrames<T>
 >;
 
-export function keyframeToJsonObject(kf: Keyframe): JsonObject {
-  const { id, type, globalIndex, trackId, action } = kf;
+export function cueFrameToJsonObject(cf: CueFrame): JsonObject {
+  const { id, type, globalIndex, trackId, action } = cf;
   const obj = { id, type, globalIndex, trackId, action } satisfies JsonObject;
   return obj;
 }
@@ -69,9 +69,9 @@ export function subFrameToJsonObject(sf: SubFrame): JsonObject {
 }
 
 export function frameToJsonObject(frame: Frame): JsonObject {
-  if (frame.type === "keyframe") {
-    return keyframeToJsonObject(frame);
-  } else if (frame.type === "subFrame") {
+  if (frame.type === "cue") {
+    return cueFrameToJsonObject(frame);
+  } else if (frame.type === "sub") {
     return subFrameToJsonObject(frame);
   }
   // @ts-expect-error This should never happen
@@ -87,14 +87,14 @@ function isFrameAction(obj: unknown): obj is FrameAction {
   );
 }
 
-function isKeyframe(obj: unknown): obj is Keyframe {
+function isCueFrame(obj: unknown): obj is CueFrame {
   return (
     typeof obj === "object" &&
     obj !== null &&
     !Array.isArray(obj) &&
     "id" in obj &&
     "type" in obj &&
-    obj.type === "keyframe" &&
+    obj.type === "cue" &&
     "globalIndex" in obj &&
     "trackId" in obj &&
     "action" in obj &&
@@ -102,12 +102,12 @@ function isKeyframe(obj: unknown): obj is Keyframe {
   );
 }
 
-export function jsonObjectToKeyframe(obj: unknown): Keyframe {
-  if (isKeyframe(obj)) {
+export function jsonObjectToCueFrame(obj: unknown): CueFrame {
+  if (isCueFrame(obj)) {
     return { ...obj };
   }
   throw new Error(
-    `Given input is not a valid Keyframe. ${JSON.stringify(obj)}`,
+    `Given input is not a valid CueFrame. ${JSON.stringify(obj)}`,
   );
 }
 
@@ -118,7 +118,7 @@ function isSubFrame(obj: unknown): obj is SubFrame {
     !Array.isArray(obj) &&
     "id" in obj &&
     "type" in obj &&
-    obj.type === "subFrame" &&
+    obj.type === "sub" &&
     "prevFrameId" in obj &&
     "action" in obj &&
     isFrameAction(obj.action)
@@ -134,27 +134,27 @@ function jsonObjectToSubFrame(obj: unknown): SubFrame {
   );
 }
 
-export function getNextGlobalIndexFromKeyframes(keyframes: Keyframe[]): number {
-  const globalIndexes = keyframes.map((kf) => kf.globalIndex);
+export function getNextGlobalIndexFromCueFrames(cueFrames: CueFrame[]): number {
+  const globalIndexes = cueFrames.map((cf) => cf.globalIndex);
   return globalIndexes.length > 0 ? Math.max(...globalIndexes) + 1 : 0;
 }
 
 export function getNextGlobalIndex(editor: Editor): number {
   const shapes = editor.getCurrentPageShapes();
-  const allKeyframes = shapes
-    .map(getKeyframe)
-    .filter((keyframe) => keyframe != null);
-  return getNextGlobalIndexFromKeyframes(allKeyframes);
+  const allCueFrames = shapes
+    .map(getCueFrame)
+    .filter((cueFrame) => cueFrame != null);
+  return getNextGlobalIndexFromCueFrames(allCueFrames);
 }
 
-export function attachKeyframe(
+export function attachCueFrame(
   editor: Editor,
   shapeId: TLShapeId,
   frameAction: FrameAction,
 ) {
-  const keyframe: Keyframe = {
+  const cueFrame: CueFrame = {
     id: shapeId,
-    type: "keyframe",
+    type: "cue",
     globalIndex: getNextGlobalIndex(editor),
     trackId: uniqueId(),
     action: frameAction,
@@ -168,23 +168,23 @@ export function attachKeyframe(
     id: shapeId,
     type: shape.type,
     meta: {
-      frame: keyframeToJsonObject(keyframe),
+      frame: cueFrameToJsonObject(cueFrame),
     },
   });
 }
 
 export function getFrame(shape: TLShape): Frame | undefined {
-  return getKeyframe(shape) ?? getSubFrame(shape);
+  return getCueFrame(shape) ?? getSubFrame(shape);
 }
 
-export function getKeyframe(shape: TLShape): Keyframe | undefined {
-  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "keyframe"
-    ? jsonObjectToKeyframe(shape.meta.frame)
+export function getCueFrame(shape: TLShape): CueFrame | undefined {
+  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "cue"
+    ? jsonObjectToCueFrame(shape.meta.frame)
     : undefined;
 }
 
 export function getSubFrame(shape: TLShape): SubFrame | undefined {
-  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "subFrame"
+  return isJsonObject(shape.meta.frame) && shape.meta.frame.type === "sub"
     ? jsonObjectToSubFrame(shape.meta.frame)
     : undefined;
 }
@@ -195,20 +195,20 @@ export function getAllFrames(editor: Editor): Frame[] {
 }
 
 export function getFrameBatches(frames: Frame[]): FrameBatch[] {
-  const keyframes: Keyframe[] = [];
+  const cueFrames: CueFrame[] = [];
   const subFrameConnections: Record<string, SubFrame> = {};
   for (const frame of frames) {
-    if (frame.type === "keyframe") {
-      keyframes.push(frame);
-    } else if (frame.type === "subFrame") {
+    if (frame.type === "cue") {
+      cueFrames.push(frame);
+    } else if (frame.type === "sub") {
       subFrameConnections[frame.prevFrameId] = frame;
     }
   }
 
   const frameBatches: FrameBatch[] = [];
-  for (const keyframe of keyframes) {
+  for (const cueFrame of cueFrames) {
     const subFrames: SubFrame[] = [];
-    let prevFrameId = keyframe.id;
+    let prevFrameId = cueFrame.id;
     while (prevFrameId != null) {
       const subFrame = subFrameConnections[prevFrameId];
       if (subFrame != null) {
@@ -220,10 +220,10 @@ export function getFrameBatches(frames: Frame[]): FrameBatch[] {
     }
 
     frameBatches.push({
-      id: `batch-${keyframe.id}`,
-      globalIndex: keyframe.globalIndex,
-      trackId: keyframe.trackId,
-      data: [keyframe, ...subFrames],
+      id: `batch-${cueFrame.id}`,
+      globalIndex: cueFrame.globalIndex,
+      trackId: cueFrame.trackId,
+      data: [cueFrame, ...subFrames],
     });
   }
 
@@ -254,15 +254,15 @@ export function reconcileShapeDeletion(editor: Editor, deletedShape: TLShape) {
     return;
   }
 
-  if (deletedFrame.type === "keyframe") {
+  if (deletedFrame.type === "cue") {
     // Reassign globalIndex
     const steps = getOrderedSteps(editor);
     reassignGlobalIndexInplace(steps);
     steps.forEach((stepFrameBatches) => {
       stepFrameBatches.forEach((frameBatch) => {
         const newGlobalIndex = frameBatch.globalIndex;
-        const keyframe = frameBatch.data[0];
-        const shape = getShapeByFrameId(editor, keyframe.id);
+        const cueFrame = frameBatch.data[0];
+        const shape = getShapeByFrameId(editor, cueFrame.id);
         if (shape == null) {
           return;
         }
@@ -270,15 +270,15 @@ export function reconcileShapeDeletion(editor: Editor, deletedShape: TLShape) {
           id: shape.id,
           type: shape.type,
           meta: {
-            frame: keyframeToJsonObject({
-              ...keyframe,
+            frame: cueFrameToJsonObject({
+              ...cueFrame,
               globalIndex: newGlobalIndex,
             }),
           },
         });
       });
     });
-  } else if (deletedFrame.type === "subFrame") {
+  } else if (deletedFrame.type === "sub") {
     // Reassign prevFrameId
     const shapes = editor.getCurrentPageShapes();
     const allSubFrames = shapes
