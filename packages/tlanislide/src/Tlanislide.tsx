@@ -27,7 +27,7 @@ import "tldraw/tldraw.css";
 
 import { SlideShapeType, SlideShapeUtil } from "./SlideShapeUtil";
 import { SlideShapeTool } from "./SlideShapeTool";
-import { makeControlPanel } from "./ControlPanel";
+import { ControlPanel } from "./ControlPanel";
 import { ReadonlyOverlay } from "./ReadonlyOverlay";
 import { createModeAwareDefaultComponents } from "./mode-aware-components";
 import {
@@ -183,10 +183,14 @@ const createComponents = ({
   $presentationMode,
 }: PerInstanceAtoms): TLComponents => {
   return {
-    TopPanel: makeControlPanel({
-      $currentStepIndex,
-      $presentationMode,
-    }),
+    TopPanel: () => {
+      return (
+        <ControlPanel
+          $currentStepIndex={$currentStepIndex}
+          $presentationMode={$presentationMode}
+        />
+      );
+    },
     Toolbar: (props) => {
       const presentationMode = useValue($presentationMode);
       const tools = useTools();

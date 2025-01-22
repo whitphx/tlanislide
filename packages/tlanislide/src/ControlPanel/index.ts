@@ -1,1 +1,1 @@
-export { makeControlPanel } from "./ControlPanel";
+export { ControlPanel } from "./ControlPanel";
