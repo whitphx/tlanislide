@@ -299,6 +299,14 @@ const Inner = track((props: InnerProps) => {
       }),
     );
 
+    stopHandlers.push(
+      react("presentation mode", () => {
+        if (perInstanceAtoms.$presentationMode.get()) {
+          editor.selectNone();
+        }
+      }),
+    );
+
     onMount?.(editor);
 
     return () => {
@@ -522,6 +530,39 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
         );
       },
     }));
+
+    // useEffect(() => {
+    //   const style = document.createElement("style");
+    //   style.textContent = `
+    //   .tl-overlays {
+    //     display: none;
+    //       }
+    //     `;
+
+    //   const stop = react("presentation mode", () => {
+    //     console.log("presentation mode", $presentationMode.get());
+    //     if ($presentationMode.get()) {
+    //       // Hide selection indicator and handles in the presentation mode
+    //       if (!document.head.contains(style)) {
+    //         console.log("append style", style);
+    //         document.head.appendChild(style);
+    //       }
+    //     } else {
+    //       if (document.head.contains(style)) {
+    //         console.log("remove style", style);
+    //         document.head.removeChild(style);
+    //       }
+    //     }
+    //   });
+
+    //   return () => {
+    //     stop();
+
+    //     if (document.head.contains(style)) {
+    //       document.head.removeChild(style);
+    //     }
+    //   };
+    // }, [$presentationMode]);
 
     return (
       <MemoizedInner
