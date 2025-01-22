@@ -119,16 +119,12 @@ export const ControlPanel = track((props: ControlPanelProps) => {
       onPointerDown={(e) => stopEventPropagation(e)}
     >
       <div>
-        <label>
-          Presentation Mode
-          <input
-            type="checkbox"
-            checked={$presentationMode.get()}
-            onChange={(e) => {
-              $presentationMode.set(e.target.checked);
-            }}
-          />
-        </label>
+        <button
+          className={styles.playButton}
+          onClick={() => $presentationMode.set(true)}
+        >
+          ▶️
+        </button>
       </div>
 
       <Timeline
