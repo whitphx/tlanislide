@@ -1,0 +1,33 @@
+name: App CI
+
+on:
+  push:
+    branches: [ "main", "devin/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  app-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: packages/app
+        run: pnpm lint
+
+      - name: Build
+        working-directory: packages/app
+        run: pnpm build
