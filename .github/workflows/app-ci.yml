@@ -24,10 +24,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
+      - name: Build tlanislide package
+        working-directory: packages/tlanislide
+        run: pnpm build
+
+      - name: Lint app
         working-directory: packages/app
         run: pnpm lint
 
-      - name: Build
+      - name: Build app
         working-directory: packages/app
         run: pnpm build
