@@ -138,8 +138,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Upload static files as artifact
-        id: deployment
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: packages/app/dist
@@ -149,6 +148,7 @@ jobs:
     needs: [build-app]
 
     permissions:
+      contents: read
       pages: write
       id-token: write
 
