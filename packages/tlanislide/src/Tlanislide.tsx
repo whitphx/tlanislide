@@ -317,7 +317,6 @@ const Inner = track((props: InnerProps) => {
 
     return () => {
       stopHandlers.forEach((stopHandler) => stopHandler());
-      editor.dispose();
     };
   };
 
