@@ -16,14 +16,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
       - uses: pnpm/action-setup@v4
         with:
           version: latest
-          run_install: true
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Lint
         run: pnpm lint
@@ -37,6 +41,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          path: packages/tlanislide/dist
+          name: tlanislide
+
   slidev-addon-tlanislide:
     runs-on: ubuntu-latest
     defaults:
@@ -46,17 +56,107 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
       - uses: pnpm/action-setup@v4
         with:
           version: latest
-          run_install: true
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Lint
         run: pnpm lint
 
       - name: Format check
         run: pnpm format --check
+
+      # - name: Test
+      #   run: pnpm test
+
+  lint-app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format --check
+
+  build-app:
+    needs: [tlanislide, lint-app]
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tlanislide
+          path: packages/tlanislide/dist
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/app/dist
+
+  # Deploy job
+  deploy-app:
+    needs: [build-app]
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
