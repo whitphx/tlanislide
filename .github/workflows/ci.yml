@@ -37,6 +37,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          path: packages/tlanislide/dist
+          name: tlanislide
+
   slidev-addon-tlanislide:
     runs-on: ubuntu-latest
     defaults:
@@ -64,7 +70,7 @@ jobs:
       # - name: Test
       #   run: pnpm test
 
-  app:
+  lint-app:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -88,8 +94,25 @@ jobs:
       - name: Format check
         run: pnpm format --check
 
-      # - name: Test
-      #   run: pnpm test
+  build-app:
+    needs: [lint-app]
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/app
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tlanislide
+          path: packages/tlanislide/dist
 
       - name: Build
         run: pnpm build
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          path: packages/app/dist
+          name: app
