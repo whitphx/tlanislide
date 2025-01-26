@@ -148,7 +148,6 @@ jobs:
     needs: [build-app]
 
     permissions:
-      contents: read
       pages: write
       id-token: write
 
