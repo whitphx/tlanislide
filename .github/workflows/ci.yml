@@ -95,7 +95,7 @@ jobs:
         run: pnpm format --check
 
   build-app:
-    needs: [lint-app]
+    needs: [tlanislide, lint-app]
 
     runs-on: ubuntu-latest
     defaults:
