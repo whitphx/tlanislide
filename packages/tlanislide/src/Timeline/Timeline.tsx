@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   useDroppable,
   useDndContext,
@@ -41,24 +41,6 @@ const DragStateStyleDiv = React.forwardRef<
     </div>
   );
 });
-
-function FrameDragOverlay() {
-  const { active } = useDndContext();
-  const draggedFrame = active?.data.current?.frame as Frame | undefined;
-
-  return (
-    draggedFrame != null && (
-      <DragOverlay>
-        <FrameEditor
-          frame={draggedFrame}
-          onUpdate={() => {}}
-          isSelected={false}
-          onClick={() => {}}
-        />
-      </DragOverlay>
-    )
-  );
-}
 
 interface FrameIconProps {
   isSelected?: boolean;
@@ -138,9 +120,25 @@ export function Timeline({
     [frameBatches],
   );
 
+  const [draggedFrame, setDraggedFrame] = useState<Frame | null>(null);
+
+  const handleDragStart = useCallback<
+    NonNullable<DndContextProps["onDragStart"]>
+  >((event) => {
+    const { active } = event;
+    const frame = active.data.current?.frame as Frame | undefined;
+    if (frame == null) {
+      return;
+    }
+    setDraggedFrame(frame);
+  }, []);
+
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
       const { over, active } = event;
+
+      setDraggedFrame(null);
+
       if (over == null) {
         // Not dropped on any droppable
         return;
@@ -455,7 +453,11 @@ export function Timeline({
   );
 
   return (
-    <FrameMoveTogetherDndContext onDragEnd={handleDragEnd} sensors={sensors}>
+    <FrameMoveTogetherDndContext
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      sensors={sensors}
+    >
       <DragStateStyleDiv
         className={styles.timelineContainer}
         classNameWhenDragging={`${styles.timelineContainer} ${styles.dragging}`}
@@ -512,6 +514,9 @@ export function Timeline({
                               >
                                 <FrameEditor
                                   frame={cueFrame}
+                                  isPlaceholder={
+                                    draggedFrame?.id === cueFrame.id
+                                  }
                                   onUpdate={(newCueFrame) =>
                                     onFrameChange(newCueFrame)
                                   }
@@ -536,6 +541,9 @@ export function Timeline({
                                   >
                                     <FrameEditor
                                       frame={subFrame}
+                                      isPlaceholder={
+                                        draggedFrame?.id === subFrame.id
+                                      }
                                       onUpdate={(newFrame) =>
                                         onFrameChange(newFrame)
                                       }
@@ -606,7 +614,17 @@ export function Timeline({
           </div>
         )}
       </DragStateStyleDiv>
-      <FrameDragOverlay />
+      {draggedFrame != null && (
+        <DragOverlay>
+          <FrameEditor
+            frame={draggedFrame}
+            isPlaceholder={false}
+            onUpdate={() => {}}
+            isSelected={false}
+            onClick={() => {}}
+          />
+        </DragOverlay>
+      )}
     </FrameMoveTogetherDndContext>
   );
 }
