@@ -1,29 +1,14 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useDraggableFrameDelta } from "./FrameMoveTogetherDndContext";
-import { FrameBatch, SubFrame } from "../models";
+import { Frame } from "../models";
 
-interface DraggableUIPayloadBase {
-  type: string;
-}
-interface DraggableUIPayloadFrameBatch extends DraggableUIPayloadBase {
-  type: "frameBatch";
-  id: FrameBatch["id"];
-}
-interface DraggableUIPayloadSubFrame extends DraggableUIPayloadBase {
-  type: "sub";
-  id: SubFrame["id"];
-}
-
-export type DraggableUIPayload =
-  | DraggableUIPayloadFrameBatch
-  | DraggableUIPayloadSubFrame;
 export function DraggableFrameUI({
   id,
   trackId,
   trackIndex,
   globalIndex,
-  payload,
+  frame,
   children,
   className,
 }: {
@@ -31,23 +16,23 @@ export function DraggableFrameUI({
   trackId: string;
   trackIndex: number;
   globalIndex: number;
-  payload: DraggableUIPayload;
+  frame: Frame;
   children: React.ReactNode;
   className?: string;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging, active } =
+  const { attributes, listeners, setNodeRef, isDragging, active } =
     useDraggable({
       id,
       data: {
-        payload,
         trackId,
         trackIndex,
         globalIndex,
+        frame,
       },
     });
   const { registerDOM, deltaX } = useDraggableFrameDelta(trackId, trackIndex);
-  const transformX = deltaX != null ? deltaX : (transform?.x ?? 0);
-  const transformY = transform?.y ?? 0;
+  const transformX = deltaX ?? 0;
+  const transformY = 0;
   const isDraggingSomething = active != null;
   const style: React.CSSProperties = {
     transform: `translate(${transformX}px, ${transformY}px)`,

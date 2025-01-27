@@ -2,19 +2,38 @@ $frame-handle-height: 10px;
 $editor-height: 20px;
 
 .container {
+  $container-border-width: 2px;
+  $container-border-radius: 8px;
+
   display: flex;
   flex-direction: column;
 
-  border-radius: 8px;
+  border-radius: $container-border-radius;
   overflow: hidden;
   padding: 0;
   box-sizing: border-box;
 
   background: var(--color-background);
-  border: 2px solid var(--color-divider);
+  border: $container-border-width solid var(--color-divider);
+
   &[data-selected="true"] {
     border-color: var(--color-selection-stroke);
-    border-width: 2px;
+    border-width: $container-border-width;
+  }
+
+  &[data-placeholder="true"] {
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--color-background);
+      border-radius: $container-border-radius;
+      border: $container-border-width dashed var(--color-low-border);
+      box-sizing: border-box;
+    }
   }
 }
 

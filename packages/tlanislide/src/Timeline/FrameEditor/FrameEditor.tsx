@@ -14,12 +14,13 @@ function Handle() {
 
 export interface FrameEditorProps {
   frame: Frame;
+  isPlaceholder: boolean;
   onUpdate: (newFrame: Frame) => void;
   isSelected: boolean;
   onClick: () => void;
 }
 export function FrameEditor(props: FrameEditorProps) {
-  const { frame, onUpdate, isSelected, onClick } = props;
+  const { frame, isPlaceholder, onUpdate, isSelected, onClick } = props;
   const { duration = 0, easing } = frame.action;
 
   const [editingDuration, setEditingDuration] = useState<number | null>(null);
@@ -37,6 +38,7 @@ export function FrameEditor(props: FrameEditorProps) {
         className={styles.container}
         onClick={onClick}
         data-selected={isSelected}
+        data-placeholder={isPlaceholder}
       >
         <Resizable
           className={styles.editorContainer}

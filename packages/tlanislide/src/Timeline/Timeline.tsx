@@ -1,9 +1,10 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   useDroppable,
   useDndContext,
   useSensors,
   useSensor,
+  DragOverlay,
   KeyboardSensor,
   type DndContextProps,
 } from "@dnd-kit/core";
@@ -17,7 +18,7 @@ import {
   SubFrameUIData,
 } from "./frame-ui-data";
 import { FrameMoveTogetherDndContext } from "./FrameMoveTogetherDndContext";
-import { DraggableFrameUI, DraggableUIPayload } from "./DraggableFrameUI";
+import { DraggableFrameUI } from "./DraggableFrameUI";
 import styles from "./Timeline.module.scss";
 import { FrameEditor } from "./FrameEditor/FrameEditor";
 
@@ -119,18 +120,27 @@ export function Timeline({
     [frameBatches],
   );
 
+  const [draggedFrame, setDraggedFrame] = useState<Frame | null>(null);
+
+  const handleDragStart = useCallback<
+    NonNullable<DndContextProps["onDragStart"]>
+  >((event) => {
+    const { active } = event;
+    const frame = active.data.current?.frame as Frame | undefined;
+    if (frame == null) {
+      return;
+    }
+    setDraggedFrame(frame);
+  }, []);
+
   const handleDragEnd = useCallback<NonNullable<DndContextProps["onDragEnd"]>>(
     (event) => {
       const { over, active } = event;
+
+      setDraggedFrame(null);
+
       if (over == null) {
         // Not dropped on any droppable
-        return;
-      }
-
-      const payload = active.data.current?.payload as
-        | DraggableUIPayload
-        | undefined;
-      if (payload == null) {
         return;
       }
 
@@ -443,7 +453,11 @@ export function Timeline({
   );
 
   return (
-    <FrameMoveTogetherDndContext onDragEnd={handleDragEnd} sensors={sensors}>
+    <FrameMoveTogetherDndContext
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      sensors={sensors}
+    >
       <DragStateStyleDiv
         className={styles.timelineContainer}
         classNameWhenDragging={`${styles.timelineContainer} ${styles.dragging}`}
@@ -496,13 +510,13 @@ export function Timeline({
                                 trackId={track.id}
                                 trackIndex={cueFrame.trackIndex}
                                 globalIndex={trackFrameBatch.globalIndex}
-                                payload={{
-                                  type: "frameBatch",
-                                  id: trackFrameBatch.id,
-                                }}
+                                frame={cueFrame}
                               >
                                 <FrameEditor
                                   frame={cueFrame}
+                                  isPlaceholder={
+                                    draggedFrame?.id === cueFrame.id
+                                  }
                                   onUpdate={(newCueFrame) =>
                                     onFrameChange(newCueFrame)
                                   }
@@ -523,13 +537,13 @@ export function Timeline({
                                     trackId={track.id}
                                     trackIndex={subFrame.trackIndex}
                                     globalIndex={trackFrameBatch.globalIndex}
-                                    payload={{
-                                      type: "sub",
-                                      id: subFrame.id,
-                                    }}
+                                    frame={subFrame}
                                   >
                                     <FrameEditor
                                       frame={subFrame}
+                                      isPlaceholder={
+                                        draggedFrame?.id === subFrame.id
+                                      }
                                       onUpdate={(newFrame) =>
                                         onFrameChange(newFrame)
                                       }
@@ -600,6 +614,17 @@ export function Timeline({
           </div>
         )}
       </DragStateStyleDiv>
+      {draggedFrame != null && (
+        <DragOverlay>
+          <FrameEditor
+            frame={draggedFrame}
+            isPlaceholder={false}
+            onUpdate={() => {}}
+            isSelected={false}
+            onClick={() => {}}
+          />
+        </DragOverlay>
+      )}
     </FrameMoveTogetherDndContext>
   );
 }
