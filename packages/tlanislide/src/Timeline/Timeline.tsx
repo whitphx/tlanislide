@@ -4,6 +4,7 @@ import {
   useDndContext,
   useSensors,
   useSensor,
+  DragOverlay,
   KeyboardSensor,
   type DndContextProps,
 } from "@dnd-kit/core";
@@ -17,7 +18,7 @@ import {
   SubFrameUIData,
 } from "./frame-ui-data";
 import { FrameMoveTogetherDndContext } from "./FrameMoveTogetherDndContext";
-import { DraggableFrameUI, DraggableUIPayload } from "./DraggableFrameUI";
+import { DraggableFrameUI } from "./DraggableFrameUI";
 import styles from "./Timeline.module.scss";
 import { FrameEditor } from "./FrameEditor/FrameEditor";
 
@@ -40,6 +41,24 @@ const DragStateStyleDiv = React.forwardRef<
     </div>
   );
 });
+
+function FrameDragOverlay() {
+  const { active } = useDndContext();
+  const draggedFrame = active?.data.current?.frame as Frame | undefined;
+
+  return (
+    draggedFrame != null && (
+      <DragOverlay>
+        <FrameEditor
+          frame={draggedFrame}
+          onUpdate={() => {}}
+          isSelected={false}
+          onClick={() => {}}
+        />
+      </DragOverlay>
+    )
+  );
+}
 
 interface FrameIconProps {
   isSelected?: boolean;
@@ -124,13 +143,6 @@ export function Timeline({
       const { over, active } = event;
       if (over == null) {
         // Not dropped on any droppable
-        return;
-      }
-
-      const payload = active.data.current?.payload as
-        | DraggableUIPayload
-        | undefined;
-      if (payload == null) {
         return;
       }
 
@@ -496,10 +508,7 @@ export function Timeline({
                                 trackId={track.id}
                                 trackIndex={cueFrame.trackIndex}
                                 globalIndex={trackFrameBatch.globalIndex}
-                                payload={{
-                                  type: "frameBatch",
-                                  id: trackFrameBatch.id,
-                                }}
+                                frame={cueFrame}
                               >
                                 <FrameEditor
                                   frame={cueFrame}
@@ -523,10 +532,7 @@ export function Timeline({
                                     trackId={track.id}
                                     trackIndex={subFrame.trackIndex}
                                     globalIndex={trackFrameBatch.globalIndex}
-                                    payload={{
-                                      type: "sub",
-                                      id: subFrame.id,
-                                    }}
+                                    frame={subFrame}
                                   >
                                     <FrameEditor
                                       frame={subFrame}
@@ -600,6 +606,7 @@ export function Timeline({
           </div>
         )}
       </DragStateStyleDiv>
+      <FrameDragOverlay />
     </FrameMoveTogetherDndContext>
   );
 }
