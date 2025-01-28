@@ -30,17 +30,10 @@
     "veaury": "^2.6.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
     "@slidev/cli": "51.0.1",
     "@slidev/client": "51.0.1",
     "@slidev/theme-default": "^0.25.0",
     "@vue/tsconfig": "^0.7.0",
-    "eslint": "^9.17.0",
-    "eslint-plugin-vue": "^9.32.0",
-    "globals": "^15.14.0",
-    "typescript": "~5.6.2",
-    "typescript-eslint": "^8.18.2",
-    "vite": "^6.0.9",
     "vue": "^3.5.13"
   }
 }
