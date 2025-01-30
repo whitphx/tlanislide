@@ -27,7 +27,7 @@
     "@vueuse/core": "^12.5.0",
     "tlanislide": "workspace:*",
     "tldraw": "^3.6.0",
-    "veaury": "^2.6.1"
+    "veaury": "^2.6.2"
   },
   "devDependencies": {
     "@slidev/cli": "51.0.1",

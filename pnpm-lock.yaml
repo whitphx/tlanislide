@@ -94,8 +94,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       veaury:
-        specifier: ^2.6.1
-        version: 2.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^2.6.2
+        version: 2.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       vite:
         specifier: '>=5.0'
         version: 6.0.9(@types/node@22.12.0)(jiti@2.4.2)(sass-embedded@1.83.4)(tsx@4.19.2)(yaml@2.7.0)
@@ -4756,8 +4756,8 @@ packages:
   varint@6.0.0:
     resolution: {integrity: sha512-cXEIW6cfr15lFv563k4GuVuW/fiwjknytD37jIOLSdSWuOI6WnO/oKwmP2FQTU2l01LP8/M5TSAJpzUaGe3uWg==}
 
-  veaury@2.6.1:
-    resolution: {integrity: sha512-oxkMUqov5NoS0I1CUGMn/eIUHTeK5fuSEXzDefurilfEOBCGsDI9YpvFWGZbdBtBvKXnxJSDa+wxCkw4q0lP8A==}
+  veaury@2.6.2:
+    resolution: {integrity: sha512-q0Hdrec5TpE5BrVKYRTMTBMt/TEYsWfzxbiApyt8fT0CuJTtSqAWJGYLIivSLBxfvu6QpIF1LHFxqc6bUtxBIw==}
     peerDependencies:
       react: '>= 16.4.0'
       react-dom: '>= 16.4.0'
@@ -10650,7 +10650,7 @@ snapshots:
 
   varint@6.0.0: {}
 
-  veaury@2.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  veaury@2.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
