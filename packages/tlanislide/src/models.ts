@@ -386,7 +386,7 @@ async function runFrames(
   }
 }
 
-type Step = FrameBatch[];
+export type Step = FrameBatch[];
 export function runStep(editor: Editor, steps: Step[], index: number): boolean {
   const step = steps[index];
   if (step == null) {
