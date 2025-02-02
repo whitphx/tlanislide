@@ -146,6 +146,11 @@ const makeUiOverrides = ({
           }
 
           $presentationMode.set(!$presentationMode.get());
+          if ($presentationMode.get()) {
+            const orderedSteps = getOrderedSteps(editor);
+            const currentStepIndex = $currentStepIndex.get();
+            runStep(editor, orderedSteps, currentStepIndex);
+          }
         },
       };
 
@@ -309,6 +314,11 @@ const Inner = track((props: InnerProps) => {
       react("presentation mode", () => {
         if (perInstanceAtoms.$presentationMode.get()) {
           editor.selectNone();
+
+          // XXX: We can't run the step here like below because it will trigger this react() again and cause infinite running.
+          // const currentStepIndex = perInstanceAtoms.$currentStepIndex.get();
+          // const orderedSteps = getOrderedSteps(editor);
+          // runStep(editor, orderedSteps, currentStepIndex);
         }
       }),
     );

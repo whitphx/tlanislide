@@ -121,7 +121,12 @@ export const ControlPanel = track((props: ControlPanelProps) => {
       <div>
         <button
           className={styles.playButton}
-          onClick={() => $presentationMode.set(true)}
+          onClick={() => {
+            $presentationMode.set(true);
+            const orderedSteps = getOrderedSteps(editor);
+            const currentStepIndex = $currentStepIndex.get();
+            runStep(editor, orderedSteps, currentStepIndex);
+          }}
         >
           ▶️
         </button>
