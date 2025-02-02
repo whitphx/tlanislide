@@ -9,7 +9,7 @@ import { reassignGlobalIndexInplace } from "../ordered-track-item";
 
 export function moveFrame(
   steps: FrameBatchUIData[][],
-  track: Track,
+  trackId: Track["id"],
   srcGlobalIndex: number,
   srcTrackIndex: number,
   dstGlobalIndex: number,
@@ -33,7 +33,7 @@ export function moveFrame(
       } else if (stepIndex === srcGlobalIndex) {
         const newStep: FrameBatch[] = [];
         step.forEach((frameBatch) => {
-          if (frameBatch.trackId !== track.id) {
+          if (frameBatch.trackId !== trackId) {
             newStep.push(frameBatch);
           } else {
             const [cueFrame, ...subFrames] = frameBatch.data;
@@ -59,7 +59,7 @@ export function moveFrame(
       } else if (srcGlobalIndex < stepIndex && stepIndex < dstGlobalIndex) {
         const newStep: FrameBatch[] = [];
         step.forEach((frameBatch) => {
-          if (frameBatch.trackId !== track.id) {
+          if (frameBatch.trackId !== trackId) {
             newStep.push(frameBatch);
           } else {
             pushedOutFrames.push(...frameBatch.data);
@@ -70,7 +70,7 @@ export function moveFrame(
         const newStep: FrameBatch[] = [];
         let existingDstFrameBatch: FrameBatchUIData | null = null;
         for (const frameBatch of step) {
-          if (!(dstType === "at" && frameBatch.trackId === track.id)) {
+          if (!(dstType === "at" && frameBatch.trackId === trackId)) {
             newStep.push(frameBatch);
           } else {
             existingDstFrameBatch = frameBatch;
@@ -102,14 +102,14 @@ export function moveFrame(
             // The first frame is always a cueFrame
             ...pushedOutFrames[0],
             type: "cue",
-            trackId: track.id,
+            trackId,
             globalIndex: 999999, // This will be set later.
           };
           pushedOutFrames.forEach((frame) => {
             if (frame.type === "cue") {
               frameBatchesToInsert.push({
                 id: `batch-${pushedOutFrames[0].id}`,
-                trackId: track.id,
+                trackId,
                 globalIndex: 999999, // This will be set later.
                 data: [frame],
               });
@@ -157,7 +157,7 @@ export function moveFrame(
       } else if (stepIndex === srcGlobalIndex) {
         const newStep: FrameBatch[] = [];
         for (const frameBatch of step) {
-          if (frameBatch.trackId !== track.id) {
+          if (frameBatch.trackId !== trackId) {
             newStep.push(frameBatch);
           } else {
             const lastFrame = frameBatch.data.at(-1);
@@ -183,7 +183,7 @@ export function moveFrame(
                     id: firstRemainingSubFrame.id,
                     type: "cue",
                     globalIndex: 999999, // This will be set later
-                    trackId: track.id,
+                    trackId,
                     action: firstRemainingSubFrame.action,
                   },
                   ...restRemainingSubFrames,
@@ -196,7 +196,7 @@ export function moveFrame(
       } else if (dstGlobalIndex < stepIndex && stepIndex < srcGlobalIndex) {
         const newStep: FrameBatch[] = [];
         for (const frameBatch of step) {
-          if (frameBatch.trackId !== track.id) {
+          if (frameBatch.trackId !== trackId) {
             newStep.push(frameBatch);
           } else {
             pushedOutFrames.unshift(...frameBatch.data);
@@ -207,7 +207,7 @@ export function moveFrame(
         const newStep: FrameBatch[] = [];
         let existingDstFrameBatch: FrameBatchUIData | null = null;
         for (const frameBatch of step) {
-          if (!(dstType === "at" && frameBatch.trackId === track.id)) {
+          if (!(dstType === "at" && frameBatch.trackId === trackId)) {
             newStep.push(frameBatch);
           } else {
             existingDstFrameBatch = frameBatch;
@@ -241,14 +241,14 @@ export function moveFrame(
             // The first frame is always a cueFrame
             ...pushedOutFrames[0],
             type: "cue",
-            trackId: track.id,
+            trackId,
             globalIndex: 999999, // This will be set later.
           };
           pushedOutFrames.forEach((frame) => {
             if (frame.type === "cue") {
               frameBatchesToInsert.push({
                 id: `batch-${pushedOutFrames[0].id}`,
-                trackId: track.id,
+                trackId,
                 globalIndex: 999999, // This will be set later.
                 data: [frame],
               });

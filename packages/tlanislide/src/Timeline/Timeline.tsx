@@ -150,21 +150,15 @@ export function Timeline({
           typeof srcTrackIndex === "number" &&
           typeof srcGlobalIndex === "number" &&
           typeof dstGlobalIndex === "number" &&
-          typeof dstType === "string" &&
           (dstType === "at" || dstType === "after")
         )
       ) {
         return;
       }
 
-      const track = tracks.find((track) => track.id === trackId);
-      if (track == null) {
-        return;
-      }
-
       const newSteps = moveFrame(
         steps,
-        track,
+        trackId,
         srcGlobalIndex,
         srcTrackIndex,
         dstGlobalIndex,
@@ -174,7 +168,7 @@ export function Timeline({
         onFrameBatchesChange(newSteps.flat());
       }
     },
-    [steps, tracks, onFrameBatchesChange],
+    [steps, onFrameBatchesChange],
   );
 
   // To capture click events on draggable elements.
