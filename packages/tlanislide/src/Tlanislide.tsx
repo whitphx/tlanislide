@@ -56,7 +56,7 @@ const customShapeUtils = [SlideShapeUtil];
 const customTools = [SlideShapeTool];
 
 // We use atoms as it's Tldraw's design,
-// but we also need to manage these states per instance of Tlanislide component
+// but we also need to manage these states per instance of Anipres component
 // and isolate different instances from each other.
 // This hook is used to create such per-instance atoms.
 function usePerInstanceAtoms() {
@@ -435,10 +435,10 @@ const Inner = track((props: InnerProps) => {
   );
 });
 
-// IMPORTANT: Memoization is necessary to prevent re-rendering of the entire Tldraw component tree and recreating the editor instance when the most outer `Tlanislide` component's props change, which typically happens when the current frame index changes in the parent component.
+// IMPORTANT: Memoization is necessary to prevent re-rendering of the entire Tldraw component tree and recreating the editor instance when the most outer `Anipres` component's props change, which typically happens when the current frame index changes in the parent component.
 const MemoizedInner = React.memo(Inner);
 
-export interface TlanislideProps {
+export interface AnipresProps {
   step?: number;
   onStepChange?: (newStep: number) => void;
   presentationMode?: boolean;
@@ -446,10 +446,10 @@ export interface TlanislideProps {
   snapshot?: InnerProps["snapshot"];
   startStep?: number;
 }
-export interface TlanislideRef {
+export interface AnipresRef {
   rerunStep: () => void;
 }
-export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
+export const Anipres = React.forwardRef<AnipresRef, AnipresProps>(
   (props, ref) => {
     const {
       step,
@@ -460,13 +460,13 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
       startStep = 0,
     } = props;
 
-    const tlanislideAtoms = usePerInstanceAtoms();
+    const anipresAtoms = usePerInstanceAtoms();
     const {
       $currentStepIndex,
       $presentationMode,
       $stepHotkeyEnabled,
       $presentationModeHotkeyEnabled,
-    } = tlanislideAtoms;
+    } = anipresAtoms;
 
     useEffect(() => {
       $stepHotkeyEnabled.set(step == null);
@@ -549,10 +549,10 @@ export const Tlanislide = React.forwardRef<TlanislideRef, TlanislideProps>(
     return (
       <MemoizedInner
         onMount={handleMount}
-        perInstanceAtoms={tlanislideAtoms}
+        perInstanceAtoms={anipresAtoms}
         snapshot={snapshot}
       />
     );
   },
 );
-Tlanislide.displayName = "Tlanislide";
+Anipres.displayName = "Anipres";
