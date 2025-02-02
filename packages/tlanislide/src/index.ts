@@ -1,1 +1,1 @@
-export * from "./Tlanislide.tsx";
+export * from "./Anipres.tsx";

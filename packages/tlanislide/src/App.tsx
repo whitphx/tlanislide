@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
 import { CueFrame, SubFrame } from "./models";
-import { Anipres } from "./Tlanislide.tsx";
+import { Anipres } from "./Anipres.tsx";
 
 function setupDevMock(editor: Editor) {
   const rect0Id = createShapeId("rect0");
