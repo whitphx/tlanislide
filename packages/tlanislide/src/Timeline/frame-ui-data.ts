@@ -30,7 +30,6 @@ export type FrameBatchUIData = UIFrameBatch & { localIndex: number };
 export interface Track {
   id: string;
   type: FrameAction["type"];
-  // frames: Frame[];
   frameBatches: FrameBatchUIData[];
 }
 
@@ -77,18 +76,10 @@ export function calcFrameBatchUIData(frameBatches: FrameBatch[]) {
   });
 
   const tracks: Track[] = Object.entries(tracksMap).map(
-    ([
-      trackId,
-      {
-        type,
-        frameBatches,
-        // frames,
-      },
-    ]) => ({
+    ([trackId, { type, frameBatches }]) => ({
       id: trackId,
       type,
       frameBatches,
-      // frames,
     }),
   );
   tracks.sort((a, b) => {
