@@ -62,15 +62,15 @@ importers:
 
   packages/app:
     dependencies:
+      anipres:
+        specifier: workspace:*
+        version: link:../tlanislide
       react:
         specifier: ^18.3.1
         version: 18.3.1
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
-      tlanislide:
-        specifier: workspace:*
-        version: link:../tlanislide
       tldraw:
         specifier: ^3.6.0
         version: 3.6.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -87,7 +87,7 @@ importers:
       '@vueuse/core':
         specifier: ^12.5.0
         version: 12.5.0(typescript@5.7.3)
-      tlanislide:
+      anipres:
         specifier: workspace:*
         version: link:../tlanislide
       tldraw:
@@ -158,7 +158,7 @@ importers:
       '@slidev/theme-seriph':
         specifier: ^0.25.0
         version: 0.25.0
-      slidev-addon-tlanislide:
+      slidev-addon-anipres:
         specifier: workspace:*
         version: link:../../packages/slidev-addon-tlanislide
       vue:

@@ -1,10 +1,10 @@
-import { Tlanislide } from "tlanislide";
-import "tlanislide/tlanislide.css";
+import { Anipres } from "anipres";
+import "anipres/anipres.css";
 
 function App() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <Tlanislide />
+      <Anipres />
     </div>
   );
 }
