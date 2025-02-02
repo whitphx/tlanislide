@@ -25,8 +25,9 @@ export function moveFrame(
     // Move to the right
     const newSteps: FrameBatch[][] = [];
     const pushedOutFrames: FrameUIData[] = [];
-    for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
-      const step = steps[stepIndex];
+    for (let stepIndex = 0; stepIndex < steps.length + 1; stepIndex++) {
+      // NOTE: Loop until `stepIndex` is `steps.length` to handle the case where `dstGlobalIndex = steps.length` and `dstType = "after"`.
+      const step = steps[stepIndex] ?? [];
       if (stepIndex < srcGlobalIndex) {
         newSteps.push(step);
       } else if (stepIndex === srcGlobalIndex) {
