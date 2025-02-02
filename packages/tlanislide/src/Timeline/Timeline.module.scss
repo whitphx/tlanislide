@@ -16,7 +16,9 @@ $inbetween-droppable-cell-width: 16px;
 
     border-radius: var(--radius-2);
     border: 1px solid var(--color-low-border);
-    transition: border 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    transition:
+      border 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out;
 
     &.active {
       border: 1px solid var(--color-selected);

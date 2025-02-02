@@ -50,7 +50,12 @@ $editor-height: 20px;
   justify-content: center;
 
   &.shrink {
-    background: linear-gradient(90deg, var(--color-background) 0%, var(--color-background) 90%, var(--color-primary) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--color-background) 0%,
+      var(--color-background) 90%,
+      var(--color-primary) 100%
+    );
   }
 }
 
