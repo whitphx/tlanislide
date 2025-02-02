@@ -2,9 +2,9 @@
 import { createRoot } from "react-dom/client";
 import { setVeauryOptions, applyPureReactInVue } from "veaury";
 import {
-  Tlanislide as TlanislideReact,
-  type TlanislideRef as TlanislideReactRef,
-} from "tlanislide";
+  Anipres as AnipresReact,
+  type AnipresRef as AnipresReactRef,
+} from "anipres";
 
 setVeauryOptions({
   react: {
@@ -14,8 +14,8 @@ setVeauryOptions({
 
 export default {
   components: {
-    // Tlanislide: applyReactInVue(TlanislideReact),
-    Tlanislide: applyPureReactInVue(TlanislideReact),
+    // Anipres: applyReactInVue(AnipresReact),
+    Anipres: applyPureReactInVue(AnipresReact),
   },
 };
 </script>
@@ -34,9 +34,9 @@ import {
 import { ref, useTemplateRef, watch } from "vue";
 import { useCssVar, onClickOutside } from "@vueuse/core";
 import { onSlideEnter, useDarkMode, useSlideContext } from "@slidev/client";
-import "tlanislide/tlanislide.css";
+import "anipres/anipres.css";
 // @ts-expect-error virtual import
-import ALL_SNAPSHOT from "/@slidev-tlanislide-snapshot";
+import ALL_SNAPSHOT from "/@slidev-anipres-snapshot";
 
 interface SavedSnapshot {
   document: TLStoreSnapshot;
@@ -85,12 +85,12 @@ onClickOutside(container, () => {
 // Ref: https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
 const scale = useCssVar("--slide-scale", container);
 
-const tlanislideRef = useTemplateRef<{
-  __veauryReactRef__?: TlanislideReactRef;
-}>("tlanislide");
+const anipresRef = useTemplateRef<{
+  __veauryReactRef__?: AnipresReactRef;
+}>("anipres");
 function rerender() {
-  if (tlanislideRef.value && tlanislideRef.value.__veauryReactRef__) {
-    tlanislideRef.value.__veauryReactRef__.rerunStep();
+  if (anipresRef.value && anipresRef.value.__veauryReactRef__) {
+    anipresRef.value.__veauryReactRef__.rerunStep();
   }
 }
 
@@ -107,7 +107,7 @@ const handleMount = (editor: Editor) => {
   function save() {
     if (isEditing.value) {
       const { document } = getSnapshot(editor.store);
-      import.meta.hot?.send("tlanislide-snapshot", {
+      import.meta.hot?.send("anipres-snapshot", {
         id: props.id,
         snapshot: { document },
       });
@@ -141,8 +141,8 @@ const handleMount = (editor: Editor) => {
     ref="container"
     @dblclick="onDblclick"
   >
-    <Tlanislide
-      ref="tlanislide"
+    <Anipres
+      ref="anipres"
       @mount="handleMount"
       :step="$clicks"
       @stepChange="$clicks = $event"

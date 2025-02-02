@@ -1,1 +1,1 @@
-# slidev-addon-tlanislide
+# slidev-addon-anipres

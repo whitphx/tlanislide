@@ -8,13 +8,13 @@ import { defineConfig } from "vite";
 
 let root = process.cwd();
 function resolveSnapshotPath() {
-  return join(root, ".slidev/tlanislide/snapshots");
+  return join(root, ".slidev/anipres/snapshots");
 }
 
 export default defineConfig({
   plugins: [
     {
-      name: "tlanislide-server",
+      name: "anipres-server",
       configureServer(server) {
         root = server.config.root;
         server.ws.on("connection", (socket) => {
@@ -22,7 +22,7 @@ export default defineConfig({
             const payload = JSON.parse(data.toString());
             if (
               payload.type === "custom" &&
-              payload.event === "tlanislide-snapshot"
+              payload.event === "anipres-snapshot"
             ) {
               const snapshotDir = resolveSnapshotPath();
               const snapshotData = JSON.stringify(
@@ -37,7 +37,7 @@ export default defineConfig({
               );
               // Invalidate the module so that the saved snapshot is loaded on the next request.
               const mod = server.moduleGraph.getModuleById(
-                "/@slidev-tlanislide-snapshot",
+                "/@slidev-anipres-snapshot",
               );
               if (mod) server.moduleGraph.invalidateModule(mod);
             }
@@ -48,12 +48,12 @@ export default defineConfig({
         root = config.root;
       },
       resolveId(id) {
-        if (id === "/@slidev-tlanislide-snapshot") {
+        if (id === "/@slidev-anipres-snapshot") {
           return id;
         }
       },
       load(id) {
-        if (id === "/@slidev-tlanislide-snapshot") {
+        if (id === "/@slidev-anipres-snapshot") {
           const path = resolveSnapshotPath();
           const files = fs.existsSync(path) ? fs.readdirSync(path) : [];
           return [
