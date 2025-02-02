@@ -7,11 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  tlanislide:
+  anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/tlanislide
+        working-directory: packages/anipres
 
     steps:
       - uses: actions/checkout@v4
@@ -44,14 +44,14 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          path: packages/tlanislide/dist
-          name: tlanislide
+          path: packages/anipres/dist
+          name: anipres
 
-  slidev-addon-tlanislide:
+  slidev-addon-anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/slidev-addon-tlanislide
+        working-directory: packages/slidev-addon-anipres
 
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
         run: pnpm format --check
 
   build-app:
-    needs: [tlanislide, lint-app]
+    needs: [anipres, lint-app]
 
     runs-on: ubuntu-latest
     defaults:
@@ -132,8 +132,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: tlanislide
-          path: packages/tlanislide/dist
+          name: anipres
+          path: packages/anipres/dist
 
       - name: Build
         run: pnpm build
