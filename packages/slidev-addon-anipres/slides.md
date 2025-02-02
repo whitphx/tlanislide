@@ -1,0 +1,17 @@
+# Slidev Addon Anipres
+
+---
+clicks: 4
+---
+
+## Anipres 1
+
+<SlidevAnipres id="deck1" />
+
+---
+clicks: 4
+---
+
+## Anipres 2
+
+<SlidevAnipres id="deck2" />

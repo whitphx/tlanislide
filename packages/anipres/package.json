@@ -1,19 +1,19 @@
 {
-  "name": "tlanislide",
+  "name": "anipres",
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "main": "./dist/tlanislide.umd.cjs",
-  "module": "./dist/tlanislide.js",
+  "main": "./dist/anipres.umd.cjs",
+  "module": "./dist/anipres.js",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/tlanislide.js"
+        "default": "./dist/anipres.js"
       },
-      "require": "./dist/tlanislide.umd.cjs"
+      "require": "./dist/anipres.umd.cjs"
     },
-    "./tlanislide.css": "./dist/tlanislide.css"
+    "./anipres.css": "./dist/anipres.css"
   },
   "types": "./dist/index.d.ts",
   "scripts": {

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { Editor, createShapeId, uniqueId } from "tldraw";
 import { CueFrame, SubFrame } from "./models";
-import { Tlanislide } from "./Tlanislide.tsx";
+import { Anipres } from "./Anipres.tsx";
 
 function setupDevMock(editor: Editor) {
   const rect0Id = createShapeId("rect0");
@@ -228,7 +228,7 @@ function App() {
 
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <Tlanislide onMount={handleMount} />
+      <Anipres onMount={handleMount} />
     </div>
   );
 }

@@ -8,7 +8,7 @@ drawings:
 transition: slide-left
 mdc: true
 addons:
-  - tlanislide
+  - anipres
 ---
 
 ---
@@ -48,7 +48,7 @@ Software Developer / Indie Dev / OSS Enthusiast
   - Gradio-Lite: Serverless Gradio
   - Awesome Emacs Keymap
   - Streamlit-WebRTC
-  - Tlanislide
+  - Anipres
 - Contributed:
   - Streamlit
   - Gradio
@@ -59,16 +59,16 @@ clicks: 7
 
 # My OSS history
 
-<SlidevTlanislide id="career-timeline" />
+<SlidevAnipres id="career-timeline" />
 
 ---
 
 # Awesome Emacs Keymap
 
-<SlidevTlanislide id="career-timeline" :start="0" />
+<SlidevAnipres id="career-timeline" :start="0" />
 
 ---
 
 # Stlite: In-browser Streamlit
 
-<SlidevTlanislide id="career-timeline" :start="2" />
+<SlidevAnipres id="career-timeline" :start="2" />

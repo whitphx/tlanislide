@@ -14,8 +14,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
-      name: "TLAniSlide",
-      fileName: "tlanislide",
+      name: "Anipres",
+      fileName: "anipres",
     },
     rollupOptions: {
       external: ["react", "react-dom", "tldraw"],
