@@ -136,7 +136,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: anipres
-          path: packages/anipres/dist
+          path: packages/anipres/anipres-*.tgz
+
+      - name: Install anipres
+        run: pnpm install anipres-*.tgz
+        working-directory: packages/anipres
 
       - name: Build
         run: pnpm build
