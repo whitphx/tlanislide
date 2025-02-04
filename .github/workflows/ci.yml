@@ -223,5 +223,10 @@ jobs:
       - name: Install dependencies to resolve workspace protocol of dependencies
         run: pnpm install
 
+      - name: Set publishing config
+        run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
+
       - name: Publish
-        run: pnpm --filter anipres --filter slidev-addon-anipres publish
+        run: pnpm --filter anipres --filter slidev-addon-anipres publish --access=public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
