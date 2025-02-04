@@ -47,27 +47,6 @@ jobs:
           path: packages/anipres/dist
           name: anipres-dist
 
-      - name: Package
-        run: pnpm pack
-
-      - name: Get the built package file path
-        id: get-package-file-path
-        working-directory: packages/anipres
-        run: echo "PACKAGE_FILE_PATH=$(find $(pwd) -name "anipres-*.tgz" -print -quit)" >> $GITHUB_OUTPUT
-
-      - name: Upload the built tar ball as an artifact (when pushed with a version tag)
-        uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          path: ${{ steps.get-package-file-path.outputs.PACKAGE_FILE_PATH }}
-          name: anipres-${{ github.ref_name }}.tgz
-
-      - name: Upload package
-        uses: actions/upload-artifact@v4
-        with:
-          path: packages/anipres/anipres-*.tgz
-          name: anipres-npm-package
-
   slidev-addon-anipres:
     runs-on: ubuntu-latest
     defaults:
