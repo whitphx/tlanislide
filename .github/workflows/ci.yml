@@ -164,7 +164,12 @@ jobs:
 
   version:
     if: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
+
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
 
     outputs:
       hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
