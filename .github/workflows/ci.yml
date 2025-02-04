@@ -198,7 +198,11 @@ jobs:
 
   release:
     needs: [version, build-anipres, slidev-addon-anipres]
-    if: ${{ needs.version.outputs.hasChangesets == 'true' }}
+
+    # Run this job when a publish should happen.
+    # Ref: https://github.com/changesets/action/blob/main/README.md#custom-publishing
+    if: ${{ needs.version.outputs.hasChangesets == 'false' }}
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -218,12 +222,13 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies to resolve workspace protocol of dependencies
         run: pnpm install
 
+      # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
       - name: Set publishing config
+        # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
         run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
 
       - name: Publish
