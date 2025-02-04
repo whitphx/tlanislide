@@ -137,7 +137,7 @@ jobs:
         id: download-anipres-package
         with:
           name: anipres
-          path: packages/anipres/anipres-*.tgz
+          path: packages/anipres/anipres.tgz
 
       - name: Install anipres
         run: pnpm install ${{ steps.download-anipres-package.outputs.download-path }}
