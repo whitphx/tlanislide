@@ -3,11 +3,18 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ main ]
 
+
+concurrency:
+  # https://stackoverflow.com/a/72408109
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
-  anipres:
+  build-anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,11 +57,45 @@ jobs:
       - name: Package
         run: pnpm pack
 
+      - name: Get the built package file path
+        id: get-package-file-path
+        working-directory: packages/anipres
+        run: echo "PACKAGE_FILE_PATH=$(find $(pwd) -name "anipres-*.tgz" -print -quit)" >> $GITHUB_OUTPUT
+
+      - name: Upload the built tar ball as an artifact (when pushed with a version tag)
+        uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          path: ${{ steps.get-package-file-path.outputs.PACKAGE_FILE_PATH }}
+          name: anipres-${{ github.ref_name }}.tgz
+
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           path: packages/anipres/anipres-*.tgz
           name: anipres-npm-package
+
+  publish-anipres:
+    if: ${{ !failure() && startsWith(github.ref, 'refs/tags/v') }}
+    needs: [build-anipres]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: anipres-${{ github.ref_name }}.tgz
+          path: packages/anipres
+
+      - name: Publish
+        run: pnpm publish --access public
+        working-directory: packages/anipres
 
   slidev-addon-anipres:
     runs-on: ubuntu-latest
@@ -116,7 +157,7 @@ jobs:
         run: pnpm format --check
 
   build-app:
-    needs: [anipres, lint-app]
+    needs: [build-anipres, lint-app]
 
     runs-on: ubuntu-latest
     defaults:
