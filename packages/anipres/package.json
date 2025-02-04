@@ -5,6 +5,9 @@
   "type": "module",
   "main": "./dist/anipres.umd.cjs",
   "module": "./dist/anipres.js",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "import": {

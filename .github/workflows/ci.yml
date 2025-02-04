@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  anipres:
+  build-anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,11 +41,32 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Upload
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           path: packages/anipres/dist
-          name: anipres
+          name: anipres-dist
+
+      - name: Package
+        run: pnpm pack
+
+      - name: Get the built package file path
+        id: get-package-file-path
+        working-directory: packages/anipres
+        run: echo "PACKAGE_FILE_PATH=$(find $(pwd) -name "anipres-*.tgz" -print -quit)" >> $GITHUB_OUTPUT
+
+      - name: Upload the built tar ball as an artifact (when pushed with a version tag)
+        uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          path: ${{ steps.get-package-file-path.outputs.PACKAGE_FILE_PATH }}
+          name: anipres-${{ github.ref_name }}.tgz
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          path: packages/anipres/anipres-*.tgz
+          name: anipres-npm-package
 
   slidev-addon-anipres:
     runs-on: ubuntu-latest
@@ -107,7 +128,7 @@ jobs:
         run: pnpm format --check
 
   build-app:
-    needs: [anipres, lint-app]
+    needs: [build-anipres, lint-app]
 
     runs-on: ubuntu-latest
     defaults:
@@ -132,7 +153,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: anipres
+          name: anipres-dist
           path: packages/anipres/dist
 
       - name: Build
