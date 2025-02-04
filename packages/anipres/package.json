@@ -1,7 +1,7 @@
 {
   "name": "anipres",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.0",
   "type": "module",
   "main": "./dist/anipres.umd.cjs",
   "module": "./dist/anipres.js",
