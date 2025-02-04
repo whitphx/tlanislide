@@ -134,12 +134,13 @@ jobs:
         run: pnpm install
 
       - uses: actions/download-artifact@v4
+        id: download-anipres-package
         with:
           name: anipres
           path: packages/anipres/anipres-*.tgz
 
       - name: Install anipres
-        run: pnpm install anipres-*.tgz
+        run: pnpm install ${{ steps.download-anipres-package.outputs.download-path }}
         working-directory: packages/anipres
 
       - name: Build
