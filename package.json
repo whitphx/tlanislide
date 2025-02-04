@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "ci:publish": "pnpm publish -r"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
