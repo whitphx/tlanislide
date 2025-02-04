@@ -41,10 +41,13 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Package
+        run: pnpm pack
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          path: packages/anipres/dist
+          path: packages/anipres/anipres-*.tgz
           name: anipres
 
   slidev-addon-anipres:
