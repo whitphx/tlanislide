@@ -165,10 +165,36 @@ jobs:
   version:
     if: ${{ github.event_name == 'push' && github.ref_name == github.repository.default_branch }}
     runs-on: ubuntu-latest
+
+    outputs:
+      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Create Release Pull Request
+        id: changesets
         uses: changesets/action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    needs: [version, build-anipres, slidev-addon-anipres]
+    if: ${{ needs.version.outputs.hasChangesets == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
+      # Download built artifacts to publish
+      - uses: actions/download-artifact@v4
+        with:
+          name: anipres-dist
+          path: packages/anipres/dist
+
+      - name: Publish
+        run: pnpm --filter anipres --filter slidev-addon-anipres publish
