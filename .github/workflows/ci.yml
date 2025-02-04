@@ -226,12 +226,7 @@ jobs:
       - name: Set publishing config
         run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
 
-      - name: Publish anipres
-        run: pnpm --filter anipres publish --access=public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish slidev-addon-anipres
-        run: pnpm --filter slidev-addon-anipres publish --access=public
+      - name: Publish
+        run: pnpm --filter anipres --filter slidev-addon-anipres publish --access=public
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
