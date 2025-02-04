@@ -41,14 +41,20 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          path: packages/anipres/dist
+          name: anipres-dist
+
       - name: Package
         run: pnpm pack
 
-      - name: Upload
+      - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           path: packages/anipres/anipres-*.tgz
-          name: anipres
+          name: anipres-npm-package
 
   slidev-addon-anipres:
     runs-on: ubuntu-latest
@@ -134,14 +140,9 @@ jobs:
         run: pnpm install
 
       - uses: actions/download-artifact@v4
-        id: download-anipres-package
         with:
-          name: anipres
-          path: packages/anipres/anipres.tgz
-
-      - name: Install anipres
-        run: pnpm install ${{ steps.download-anipres-package.outputs.download-path }}
-        working-directory: packages/anipres
+          name: anipres-dist
+          path: packages/anipres/dist
 
       - name: Build
         run: pnpm build
