@@ -214,5 +214,8 @@ jobs:
           name: anipres-dist
           path: packages/anipres/dist
 
+      - name: Install dependencies to resolve workspace protocol of dependencies
+        run: pnpm install
+
       - name: Publish
         run: pnpm --filter anipres --filter slidev-addon-anipres publish
