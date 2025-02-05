@@ -225,7 +225,8 @@ jobs:
       pull-requests: write
 
     outputs:
-      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
+      # Ref: https://github.com/changesets/action/blob/main/README.md#custom-publishing
+      shouldPublish: ${{ steps.changesets.outputs.shouldPublish == 'false' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -252,9 +253,10 @@ jobs:
   release:
     needs: [version, build-anipres, build-slidev-addon-anipres]
 
-    # Run this job when a publish should happen.
-    # Ref: https://github.com/changesets/action/blob/main/README.md#custom-publishing
-    if: ${{ needs.version.outputs.hasChangesets == 'false' }}
+    if: ${{ needs.version.outputs.shouldPublish }}
+
+    permissions:
+      contents: write
 
     runs-on: ubuntu-latest
     steps:
@@ -264,6 +266,14 @@ jobs:
         with:
           version: latest
           run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
 
       # Download built artifacts to publish
       - uses: actions/download-artifact@v4
