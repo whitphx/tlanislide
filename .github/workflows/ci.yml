@@ -178,7 +178,7 @@ jobs:
 
     outputs:
       # Ref: https://github.com/changesets/action/blob/main/README.md#custom-publishing
-      shouldPublish: ${{ steps.changesets.outputs.shouldPublish == 'false' }}
+      shouldPublish: ${{ steps.changesets.outputs.hasChangesets == 'false' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -205,7 +205,7 @@ jobs:
   publish:
     needs: [version, build-anipres, test-slidev-addon-anipres]
 
-    if: ${{ needs.version.outputs.shouldPublish }}
+    if: ${{ needs.version.outputs.shouldPublish == 'true' }}
 
     permissions:
       contents: write
