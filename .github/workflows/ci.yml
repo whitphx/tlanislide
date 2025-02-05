@@ -18,9 +18,6 @@ jobs:
       run:
         working-directory: packages/anipres
 
-    outputs:
-      package-name: ${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -55,35 +52,11 @@ jobs:
           path: packages/anipres/dist
           name: anipres-dist
 
-      - name: Package
-        run: pnpm pack
-
-      - name: Get the built package file path
-        id: get-package-file-name
-        run: echo "PACKAGE_FILE_NAME=$(find $(pwd) -name "anipres-*.tgz" -printf '%f' -quit)" >> $GITHUB_OUTPUT
-
-      - name: Upload the built tar ball as an artifact
-        uses: actions/upload-artifact@v4
-        if: ${{ ! ( github.event_name == 'push' && github.ref_name == github.event.repository.default_branch ) }}
-        with:
-          path: packages/anipres/${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
-          name: anipres-${{ github.sha }}.tgz
-
-      - name: Upload the built tar ball as an artifact for publishing
-        uses: actions/upload-artifact@v4
-        if: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
-        with:
-          path: packages/anipres/${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
-          name: ${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
-
   build-slidev-addon-anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: packages/slidev-addon-anipres
-
-    outputs:
-      package-name: ${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
 
     steps:
       - uses: actions/checkout@v4
@@ -109,27 +82,6 @@ jobs:
 
       # - name: Test
       #   run: pnpm test
-
-      - name: Package
-        run: pnpm pack
-
-      - name: Get the built package file path
-        id: get-package-file-name
-        run: echo "PACKAGE_FILE_NAME=$(find $(pwd) -name "slidev-addon-anipres-*.tgz" -printf '%f' -quit)" >> $GITHUB_OUTPUT
-
-      - name: Upload the built tar ball as an artifact
-        uses: actions/upload-artifact@v4
-        if: ${{ ! ( github.event_name == 'push' && github.ref_name == github.event.repository.default_branch ) }}
-        with:
-          path: packages/slidev-addon-anipres/${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
-          name: slidev-addon-anipres-${{ github.sha }}.tgz
-
-      - name: Upload the built tar ball as an artifact for publishing
-        uses: actions/upload-artifact@v4
-        if: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
-        with:
-          path: packages/slidev-addon-anipres/${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
-          name: ${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
 
   lint-app:
     runs-on: ubuntu-latest
@@ -250,8 +202,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-anipres:
-    needs: [version, build-anipres]
+  publish:
+    needs: [version, build-anipres, build-slidev-addon-anipres]
 
     if: ${{ needs.version.outputs.shouldPublish }}
 
@@ -275,87 +227,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Download built artifacts to publish
+      # Download build artifacts to publish
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build-anipres.outputs.package-name}}
-          path: ${{ runner.temp }}
-
-          # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
-      - name: Set publishing config
-        # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
-        run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
-
-      - name: Publish anipres
-        run: pnpm publish ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }} --access=public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - id: tag-name
-        run: echo "TAG_NAME=anipres@$(jq -r '.version' packages/anipres/package.json)" >> $GITHUB_OUTPUT
-
-      - run: git tag ${{ steps.tag-name.outputs.TAG_NAME }}
-
-      - run: git push origin ${{ steps.tag-name.outputs.TAG_NAME }}
-
-      - name: Create a new release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag-name.outputs.TAG_NAME }}
-          files: ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }}
-          generate_release_notes: true
-
-  publish-slidev-addon-anipres:
-    needs: [version, build-slidev-addon-anipres]
-
-    if: ${{ needs.version.outputs.shouldPublish }}
-
-    permissions:
-      contents: write
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: latest
-          run_install: false
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      # Download built artifacts to publish
-      - uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.build-slidev-addon-anipres.outputs.package-name}}
-          path: ${{ runner.temp }}
+          path: packages/anipres/dist
+          name: anipres-dist
 
       # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
       - name: Set publishing config
         # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
         run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
 
-      - name: Publish slidev-addon-anipres
-        run: pnpm publish ${{ runner.temp }}/${{ needs.build-slidev-addon-anipres.outputs.package-name }} --access=public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - id: tag-name
-        run: echo "TAG_NAME=slidev-addon-anipres@$(jq -r '.version' packages/slidev-addon-anipres/package.json)" >> $GITHUB_OUTPUT
-
-      - run: git tag ${{ steps.tag-name.outputs.TAG_NAME }}
-
-      - run: git push origin ${{ steps.tag-name.outputs.TAG_NAME }}
-
-      - name: Create a new release
-        uses: softprops/action-gh-release@v2
+      - name: Publish to npm
+        id: changesets
+        uses: changesets/action@v1
         with:
-          tag_name: ${{ steps.tag-name.outputs.TAG_NAME }}
-          files: ${{ runner.temp }}/${{ needs.build-slidev-addon-anipres.outputs.package-name }}
-          generate_release_notes: true
+          publish: pnpm ci:publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
