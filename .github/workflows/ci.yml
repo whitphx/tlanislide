@@ -250,8 +250,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release:
-    needs: [version, build-anipres, build-slidev-addon-anipres]
+  publish-anipres:
+    needs: [version, build-anipres]
 
     if: ${{ needs.version.outputs.shouldPublish }}
 
@@ -281,17 +281,81 @@ jobs:
           name: ${{ needs.build-anipres.outputs.package-name}}
           path: ${{ runner.temp }}
 
+          # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
+      - name: Set publishing config
+        # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
+        run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
+
+      - name: Publish anipres
+        run: pnpm publish ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }} --access=public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - id: tag-name
+        run: echo "TAG_NAME=anipres@$(jq -r '.version' packages/anipres/package.json)" >> $GITHUB_OUTPUT
+
+      - run: git tag ${{ steps.tag-name.outputs.TAG_NAME }}
+
+      - run: git push origin ${{ steps.tag-name.outputs.TAG_NAME }}
+
+      - name: Create a new release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag-name.outputs.TAG_NAME }}
+          files: ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }}
+          generate_release_notes: true
+
+  publish-slidev-addon-anipres:
+    needs: [version, build-slidev-addon-anipres]
+
+    if: ${{ needs.version.outputs.shouldPublish }}
+
+    permissions:
+      contents: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Download built artifacts to publish
       - uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build-slidev-addon-anipres.outputs.package-name}}
           path: ${{ runner.temp }}
 
-      - name: Publish packages
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          publish: pnpm changeset publish
-          createGithubReleases: true
+      # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
+      - name: Set publishing config
+        # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
+        run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
+
+      - name: Publish slidev-addon-anipres
+        run: pnpm publish ${{ runner.temp }}/${{ needs.build-slidev-addon-anipres.outputs.package-name }} --access=public
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - id: tag-name
+        run: echo "TAG_NAME=slidev-addon-anipres@$(jq -r '.version' packages/slidev-addon-anipres/package.json)" >> $GITHUB_OUTPUT
+
+      - run: git tag ${{ steps.tag-name.outputs.TAG_NAME }}
+
+      - run: git push origin ${{ steps.tag-name.outputs.TAG_NAME }}
+
+      - name: Create a new release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag-name.outputs.TAG_NAME }}
+          files: ${{ runner.temp }}/${{ needs.build-slidev-addon-anipres.outputs.package-name }}
+          generate_release_notes: true
