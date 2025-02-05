@@ -290,7 +290,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm publish ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }} --access=public
+          publish: pnpm changesets publish
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
