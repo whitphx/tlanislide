@@ -167,48 +167,14 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  version:
-    if: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
+  publish:
+    needs: [build-anipres, test-slidev-addon-anipres]
 
-    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
 
     permissions:
       contents: write
       pull-requests: write
-
-    outputs:
-      # Ref: https://github.com/changesets/action/blob/main/README.md#custom-publishing
-      shouldPublish: ${{ steps.changesets.outputs.hasChangesets == 'false' }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: latest
-          run_install: false
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Create Release Pull Request
-        id: changesets
-        uses: changesets/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish:
-    needs: [version, build-anipres, test-slidev-addon-anipres]
-
-    if: ${{ needs.version.outputs.shouldPublish == 'true' }}
-
-    permissions:
-      contents: write
 
     runs-on: ubuntu-latest
     steps:
