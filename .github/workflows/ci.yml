@@ -52,7 +52,7 @@ jobs:
           path: packages/anipres/dist
           name: anipres-dist
 
-  build-slidev-addon-anipres:
+  test-slidev-addon-anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -203,7 +203,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
-    needs: [version, build-anipres, build-slidev-addon-anipres]
+    needs: [version, build-anipres, test-slidev-addon-anipres]
 
     if: ${{ needs.version.outputs.shouldPublish }}
 
@@ -232,6 +232,8 @@ jobs:
         with:
           path: packages/anipres/dist
           name: anipres-dist
+
+      # slidev-addon-anipres will be published without building
 
       # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
       - name: Set publishing config
