@@ -1,5 +1,11 @@
 # anipres
 
+## 0.0.6
+
+### Patch Changes
+
+- [`69bfdc8`](https://github.com/whitphx/anipres/commit/69bfdc8c54d349c07d8ccc57378637770a3c1bab) Thanks [@whitphx](https://github.com/whitphx)! - Trigger release
+
 ## 0.0.5
 
 ### Patch Changes
