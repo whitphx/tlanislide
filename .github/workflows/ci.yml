@@ -76,11 +76,14 @@ jobs:
           path: packages/anipres/${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
           name: ${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
 
-  slidev-addon-anipres:
+  build-slidev-addon-anipres:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: packages/slidev-addon-anipres
+
+    outputs:
+      package-name: ${{ steps.get-package-file-name.outputs.PACKAGE_FILE_NAME }}
 
     steps:
       - uses: actions/checkout@v4
@@ -247,7 +250,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
-    needs: [version, build-anipres, slidev-addon-anipres]
+    needs: [version, build-anipres, build-slidev-addon-anipres]
 
     # Run this job when a publish should happen.
     # Ref: https://github.com/changesets/action/blob/main/README.md#custom-publishing
@@ -265,23 +268,37 @@ jobs:
       # Download built artifacts to publish
       - uses: actions/download-artifact@v4
         with:
-          name: anipres-dist
-          path: packages/anipres/dist
+          name: ${{ needs.build-anipres.outputs.package-name}}
+          path: ${{ runner.temp }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/download-artifact@v4
         with:
-          node-version-file: .nvmrc
-          cache: 'pnpm'
-
-      - name: Install dependencies to resolve workspace protocol of dependencies
-        run: pnpm install
+          name: ${{ needs.build-slidev-addon-anipres.outputs.package-name}}
+          path: ${{ runner.temp }}
 
       # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
       - name: Set publishing config
         # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
         run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
 
-      - name: Publish
-        run: pnpm --filter anipres --filter slidev-addon-anipres publish --access=public
+      - name: Publish anipres
+        run: pnpm publish ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }} --access=public
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create a new release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.temp }}/${{ needs.build-anipres.outputs.package-name }}
+          generate_release_notes: true
+
+      - name: Publish slidev-addon-anipres
+        run: pnpm publish ${{ runner.temp }}/${{ needs.build-slidev-addon-anipres.outputs.package-name }} --access=public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create a new release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.temp }}/${{ needs.build-slidev-addon-anipres.outputs.package-name }}
+          generate_release_notes: true
