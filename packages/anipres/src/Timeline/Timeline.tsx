@@ -347,8 +347,8 @@ export function Timeline({
           </div>
         )}
       </DragStateStyleDiv>
-      {draggedFrame != null && (
-        <DragOverlay>
+      <DragOverlay>
+        {draggedFrame != null && (
           <FrameEditor
             frame={draggedFrame}
             isPlaceholder={false}
@@ -356,8 +356,8 @@ export function Timeline({
             isSelected={false}
             onClick={() => {}}
           />
-        </DragOverlay>
-      )}
+        )}
+      </DragOverlay>
     </FrameMoveTogetherDndContext>
   );
 }
