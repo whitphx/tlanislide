@@ -76,12 +76,11 @@ export const ControlPanel = track((props: ControlPanelProps) => {
         (newFrame) => newFrame.id === getFrame(shape)?.id,
       );
       if (newFrame == null) {
+        const metaCopy = { ...shape.meta };
+        delete metaCopy.frame;
         return {
           ...shape,
-          meta: {
-            ...shape.meta,
-            frame: undefined,
-          },
+          meta: metaCopy,
         };
       }
 
