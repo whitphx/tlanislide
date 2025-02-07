@@ -80,22 +80,33 @@ Software Developer / Indie Dev / OSS Enthusiast
 
 ---
 
-# PyCon
+# わたしから見た各国のPyCon
 
-- 優しさ、熱意
-- 英語発表だけど…ノンネイティブ前提の英語カンファレンス
-  - EuroPython, PyCon APAC
-  - 国カンファレンスの英語トラック: PyCon JP, PyCon LT, PyCon FR
-  - 国別カンファレンスだけど英語オンリー: PyCon DE
+- 優しさ、熱意、好奇心
+- 英語発表だけど…
+  - メンター制度（一部）
+  - ノンネイティブ前提の英語カンファレンス
+    - EuroPython, PyCon APAC
+    - 国カンファレンスの英語トラック: PyCon JP, PyCon LT, PyCon FR
+    - 国別カンファレンスだけど英語オンリー: PyCon DE
+- 偶然の機会
+  - Streamlitの話題を出したらPlotlyのクローズド飲み会に招待される
+  - 海外のPyConで日本人と会うと仲良くなりがち
+  - 海外のPyConで会った人がPyCon JPに来るときに飲みに行く
 
 ---
 
 # (Bonus) PyCon-driven (海外)旅行
 
 - 旅費補助
-- 食事
+- 食事・飲み会 included
 - 交流
+- （カンファレンスによっては）観光情報提供
 
 👉 あちこちにProposalを出して通ったところに行く
 
 [Conf-driven Traveling✈️](https://www.whitphx.info/posts/20230511-conference-driven-travels/)
+
+---
+
+# まとめ
