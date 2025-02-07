@@ -193,11 +193,24 @@ const createComponents = ({
   return {
     TopPanel: () => {
       const editor = useEditor();
+      const presentationMode = useValue($presentationMode);
+      const currentStepIndex = useValue($currentStepIndex);
+      if (presentationMode) {
+        return null;
+      }
       return (
         <ControlPanel
           editor={editor}
-          $currentStepIndex={$currentStepIndex}
-          $presentationMode={$presentationMode}
+          currentStepIndex={currentStepIndex}
+          onCurrentStepIndexChange={(newIndex) => {
+            $currentStepIndex.set(newIndex);
+          }}
+          onPresentationModeEnter={() => {
+            $presentationMode.set(true);
+            const orderedSteps = getOrderedSteps(editor);
+            const currentStepIndex = $currentStepIndex.get();
+            runStep(editor, orderedSteps, currentStepIndex);
+          }}
         />
       );
     },
