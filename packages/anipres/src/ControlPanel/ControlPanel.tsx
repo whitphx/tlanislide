@@ -1,10 +1,10 @@
 import {
-  useEditor,
   track,
   stopEventPropagation,
   createShapeId,
   uniqueId,
   type Atom,
+  type Editor,
 } from "tldraw";
 import {
   getOrderedSteps,
@@ -28,15 +28,15 @@ import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";
 
 export interface ControlPanelProps {
+  editor: Editor;
   $currentStepIndex: Atom<number>;
   $presentationMode: Atom<boolean>;
 }
 export const ControlPanel = track((props: ControlPanelProps) => {
-  const { $currentStepIndex, $presentationMode } = props;
+  const { editor, $currentStepIndex, $presentationMode } = props;
 
   const currentStepIndex = $currentStepIndex.get();
 
-  const editor = useEditor();
   const steps = getOrderedSteps(editor);
 
   const frames = getAllFrames(editor);

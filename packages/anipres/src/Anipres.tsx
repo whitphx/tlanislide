@@ -1,5 +1,6 @@
 import {
   Tldraw,
+  useEditor,
   useIsToolSelected,
   useTools,
   DefaultToolbar,
@@ -191,8 +192,10 @@ const createComponents = ({
 }: PerInstanceAtoms): TLComponents => {
   return {
     TopPanel: () => {
+      const editor = useEditor();
       return (
         <ControlPanel
+          editor={editor}
           $currentStepIndex={$currentStepIndex}
           $presentationMode={$presentationMode}
         />
