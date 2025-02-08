@@ -1,5 +1,6 @@
 import {
   Tldraw,
+  useEditor,
   useIsToolSelected,
   useTools,
   DefaultToolbar,
@@ -191,10 +192,25 @@ const createComponents = ({
 }: PerInstanceAtoms): TLComponents => {
   return {
     TopPanel: () => {
+      const editor = useEditor();
+      const presentationMode = useValue($presentationMode);
+      const currentStepIndex = useValue($currentStepIndex);
+      if (presentationMode) {
+        return null;
+      }
       return (
         <ControlPanel
-          $currentStepIndex={$currentStepIndex}
-          $presentationMode={$presentationMode}
+          editor={editor}
+          currentStepIndex={currentStepIndex}
+          onCurrentStepIndexChange={(newIndex) => {
+            $currentStepIndex.set(newIndex);
+          }}
+          onPresentationModeEnter={() => {
+            $presentationMode.set(true);
+            const orderedSteps = getOrderedSteps(editor);
+            const currentStepIndex = $currentStepIndex.get();
+            runStep(editor, orderedSteps, currentStepIndex);
+          }}
         />
       );
     },

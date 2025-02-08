@@ -1,10 +1,9 @@
 import {
-  useEditor,
   track,
   stopEventPropagation,
   createShapeId,
   uniqueId,
-  type Atom,
+  type Editor,
 } from "tldraw";
 import {
   getOrderedSteps,
@@ -28,15 +27,19 @@ import styles from "./ControlPanel.module.scss";
 import { SlideShapeType } from "../SlideShapeUtil";
 
 export interface ControlPanelProps {
-  $currentStepIndex: Atom<number>;
-  $presentationMode: Atom<boolean>;
+  editor: Editor;
+  currentStepIndex: number;
+  onCurrentStepIndexChange: (newIndex: number) => void;
+  onPresentationModeEnter: () => void;
 }
 export const ControlPanel = track((props: ControlPanelProps) => {
-  const { $currentStepIndex, $presentationMode } = props;
+  const {
+    editor,
+    currentStepIndex,
+    onCurrentStepIndexChange,
+    onPresentationModeEnter,
+  } = props;
 
-  const currentStepIndex = $currentStepIndex.get();
-
-  const editor = useEditor();
   const steps = getOrderedSteps(editor);
 
   const frames = getAllFrames(editor);
@@ -104,10 +107,6 @@ export const ControlPanel = track((props: ControlPanelProps) => {
     editor.select(...targetShapes);
   };
 
-  if ($presentationMode.get()) {
-    return null;
-  }
-
   return (
     <div
       className={styles.panelContainer}
@@ -121,10 +120,7 @@ export const ControlPanel = track((props: ControlPanelProps) => {
         <button
           className={styles.playButton}
           onClick={() => {
-            $presentationMode.set(true);
-            const orderedSteps = getOrderedSteps(editor);
-            const currentStepIndex = $currentStepIndex.get();
-            runStep(editor, orderedSteps, currentStepIndex);
+            onPresentationModeEnter();
           }}
         >
           ▶️
@@ -139,7 +135,7 @@ export const ControlPanel = track((props: ControlPanelProps) => {
         onStepSelect={(i) => {
           const res = runStep(editor, steps, i);
           if (res) {
-            $currentStepIndex.set(i);
+            onCurrentStepIndexChange(i);
           }
         }}
         selectedFrameIds={selectedFrameShapes.map(
