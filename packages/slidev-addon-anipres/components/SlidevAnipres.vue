@@ -199,11 +199,8 @@ onSlideLeave(() => {
 .inverse-transform {
   width: calc(var(--slide-scale) * 100%);
   height: calc(var(--slide-scale) * 100%);
-  transform: scale(calc(1 / var(--slide-scale)))
-    translate(
-      calc(calc(var(--slide-scale) - 1) * -50%),
-      calc(calc(var(--slide-scale) - 1) * -50%)
-    );
+  transform: scale(calc(1 / var(--slide-scale)));
+  transform-origin: top left;
 }
 
 .container :deep(.tl-theme__light, .tl-theme__dark) {
