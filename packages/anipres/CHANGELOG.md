@@ -1,5 +1,13 @@
 # anipres
 
+## 0.0.10
+
+### Patch Changes
+
+- [`9361f96`](https://github.com/whitphx/anipres/commit/9361f9616f77924343d262d27fdf528988794187) Thanks [@whitphx](https://github.com/whitphx)! - Trigger release
+
+- [#76](https://github.com/whitphx/anipres/pull/76) [`7a23c77`](https://github.com/whitphx/anipres/commit/7a23c77a70556fe5e8e0632a7b7153e0cc632fa1) Thanks [@whitphx](https://github.com/whitphx)! - Refactoring: make `<ControlPanel />`'s interface simpler
+
 ## 0.0.9
 
 ### Patch Changes
