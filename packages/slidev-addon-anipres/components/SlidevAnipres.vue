@@ -32,8 +32,13 @@ import {
   type TLStoreSnapshot,
 } from "tldraw";
 import { ref, useTemplateRef, watch } from "vue";
-import { useCssVar, onClickOutside } from "@vueuse/core";
-import { onSlideEnter, useDarkMode, useSlideContext } from "@slidev/client";
+import { useCssVar, useStyleTag, onClickOutside } from "@vueuse/core";
+import {
+  onSlideEnter,
+  onSlideLeave,
+  useDarkMode,
+  useSlideContext,
+} from "@slidev/client";
 import "anipres/anipres.css";
 // @ts-expect-error virtual import
 import ALL_SNAPSHOT from "/@slidev-anipres-snapshot";
@@ -133,6 +138,24 @@ const handleMount = (editor: Editor) => {
     { immediate: true },
   );
 };
+
+// Disable the browser's two-finger swipe for page navigation.
+// Ref: https://stackoverflow.com/a/56071966
+const { load: loadDisableSwipeCss, unload: unloadDisableSwipeCss } =
+  useStyleTag(
+    `
+  html, body {
+    overscroll-behavior-x: none;
+  }
+`,
+    { manual: true },
+  );
+onSlideEnter(() => {
+  loadDisableSwipeCss();
+});
+onSlideLeave(() => {
+  unloadDisableSwipeCss();
+});
 </script>
 
 <template>
