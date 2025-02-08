@@ -1,5 +1,16 @@
 # slidev-addon-anipres
 
+## 0.0.10
+
+### Patch Changes
+
+- [#75](https://github.com/whitphx/anipres/pull/75) [`63a9ed4`](https://github.com/whitphx/anipres/commit/63a9ed496c871a2f1f2edb8fc2721fb9fd4e4842) Thanks [@whitphx](https://github.com/whitphx)! - Refactoring: simpler transform css for .inverse-transform
+
+- [#74](https://github.com/whitphx/anipres/pull/74) [`1a7633a`](https://github.com/whitphx/anipres/commit/1a7633a4760865f5ddebc109a9fb579ce1b158cc) Thanks [@whitphx](https://github.com/whitphx)! - Disable browser's two-finger swipe for page navigation that annoys canvas movements
+
+- Updated dependencies [[`9361f96`](https://github.com/whitphx/anipres/commit/9361f9616f77924343d262d27fdf528988794187), [`7a23c77`](https://github.com/whitphx/anipres/commit/7a23c77a70556fe5e8e0632a7b7153e0cc632fa1)]:
+  - anipres@0.0.10
+
 ## 0.0.9
 
 ### Patch Changes
