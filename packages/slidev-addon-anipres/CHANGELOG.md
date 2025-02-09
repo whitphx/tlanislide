@@ -1,5 +1,13 @@
 # slidev-addon-anipres
 
+## 0.0.11
+
+### Patch Changes
+
+- [#82](https://github.com/whitphx/anipres/pull/82) [`7f3fcb5`](https://github.com/whitphx/anipres/commit/7f3fcb5170216f5f3b1fc360389de23d2beb97ef) Thanks [@whitphx](https://github.com/whitphx)! - Refactoring: type import
+
+- [#81](https://github.com/whitphx/anipres/pull/81) [`fec3ac4`](https://github.com/whitphx/anipres/commit/fec3ac453aa1712100e72f25c61e59c23813bd8b) Thanks [@whitphx](https://github.com/whitphx)! - Configure optimizeDeps in vite.config.ts to load CJS deps in the dev mode correctly
+
 ## 0.0.10
 
 ### Patch Changes
