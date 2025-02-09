@@ -25,10 +25,10 @@ export default {
 // https://github.com/AlbertBrand/slidev-addon-tldraw/blob/92d1e75228838f368f028ea9a4f07f1cc9ad7bf7/components/Tldraw.vue#L163
 import {
   debounce,
-  Editor,
   getSnapshot,
   getUserPreferences,
   setUserPreferences,
+  type Editor,
   type TLStoreSnapshot,
 } from "tldraw";
 import { ref, useTemplateRef, watch } from "vue";
