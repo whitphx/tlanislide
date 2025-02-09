@@ -1,5 +1,11 @@
 # slidev-addon-anipres
 
+## 0.0.13
+
+### Patch Changes
+
+- [#88](https://github.com/whitphx/anipres/pull/88) [`d5a203f`](https://github.com/whitphx/anipres/commit/d5a203f53e54eeb535426e685e1a13ebc5a873d2) Thanks [@whitphx](https://github.com/whitphx)! - Mount <Anipres /> only when the slide is active
+
 ## 0.0.12
 
 ### Patch Changes
