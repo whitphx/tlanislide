@@ -153,27 +153,6 @@ importers:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.3)
 
-  talks/self-intro:
-    dependencies:
-      '@iconify/json':
-        specifier: ^2.2.303
-        version: 2.2.303
-      '@slidev/cli':
-        specifier: ^51.1.0
-        version: 51.1.0(@babel/parser@7.26.7)(@nuxt/kit@3.15.4(rollup@4.34.3))(@types/markdown-it@14.1.2)(@types/node@22.13.1)(@vue/compiler-sfc@3.5.13)(markdown-it-async@2.0.0)(playwright-chromium@1.49.1)(postcss@8.5.1)(react@18.3.1)(rollup@4.34.3)(sass-embedded@1.83.4)(tsx@4.19.2)
-      '@slidev/theme-default':
-        specifier: latest
-        version: 0.25.0
-      '@slidev/theme-seriph':
-        specifier: ^0.25.0
-        version: 0.25.0
-      slidev-addon-anipres:
-        specifier: workspace:*
-        version: link:../../packages/slidev-addon-anipres
-      vue:
-        specifier: ^3.5.13
-        version: 3.5.13(typescript@5.7.3)
-
 packages:
 
   '@ampproject/remapping@2.3.0':
@@ -878,9 +857,6 @@ packages:
 
   '@iconify-json/svg-spinners@1.2.2':
     resolution: {integrity: sha512-DIErwfBWWzLfmAG2oQnbUOSqZhDxlXvr8941itMCrxQoMB0Hiv8Ww6Bln/zIgxwjDvSem2dKJtap+yKKwsB/2A==}
-
-  '@iconify/json@2.2.303':
-    resolution: {integrity: sha512-/s42MDeyZhJbL6g4uNjqqAPUi+tRnF0IRd99ZPhEV5iLHOQRhmURkjARHmnzhg8hQQtKP4/ZaXKS77W0gK+7ZQ==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -1625,10 +1601,6 @@ packages:
 
   '@slidev/theme-default@0.25.0':
     resolution: {integrity: sha512-iWvthH1Ny+i6gTwRnEeeU+EiqsHC56UdEO45bqLSNmymRAOWkKUJ/M0o7iahLzHSXsiPu71B7C715WxqjXk2hw==}
-    engines: {node: '>=14.0.0', slidev: '>=v0.47.0'}
-
-  '@slidev/theme-seriph@0.25.0':
-    resolution: {integrity: sha512-PnFQbn4I70+/cVie5iAr0Im6sYvnwjkO7Yj5KonTyJZFFJFytckLTrD3ijft/J4cRnz7OmSzTyQKNX1FN/x0YQ==}
     engines: {node: '>=14.0.0', slidev: '>=v0.47.0'}
 
   '@slidev/types@0.47.5':
@@ -6052,11 +6024,6 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify/json@2.2.303':
-    dependencies:
-      '@iconify/types': 2.0.0
-      pathe: 1.1.2
-
   '@iconify/types@2.0.0': {}
 
   '@iconify/utils@2.2.1':
@@ -7003,12 +6970,6 @@ snapshots:
       roughjs: 4.6.6
 
   '@slidev/theme-default@0.25.0':
-    dependencies:
-      '@slidev/types': 0.47.5
-      codemirror-theme-vars: 0.1.2
-      prism-theme-vars: 0.2.5
-
-  '@slidev/theme-seriph@0.25.0':
     dependencies:
       '@slidev/types': 0.47.5
       codemirror-theme-vars: 0.1.2
