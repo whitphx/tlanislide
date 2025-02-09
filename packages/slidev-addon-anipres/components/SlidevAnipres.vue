@@ -38,6 +38,7 @@ import {
   onSlideLeave,
   useDarkMode,
   useSlideContext,
+  useIsSlideActive,
 } from "@slidev/client";
 import "anipres/anipres.css";
 // @ts-expect-error virtual import
@@ -156,6 +157,14 @@ onSlideEnter(() => {
 onSlideLeave(() => {
   unloadDisableSwipeCss();
 });
+
+// Mount the Anipres component only when the slide is active.
+// Slidev attaches `display: none` to the non-active slides
+// so such slides are not rendered and the client DOM size is calculated as 0.
+// In such non-active slides, the Tldraw component fails to initialize some shapes, e.g. text as https://github.com/whitphx/anipres/issues/87
+// So we mount the Anipres component only when the slide is active,
+// while this workaround causes the Anipres component to be displayed with some delay after the slide becomes active.
+const isSlideActive = useIsSlideActive();
 </script>
 
 <template>
@@ -165,6 +174,7 @@ onSlideLeave(() => {
     @dblclick="onDblclick"
   >
     <Anipres
+      v-if="isSlideActive"
       ref="anipres"
       @mount="handleMount"
       :step="$clicks"
