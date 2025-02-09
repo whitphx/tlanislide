@@ -246,9 +246,10 @@ interface InnerProps {
   onMount: TldrawProps["onMount"];
   snapshot?: TLEditorSnapshot | TLStoreSnapshot;
   perInstanceAtoms: PerInstanceAtoms;
+  assetUrls?: TldrawProps["assetUrls"];
 }
 const Inner = track((props: InnerProps) => {
-  const { onMount, snapshot, perInstanceAtoms } = props;
+  const { onMount, snapshot, perInstanceAtoms, assetUrls } = props;
 
   const handleMount = (editor: Editor) => {
     const stopHandlers: (() => void)[] = [];
@@ -443,6 +444,7 @@ const Inner = track((props: InnerProps) => {
         maxPages: 1,
       }}
       snapshot={snapshot}
+      assetUrls={assetUrls}
     >
       <ReadonlyOverlay // Prevent interactions with shapes in presentation mode. Tldraw's `readOnly` option is not used because it allows some ops like selecting shapes or editing text.
         $presentationMode={perInstanceAtoms.$presentationMode}
@@ -460,6 +462,7 @@ export interface AnipresProps {
   presentationMode?: boolean;
   onMount?: InnerProps["onMount"];
   snapshot?: InnerProps["snapshot"];
+  assetUrls?: InnerProps["assetUrls"];
   startStep?: number;
 }
 export interface AnipresRef {
@@ -473,6 +476,7 @@ export const Anipres = React.forwardRef<AnipresRef, AnipresProps>(
       presentationMode,
       onMount,
       snapshot,
+      assetUrls,
       startStep = 0,
     } = props;
 
@@ -567,6 +571,7 @@ export const Anipres = React.forwardRef<AnipresRef, AnipresProps>(
         onMount={handleMount}
         perInstanceAtoms={anipresAtoms}
         snapshot={snapshot}
+        assetUrls={assetUrls}
       />
     );
   },
