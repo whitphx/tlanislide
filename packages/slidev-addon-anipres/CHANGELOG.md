@@ -1,5 +1,11 @@
 # slidev-addon-anipres
 
+## 0.0.12
+
+### Patch Changes
+
+- [#85](https://github.com/whitphx/anipres/pull/85) [`f1e4970`](https://github.com/whitphx/anipres/commit/f1e4970f31a51ff854d685556c5f1301fdcae5a4) Thanks [@whitphx](https://github.com/whitphx)! - Make optimizeDeps in slidev-addon-anipres/vite.config.ts more explicit to fix an error
+
 ## 0.0.11
 
 ### Patch Changes
