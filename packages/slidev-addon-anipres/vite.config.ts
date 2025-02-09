@@ -22,7 +22,12 @@ export default defineConfig({
      * References:
      * - Vite Dep Pre-Bundling: https://vitejs.dev/guide/dep-pre-bundling.html
      */
-    include: ["react", "react-dom", "react-dom/client", "tldraw"],
+    include: [
+      "slidev-addon-anipres > react",
+      "slidev-addon-anipres > react-dom",
+      "slidev-addon-anipres > react-dom/client",
+      "slidev-addon-anipres > tldraw",
+    ],
   },
   plugins: [
     {
