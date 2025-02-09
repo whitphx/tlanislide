@@ -12,6 +12,18 @@ function resolveSnapshotPath() {
 }
 
 export default defineConfig({
+  optimizeDeps: {
+    /*
+     * In dev mode, Vite serves native ESM, so CommonJS packages like "react" don't expose named exports (e.g., useCallback) correctly,
+     * which causes runtime errors like 'The requested module ... does not provide an export named ...'
+     * when this package is used in the dev mode of Slidev.
+     * Configuring `optimizeDeps` here tells Vite to pre-bundle these dependencies so that they behave as ES modules.
+     *
+     * References:
+     * - Vite Dep Pre-Bundling: https://vitejs.dev/guide/dep-pre-bundling.html
+     */
+    include: ["react", "react-dom", "react-dom/client", "tldraw"],
+  },
   plugins: [
     {
       name: "anipres-server",
