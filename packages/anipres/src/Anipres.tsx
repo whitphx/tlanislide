@@ -566,12 +566,18 @@ export const Anipres = React.forwardRef<AnipresRef, AnipresProps>(
       },
     }));
 
+    const serializedAssetUrls = assetUrls ? JSON.stringify(assetUrls) : null;
+    const memoizedAssetUrls = useMemo(
+      () => (serializedAssetUrls ? JSON.parse(serializedAssetUrls) : null),
+      [serializedAssetUrls],
+    );
+
     return (
       <MemoizedInner
         onMount={handleMount}
         perInstanceAtoms={anipresAtoms}
         snapshot={snapshot}
-        assetUrls={assetUrls}
+        assetUrls={memoizedAssetUrls}
       />
     );
   },
