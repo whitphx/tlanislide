@@ -1,5 +1,18 @@
 # slidev-addon-anipres
 
+## 0.0.14
+
+### Patch Changes
+
+- [#90](https://github.com/whitphx/anipres/pull/90) [`6a5cd3a`](https://github.com/whitphx/anipres/commit/6a5cd3a288999adbf4240f92a8aeb4d441d233ab) Thanks [@whitphx](https://github.com/whitphx)! - Font customization option
+
+- [#93](https://github.com/whitphx/anipres/pull/93) [`b4ea935`](https://github.com/whitphx/anipres/commit/b4ea93535d4e5e9ff98eff1ebdc4606d0c61fcde) Thanks [@whitphx](https://github.com/whitphx)! - Add fontUrl prop
+
+- [#92](https://github.com/whitphx/anipres/pull/92) [`5219a87`](https://github.com/whitphx/anipres/commit/5219a8728bd42356c34a3b45f44df03469a7ea11) Thanks [@whitphx](https://github.com/whitphx)! - Keep Anipres mounted after the initial mount
+
+- Updated dependencies [[`6a5cd3a`](https://github.com/whitphx/anipres/commit/6a5cd3a288999adbf4240f92a8aeb4d441d233ab)]:
+  - anipres@0.0.11
+
 ## 0.0.13
 
 ### Patch Changes
