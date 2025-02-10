@@ -30,6 +30,7 @@ import {
   setUserPreferences,
   type Editor,
   type TLStoreSnapshot,
+  type TLEditorAssetUrls,
 } from "tldraw";
 import { ref, useTemplateRef, watch } from "vue";
 import { useCssVar, useStyleTag, onClickOutside } from "@vueuse/core";
@@ -53,10 +54,12 @@ const props = withDefaults(
     id: string;
     editable?: boolean;
     start?: number;
+    fonts?: Partial<TLEditorAssetUrls["fonts"]>;
   }>(),
   {
     editable: true,
     start: 0,
+    fonts: () => ({}),
   },
 );
 
@@ -182,6 +185,7 @@ const isSlideActive = useIsSlideActive();
       :presentationMode="!isEditing"
       :snapshot="savedSnapshot"
       :startStep="props.start"
+      :assetUrls="{ fonts }"
     />
   </div>
 </template>
