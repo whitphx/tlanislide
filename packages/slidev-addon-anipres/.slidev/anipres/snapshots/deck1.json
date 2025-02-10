@@ -109,8 +109,8 @@
         "typeName": "shape"
       },
       "shape:m1Z89tZ5ljyoOj19VovWo": {
-        "x": 73.3701344147461,
-        "y": 126.14306484532105,
+        "x": 82.33255913712557,
+        "y": 132.3350641125389,
         "rotation": 0,
         "isLocked": false,
         "opacity": 1,
@@ -196,6 +196,29 @@
         },
         "parentId": "page:page",
         "index": "a69s8",
+        "typeName": "shape"
+      },
+      "shape:KVDfOIi8DPS1c_2jUTCfv": {
+        "x": 2.598315511663415,
+        "y": 52.99142028838121,
+        "rotation": 0,
+        "isLocked": false,
+        "opacity": 1,
+        "meta": {},
+        "id": "shape:KVDfOIi8DPS1c_2jUTCfv",
+        "type": "text",
+        "props": {
+          "color": "black",
+          "size": "m",
+          "w": 151.53121948242188,
+          "text": "Hello World\nこんにちは世界",
+          "font": "draw",
+          "textAlign": "start",
+          "autoSize": true,
+          "scale": 1
+        },
+        "parentId": "page:page",
+        "index": "a785o",
         "typeName": "shape"
       }
     },
