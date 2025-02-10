@@ -6,7 +6,7 @@ clicks: 4
 
 ## Anipres 1
 
-<SlidevAnipres id="deck1" :fonts="{ draw: '/YuseiMagic-Regular.ttf' }" />
+<SlidevAnipres id="deck1" fontUrl="/YuseiMagic-Regular.ttf" />
 
 ---
 clicks: 4

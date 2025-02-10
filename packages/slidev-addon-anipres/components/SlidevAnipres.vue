@@ -32,7 +32,7 @@ import {
   type TLStoreSnapshot,
   type TLEditorAssetUrls,
 } from "tldraw";
-import { ref, useTemplateRef, watch } from "vue";
+import { ref, useTemplateRef, watch, computed } from "vue";
 import { useCssVar, useStyleTag, onClickOutside } from "@vueuse/core";
 import {
   onSlideEnter,
@@ -54,14 +54,21 @@ const props = withDefaults(
     id: string;
     editable?: boolean;
     start?: number;
-    fonts?: Partial<TLEditorAssetUrls["fonts"]>;
+    fontUrls?: Partial<TLEditorAssetUrls["fonts"]>;
+    fontUrl?: string; // Short hand for fontUrls.draw
   }>(),
   {
     editable: true,
     start: 0,
-    fonts: () => ({}),
+    fontUrls: () => ({}),
+    fontUrl: undefined,
   },
 );
+
+const fontUrls = computed(() => ({
+  ...props.fontUrls,
+  draw: props.fontUrls.draw ?? props.fontUrl,
+}));
 
 const { isDark } = useDarkMode();
 watch(
@@ -197,7 +204,7 @@ watch(
       :presentationMode="!isEditing"
       :snapshot="savedSnapshot"
       :startStep="props.start"
-      :assetUrls="{ fonts }"
+      :assetUrls="{ fonts: fontUrls }"
     />
   </div>
 </template>
