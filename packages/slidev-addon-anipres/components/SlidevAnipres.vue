@@ -109,7 +109,7 @@ onSlideEnter(() => {
   // So we do a second rerender after a short delay.
   setTimeout(() => {
     rerender();
-  }, 100);
+  }, 300);
 });
 
 const handleMount = (editor: Editor) => {
@@ -162,12 +162,24 @@ onSlideLeave(() => {
 });
 
 // Mount the Anipres component only when the slide is active.
-// Slidev attaches `display: none` to the non-active slides
+// Slidev attaches `display: none` to the inactive slides
 // so such slides are not rendered and the client DOM size is calculated as 0.
-// In such non-active slides, the Tldraw component fails to initialize some shapes, e.g. text as https://github.com/whitphx/anipres/issues/87
-// So we mount the Anipres component only when the slide is active,
+// In such inactive slides, the Tldraw component fails to initialize some shapes, e.g. text as https://github.com/whitphx/anipres/issues/87
+// So we mount the Anipres component only after the slide is active,
 // while this workaround causes the Anipres component to be displayed with some delay after the slide becomes active.
 const isSlideActive = useIsSlideActive();
+// Also, we need to keep the Anipres component mounted even after the slide becomes inactive.
+// So we use a `isMountedOnce` ref to track the condition.
+const isMountedOnce = ref(false);
+watch(
+  isSlideActive,
+  (isActive) => {
+    if (isActive) {
+      isMountedOnce.value = true;
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -177,7 +189,7 @@ const isSlideActive = useIsSlideActive();
     @dblclick="onDblclick"
   >
     <Anipres
-      v-if="isSlideActive"
+      v-if="isMountedOnce"
       ref="anipres"
       @mount="handleMount"
       :step="$clicks"
