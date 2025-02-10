@@ -1,5 +1,11 @@
 # anipres
 
+## 0.0.11
+
+### Patch Changes
+
+- [#90](https://github.com/whitphx/anipres/pull/90) [`6a5cd3a`](https://github.com/whitphx/anipres/commit/6a5cd3a288999adbf4240f92a8aeb4d441d233ab) Thanks [@whitphx](https://github.com/whitphx)! - Font customization option
+
 ## 0.0.10
 
 ### Patch Changes
