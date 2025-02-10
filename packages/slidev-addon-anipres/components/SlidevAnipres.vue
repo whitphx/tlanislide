@@ -59,7 +59,7 @@ const props = withDefaults(
   {
     editable: true,
     start: 0,
-    fonts: {} as Partial<TLEditorAssetUrls["fonts"]>,
+    fonts: () => ({}),
   },
 );
 
