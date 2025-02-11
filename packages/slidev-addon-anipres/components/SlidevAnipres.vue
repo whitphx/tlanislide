@@ -39,7 +39,6 @@ import {
   onSlideLeave,
   useDarkMode,
   useSlideContext,
-  useIsSlideActive,
 } from "@slidev/client";
 import "anipres/anipres.css";
 // @ts-expect-error virtual import
@@ -174,19 +173,12 @@ onSlideLeave(() => {
 // In such inactive slides, the Tldraw component fails to initialize some shapes, e.g. text as https://github.com/whitphx/anipres/issues/87
 // So we mount the Anipres component only after the slide is active,
 // while this workaround causes the Anipres component to be displayed with some delay after the slide becomes active.
-const isSlideActive = useIsSlideActive();
 // Also, we need to keep the Anipres component mounted even after the slide becomes inactive.
 // So we use a `isMountedOnce` ref to track the condition.
 const isMountedOnce = ref(false);
-watch(
-  isSlideActive,
-  (isActive) => {
-    if (isActive) {
-      isMountedOnce.value = true;
-    }
-  },
-  { immediate: true },
-);
+onSlideEnter(() => {
+  isMountedOnce.value = true;
+});
 </script>
 
 <template>
