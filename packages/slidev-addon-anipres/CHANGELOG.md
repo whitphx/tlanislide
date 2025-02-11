@@ -1,5 +1,11 @@
 # slidev-addon-anipres
 
+## 0.0.15
+
+### Patch Changes
+
+- [#97](https://github.com/whitphx/anipres/pull/97) [`d95c3ce`](https://github.com/whitphx/anipres/commit/d95c3ce5761dc9bec0210eeb469592e8266be878) Thanks [@whitphx](https://github.com/whitphx)! - Refactoring the isMountedOnce ref
+
 ## 0.0.14
 
 ### Patch Changes
