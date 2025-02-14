@@ -135,11 +135,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Ref: https://github.com/KonghaYao/cn-font-split/issues/149#issuecomment-2656511551
-      - run: pnpm dlx cn-font-split i default
-
-      - run: pnpm dlx cn-font-split ls
-
       - uses: actions/download-artifact@v4
         with:
           name: anipres-dist

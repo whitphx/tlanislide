@@ -115,6 +115,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.5
         version: 18.3.5(@types/react@18.3.18)
+      cn-font-split:
+        specifier: ^7.2.2
+        version: 7.2.2
       vite-plugin-font:
         specifier: ^5.1.0
         version: 5.1.0
