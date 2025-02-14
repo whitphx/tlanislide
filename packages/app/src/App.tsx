@@ -1,5 +1,8 @@
 import { Anipres } from "anipres";
-import { css, fontFamilyFallback } from "../public/XiaolaiSC-Regular.ttf";
+import {
+  css as xiaolaiCss,
+  fontFamilyFallback as xiaolaiFontFamilyFallback,
+} from "../public/XiaolaiSC-Regular.ttf";
 import "anipres/anipres.css";
 
 function App() {
@@ -19,7 +22,7 @@ function App() {
         }
 
         .tl-container {
-          --tl-font-draw: Excalifont-Regular, '${css.family}', ${fontFamilyFallback}, 'tldraw_draw';
+          --tl-font-draw: Excalifont-Regular, '${xiaolaiCss.family}', ${xiaolaiFontFamilyFallback}, 'tldraw_draw';
         }
       `}</style>
       <Anipres />
