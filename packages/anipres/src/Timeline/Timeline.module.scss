@@ -12,6 +12,7 @@ $inbetween-droppable-cell-width: 16px;
     display: flex;
     flex-direction: column;
     min-width: 40px;
+    flex-shrink: 0;
     padding: 0 0 var(--space-2);
 
     border-radius: var(--radius-2);
@@ -42,7 +43,6 @@ $inbetween-droppable-cell-width: 16px;
   }
 
   .droppableColumn {
-    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -54,7 +54,7 @@ $inbetween-droppable-cell-width: 16px;
 
   .frameBatchCell {
     position: relative;
-    width: 100%;
+    margin: 0 auto 0 0;
     height: $row-height;
     display: flex;
     align-items: center;
