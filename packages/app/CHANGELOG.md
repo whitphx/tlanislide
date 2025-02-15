@@ -1,5 +1,14 @@
 # app
 
+## 0.0.12
+
+### Patch Changes
+
+- [#102](https://github.com/whitphx/anipres/pull/102) [`5f34a4f`](https://github.com/whitphx/anipres/commit/5f34a4f8fb6298b86633493bdc89a70f37931bb8) Thanks [@whitphx](https://github.com/whitphx)! - Excalidraw's fonts
+
+- Updated dependencies [[`59b2f88`](https://github.com/whitphx/anipres/commit/59b2f88c87fe129ba53b2285c2b40641b01f7652)]:
+  - anipres@0.0.12
+
 ## 0.0.11
 
 ### Patch Changes
