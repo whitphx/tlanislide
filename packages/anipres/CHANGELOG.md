@@ -1,5 +1,11 @@
 # anipres
 
+## 0.0.12
+
+### Patch Changes
+
+- [#108](https://github.com/whitphx/anipres/pull/108) [`59b2f88`](https://github.com/whitphx/anipres/commit/59b2f88c87fe129ba53b2285c2b40641b01f7652) Thanks [@whitphx](https://github.com/whitphx)! - Limit the timeline UI height
+
 ## 0.0.11
 
 ### Patch Changes
