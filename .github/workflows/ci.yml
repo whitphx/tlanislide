@@ -166,13 +166,12 @@ jobs:
           name: app-dist
           path: packages/app/dist
 
-      - name: Publish
-        uses: cloudflare/pages-action@v1
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'anipres'
-          directory: packages/app/dist
+          command: pages deploy packages/app/dist --project-name=anipres
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   release:
