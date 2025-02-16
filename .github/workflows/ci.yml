@@ -151,7 +151,6 @@ jobs:
           name: app-dist
           path: packages/app/dist/
 
-  # Deploy job
   deploy-app:
     needs: [build-app]
 
@@ -171,7 +170,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy packages/app/dist --project-name=anipres
+          command: pages deploy packages/app/dist --project-name=anipres --branch=${{ github.head_ref || github.ref_name }} --commit-hash=${{ github.sha }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   release:
