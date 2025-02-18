@@ -207,11 +207,6 @@ jobs:
 
       # slidev-addon-anipres will be published without building
 
-      # # Ref: https://github.com/pnpm/pnpm/issues/3141#issuecomment-1305563972
-      # - name: Set publishing config
-      #   # Refer to the environment variable in the config as https://pnpm.io/npmrc#url_authtoken
-      #   run: pnpm config set '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
-
       - name: Package and Publish
         id: changesets
         uses: changesets/action@v1
