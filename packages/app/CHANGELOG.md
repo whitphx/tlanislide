@@ -1,5 +1,11 @@
 # app
 
+## 0.0.13
+
+### Patch Changes
+
+- [#110](https://github.com/whitphx/anipres/pull/110) [`eefe50b`](https://github.com/whitphx/anipres/commit/eefe50b804dfb43c890046c5dff942ceaf91247b) Thanks [@whitphx](https://github.com/whitphx)! - Set title
+
 ## 0.0.12
 
 ### Patch Changes
